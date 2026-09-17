@@ -6,11 +6,9 @@ from supabase import create_client
 
 auth_bp = Blueprint('auth', __name__)
 
-# Dynamically assigned by app.py upon initialization
 supabase = None 
 
 def get_admin_client():
-    """Helper to create a dedicated Admin Client for secure tasks"""
     admin_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     if not admin_key:
         raise RuntimeError("Missing SUPABASE_SERVICE_ROLE_KEY for admin auth operations.")
@@ -26,7 +24,6 @@ def handle_api_login():
         if not email or not password:
             return jsonify({"success": False, "message": "Missing authentication parameters"}), 400
 
-        # Strict Security Verification
         auth_response = supabase.auth.sign_in_with_password({
             "email": email,
             "password": password
@@ -34,7 +31,6 @@ def handle_api_login():
         user_uuid = auth_response.user.id
         token = auth_response.session.access_token
         
-        # 1. Initialize variables before the 'if' checks
         role = "admin" 
         display_name = "System User"
         company_str = "GT Lantin Internal"
@@ -93,29 +89,23 @@ def register_staff():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
-
 @auth_bp.route('/api/auth/register-driver', methods=['POST'])
 def register_driver_profile():
     try:
         data = request.get_json() or {}
-        email = str(data.get('email', '')).strip().lower()
         full_name = data.get('full_name')
+        phone_no = str(data.get('phone_no', '09123456789')).strip()
 
-        if not email or not full_name:
-            return jsonify({"success": False, "message": "Driver name and email are required."}), 400
+        if not full_name:
+            return jsonify({"success": False, "message": "Driver name is required."}), 400
 
-        admin_supabase = get_admin_client()
-        auth_res = admin_supabase.auth.admin.create_user({
-            "email": email,
-            "password": uuid.uuid4().hex,
-            "email_confirm": True
-        })
-        uid = auth_res.user.id
+        uid = str(uuid.uuid4())
+        dummy_username = f"driver_{uid}"
 
         supabase.table('user_account').insert({
             "user_id": uid,
-            "role": None,
-            "username": email,
+            "role": 'driver',
+            "username": dummy_username,
             "full_name": full_name
         }).execute()
 
@@ -123,17 +113,18 @@ def register_driver_profile():
             "user_id": uid,
             "full_name": full_name,
             "birthday": data.get('birthday', '1995-05-15'),
-            "license_no": data.get('license_no'),
-            "license_expiry": data.get('license_expiry', '2031-12-31'),
-            "date_hired": data.get('date_hired'),
-            "employment_status": "Active",
-            "is_backup": "No"
+            "phone_no": phone_no,
+            "date_hired": data.get('date_hired', '2024-01-01'),
+            "employment_status": data.get('employment_status', 'Active'),
+            "is_backup": data.get('is_backup', 'No')
         }).execute()
 
         return jsonify({"success": True, "message": "Driver profile registered."}), 201
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
-
+        error_message = str(e)
+        if "unique_driver_phone" in error_message or "23505" in error_message:
+            return jsonify({"success": False, "message": "This phone number is already registered to another driver."}), 400
+        return jsonify({"success": False, "message": error_message}), 500
 
 @auth_bp.route('/api/auth/update-password', methods=['POST'])
 def update_user_password():
@@ -147,7 +138,6 @@ def update_user_password():
         return jsonify({"success": True, "message": "Password updated!"}), 200
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
-
 
 @auth_bp.route('/api/auth/system-users', methods=['GET'])
 def get_system_users():
@@ -182,58 +172,49 @@ def get_system_users():
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
-
-# ─────────── ENDPOINT: UPDATE DRIVER DATA ───────────
 @auth_bp.route('/api/auth/update-driver/<driver_id>', methods=['PUT'])
 def update_driver(driver_id):
     try:
         data = request.get_json() or {}
-        new_email = data.get("email", "").strip().lower()
+        full_name = data.get("full_name")
+        phone_no = str(data.get("phone_no", "09123456789")).strip()
         
-        if new_email:
-            try:
-                admin_supabase = get_admin_client()
-                admin_supabase.auth.admin.update_user_by_id(
-                    driver_id,
-                    attributes={"email": new_email, "email_confirm": True}
-                )
-            except Exception as auth_err:
-                print(f"Driver auth email sync skipped: {auth_err}")
-        
-        supabase.table("user_account").update({
-            "full_name": data.get("full_name"),
-            "username": new_email
-        }).eq("user_id", driver_id).execute()
-        
-        supabase.table("driver_profile").update({
-            "full_name": data.get("full_name"),
+        driver_update = {
+            "full_name": full_name,
             "birthday": data.get("birthday"),
-            "license_no": data.get("license_no"),
-            "employment_status": data.get("employment_status")
-        }).eq("user_id", driver_id).execute()
+            "phone_no": phone_no,
+            "employment_status": data.get("employment_status", "Active")
+        }
+        if "is_backup" in data:
+            driver_update["is_backup"] = data["is_backup"]
+
+        profile_res = supabase.table("driver_profile").update(driver_update).eq("driver_id", driver_id).execute()
         
-        return jsonify({"success": True, "message": "Driver profile fields updated safely."}), 200
+        if profile_res.data and len(profile_res.data) > 0:
+            user_id = profile_res.data[0].get("user_id")
+            if user_id and full_name:
+                supabase.table("user_account").update({"full_name": full_name}).eq("user_id", user_id).execute()
+        
+        return jsonify({"success": True, "message": "Driver profile updated successfully."}), 200
     except Exception as e:
-        print(f"Driver Update Error: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        error_message = str(e)
+        if "unique_driver_phone" in error_message or "23505" in error_message:
+            return jsonify({"success": False, "message": "This phone number is already registered to another driver."}), 400
+        print(f"Driver Update Error: {error_message}")
+        return jsonify({"success": False, "message": error_message}), 500
 
-
-# ─────────── ENDPOINT: PURGE DRIVER FROM SYSTEM ───────────
 @auth_bp.route('/api/auth/delete-driver/<driver_id>', methods=['DELETE'])
 def delete_driver(driver_id):
     try:
-        supabase.table("driver_profile").delete().eq("user_id", driver_id).execute()
-        supabase.table("user_account").delete().eq("user_id", driver_id).execute()
+        profile = supabase.table("driver_profile").select("user_id").eq("driver_id", driver_id).execute()
+        user_id = profile.data[0].get("user_id") if profile.data else None
         
-        try:
-            admin_supabase = get_admin_client()
-            admin_supabase.auth.admin.delete_user(driver_id)
-        except Exception as auth_err:
-            print(f"Driver auth deletion skipped: {auth_err}")
+        supabase.table("driver_profile").delete().eq("driver_id", driver_id).execute()
+        
+        if user_id:
+            supabase.table("user_account").delete().eq("user_id", user_id).execute()
         
         return jsonify({"success": True, "message": "Driver completely expunged from system."}), 200
     except Exception as e:
         print(f"Driver Delete Error: {e}")
-        return jsonify({"success": False, "message": f"Server processing error: {str(e)}"}), 500
-
-
+        return jsonify({"success": False, "message": f"Server processing error: {str(e)}"}), 500    

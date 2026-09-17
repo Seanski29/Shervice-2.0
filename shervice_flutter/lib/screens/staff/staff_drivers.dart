@@ -16,17 +16,15 @@ class _StaffDriversState extends State<StaffDrivers> {
   String _refreshSeed = DateTime.now().millisecondsSinceEpoch.toString();
 
   void _showDriverModal(BuildContext context, DriverProfileModel driver) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => DriverFormDialog(
-        driver: driver,
-        backendUrl: backendUrl,
-        onDelete: null, // 🔒 Staff cannot delete records
-        onSuccess: () {
-          _triggerInstantRefresh(); // Instantly catches modifications on save
-        },
+    DriverFormDialogs.showViewDriverModal(
+      context,
+      driver,
+      onEdit: () => DriverFormDialogs.showEditDriverDialog(
+        context,
+        driver,
+        onSuccess: _triggerInstantRefresh,
       ),
+      // 🔒 Staff cannot delete records, so onDelete is purposely omitted (null)
     );
   }
 
@@ -43,19 +41,20 @@ class _StaffDriversState extends State<StaffDrivers> {
     return Scaffold(
       // Dynamic Scaffold Background
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      
+
       body: SharedDriversView(
         // The unique value key tells Flutter to destroy the old layout cache and fetch fresh data
         key: ValueKey('staff_drivers_list_$_refreshSeed'),
-        canManage: false, // 🔒 Prevents Staff from seeing admin management options
+        canManage:
+            false, // 🔒 Prevents Staff from seeing admin management options
         onDriverTapped: (ctx, model) {
           if (model != null) _showDriverModal(ctx, model);
         },
-        
+
         // 👇 Utilizing the newly revitalized SharedDriversView parameters
         title: 'Driver Records',
         subtitle: 'View and manage driver profiles.',
-        // Notice we do NOT pass an actionWidget here. 
+        // Notice we do NOT pass an actionWidget here.
         // This ensures the "Add Driver" button stays hidden for Staff, while keeping the layout structurally identical to the Admin side!
       ),
     );

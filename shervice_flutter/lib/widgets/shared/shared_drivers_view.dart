@@ -6,14 +6,14 @@ import '../driver/driver_profile_model.dart';
 import '../../constant.dart';
 import '../driver/driver_rating_badge.dart';
 import 'universal_pagination.dart';
+import '../driver/driver_form_dialog.dart';
 
 class SharedDriversView extends StatefulWidget {
   final bool canManage;
   final String title;
   final String subtitle;
   final Widget? actionWidget;
-  final Function(BuildContext context, DriverProfileModel? driver)?
-  onDriverTapped;
+  final Function(BuildContext context, DriverProfileModel? driver)? onDriverTapped;
 
   const SharedDriversView({
     super.key,
@@ -99,12 +99,10 @@ class SharedDriversViewState extends State<SharedDriversView> {
 
   void _applyFiltersAndSort() {
     List<DriverProfileModel> temp = _allDrivers.where((driver) {
-      // 1. Search Query Match
       final matchesSearch = driver.name.toLowerCase().contains(
         _searchQuery.toLowerCase(),
       );
 
-      // 2. Status Card Match
       bool matchesStatus = true;
       if (_selectedStatusFilter == 'Active') {
         matchesStatus = driver.status.toLowerCase() == 'active';
@@ -146,7 +144,6 @@ class SharedDriversViewState extends State<SharedDriversView> {
     return _filteredDrivers.sublist(start, end);
   }
 
-  // --- Stats Calculations ---
   int get _totalDrivers => _allDrivers.length;
   int get _activeDrivers =>
       _allDrivers.where((d) => d.status.toLowerCase() == 'active').length;
@@ -169,7 +166,6 @@ class SharedDriversViewState extends State<SharedDriversView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ─── HEADER & ACTIONS ───
             isMobile
                 ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,12 +185,10 @@ class SharedDriversViewState extends State<SharedDriversView> {
                   ),
             const SizedBox(height: 24),
 
-            // ─── TOP SUMMARY STATS (Pills) ───
             if (!_isLoading && _allDrivers.isNotEmpty)
               _buildTopSummaryStats(isDark, isMobile),
             const SizedBox(height: 24),
 
-            // ─── DRIVER LIST ───
             if (_isLoading)
               const Padding(
                 padding: EdgeInsets.all(40),
@@ -231,7 +225,6 @@ class SharedDriversViewState extends State<SharedDriversView> {
                         );
                       },
                     ),
-                    // ─── PAGINATION ───
                     _buildPaginationFooter(isDark),
                   ],
                 ),
@@ -377,6 +370,22 @@ class SharedDriversViewState extends State<SharedDriversView> {
             padding: EdgeInsets.zero,
           ),
         ),
+        if (widget.canManage)
+          ElevatedButton.icon(
+            onPressed: () => DriverFormDialogs.showAddDriverDialog(
+              context,
+              onSuccess: refreshData,
+            ),
+            icon: const Icon(Icons.add, size: 16),
+            label: const Text("Add Driver"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2563EB),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
         if (widget.actionWidget != null)
           SizedBox(height: 40, child: widget.actionWidget!),
       ],
@@ -530,6 +539,21 @@ class SharedDriversViewState extends State<SharedDriversView> {
       onTap: () {
         if (widget.onDriverTapped != null) {
           widget.onDriverTapped!(context, driver);
+        } else {
+          DriverFormDialogs.showViewDriverModal(
+            context,
+            driver,
+            onEdit: () => DriverFormDialogs.showEditDriverDialog(
+              context,
+              driver,
+              onSuccess: refreshData,
+            ),
+            onDelete: () => DriverFormDialogs.showDeleteConfirmationDialog(
+              context,
+              driver,
+              onSuccess: refreshData,
+            ),
+          );
         }
       },
       child: Container(
@@ -542,7 +566,6 @@ class SharedDriversViewState extends State<SharedDriversView> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Left indicator bar
             Container(
               width: 4,
               height: 36,
@@ -552,7 +575,6 @@ class SharedDriversViewState extends State<SharedDriversView> {
                 borderRadius: BorderRadius.circular(4),
               ),
             ),
-            // Middle Content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -578,8 +600,8 @@ class SharedDriversViewState extends State<SharedDriversView> {
                         isDark,
                       ),
                       _cardIconText(
-                        Icons.card_membership,
-                        "Lic: ${driver.licenseNumber}",
+                        Icons.phone_outlined,
+                        "Phone: ${driver.phoneNumber}",
                         isDark,
                       ),
                       _cardIconText(
@@ -610,29 +632,55 @@ class SharedDriversViewState extends State<SharedDriversView> {
               ),
             ),
             const SizedBox(width: 12),
-            // Right Content
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  driver.status.toUpperCase(),
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.5,
+            if (widget.canManage)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    color: const Color(0xFF2563EB),
+                    tooltip: "Edit Driver",
+                    onPressed: () => DriverFormDialogs.showEditDriverDialog(
+                      context,
+                      driver,
+                      onSuccess: refreshData,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 14,
-                  color: isDark
-                      ? Colors.grey.shade600
-                      : const Color(0xFF94A3B8),
-                ),
-              ],
-            ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    color: Colors.red.shade600,
+                    tooltip: "Delete Driver",
+                    onPressed: () => DriverFormDialogs.showDeleteConfirmationDialog(
+                      context,
+                      driver,
+                      onSuccess: refreshData,
+                    ),
+                  ),
+                ],
+              )
+            else
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    driver.status.toUpperCase(),
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 14,
+                    color: isDark
+                        ? Colors.grey.shade600
+                        : const Color(0xFF94A3B8),
+                  ),
+                ],
+              ),
           ],
         ),
       ),

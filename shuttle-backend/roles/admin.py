@@ -16,14 +16,11 @@ try:
 except ImportError:
     is_trained = False
 
-# Blueprint must be defined first so decorators can use it down the line
 admin_bp = Blueprint('admin', __name__)
 
-# Dynamically assigned by app.py upon initialization
 supabase = None
 
 def get_admin_client():
-    """Helper to create a dedicated Admin Client for secure Auth modifications"""
     admin_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     if not admin_key:
         raise RuntimeError("Missing SUPABASE_SERVICE_ROLE_KEY for admin auth operations.")
@@ -31,7 +28,6 @@ def get_admin_client():
 
 
 def _normalize_xls_cell(value: Any) -> Any:
-    """Normalizes raw .xls cell values to strings and plain Python values."""
     if value is None:
         return ""
     if isinstance(value, float):
@@ -44,7 +40,6 @@ def _normalize_xls_cell(value: Any) -> Any:
 
 
 def parse_legacy_xls_bytes(file_bytes: bytes) -> Dict[str, Any]:
-    """Reads a legacy .xls workbook, normalizes rows, and converts it to XLSX in memory."""
     try:
         workbook = xlrd.open_workbook(file_contents=file_bytes)
         sheet = workbook.sheet_by_index(0)
@@ -102,10 +97,9 @@ def parse_legacy_xls_bytes(file_bytes: bytes) -> Dict[str, Any]:
         return {"success": False, "error": f"Unable to convert legacy .xls file: {exc}"}
 
 
-# ─────────── DIAGNOSTIC DATABASE CHECKS (DRIVERS USE THIS) ───────────
 @admin_bp.route('/api/test-db', methods=['GET'])
+@admin_bp.route('/driver/all', methods=['GET'])
 def diagnostic_database_check():
-    """Fetches all driver profiles, calculates ratings, and links them to the Flutter UI"""
     try:
         test_query = supabase.table('driver_profile').select(
             '*, user_account(username)'
@@ -139,6 +133,9 @@ def diagnostic_database_check():
             linked_account = row.get('user_account') or {}
             row['username'] = linked_account.get('username', '')
             
+            if not row.get('phone_no'):
+                row['phone_no'] = '09123456789'
+                
             d_uuid = row.get('user_id')
             scores = driver_scores.get(d_uuid, [])
             row['rating'] = sum(scores) / len(scores) if scores else 0.0
@@ -155,10 +152,9 @@ def diagnostic_database_check():
         print(f"❌ Diagnostic database connection failed: {e}")
         return jsonify({"connection_status": "FAILED", "error_details": str(e)}), 500
 
-# ─────────── TRIP SCHEDULES ───────────
+
 @admin_bp.route('/trips', methods=['GET'])
 def get_admin_schedules():
-    """Fetches all trip schedules, fetches actual company safely, and attaches passenger CSAT ratings."""
     try:
         _sweep_expired_trips()
         trips_res = supabase.table('trip_schedule').select(
@@ -216,10 +212,9 @@ def get_admin_schedules():
         print(f"❌ Admin Schedule Fetch Exception: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
-# ─────────── UNIFIED MUTUAL EVALUATIONS SINGLE-TABLE ENDPOINT ───────────
+
 @admin_bp.route('/api/admin/attendance/upload-legacy-xls', methods=['POST'])
 def upload_legacy_xls_attendance():
-    """Reads legacy .xls uploads, converts them in memory to xlsx, and returns the normalized rows."""
     try:
         if 'file' not in request.files:
             return jsonify({"success": False, "error": "No file uploaded."}), 400
@@ -250,10 +245,9 @@ def upload_legacy_xls_attendance():
 
 @admin_bp.route('/api/dashboard/metrics', methods=['GET'])
 def get_dashboard_metrics():
-    """Calculates unified fleet parameters, active counts, and monthly completed trip metrics live"""
     try:
         drivers_query = supabase.table('driver_profile').select(
-            'driver_id, user_id, full_name, license_no, license_expiry, '
+            'driver_id, user_id, full_name, phone_no, '
             'employment_status, date_hired, birthday, user_account(username)'
         ).execute()
         all_drivers = drivers_query.data or []
@@ -264,8 +258,7 @@ def get_dashboard_metrics():
                 "driver_id": driver.get('driver_id'),
                 "user_id": driver.get('user_id'),
                 "username": (driver.get('user_account') or {}).get('username'),
-                "license_no": driver.get('license_no'),
-                "license_expiry": driver.get('license_expiry'),
+                "phone_no": driver.get('phone_no', '09123456789'),
                 "employment_status": driver.get('employment_status', 'Active'),
                 "date_hired": driver.get('date_hired'),
                 "birthday": driver.get('birthday')
@@ -480,11 +473,9 @@ def get_dashboard_metrics():
         print(f"❌ Dashboard Metrics Engine Failure: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
-# ─────────── NEW: MONTHLY DRIVER LEADERBOARD & OVERALL AVERAGE ───────────
 
 @admin_bp.route('/api/dashboard/driver-leaderboard', methods=['GET'])
 def get_driver_leaderboard():
-    """Fetches top drivers with a unified evaluation loop that correctly handles All-Time and filtered periods."""
     global is_trained, model, scaler
     try:
         if not is_trained:
@@ -498,23 +489,19 @@ def get_driver_leaderboard():
         raw_month = request.args.get('month', '0').lower()
         limit_param = request.args.get('limit', '10').lower()
         
-        # 1. Grab ALL driver profiles (Guarantees all 41+ show up)
         drivers_res = supabase.table('driver_profile').select('*').limit(5000).execute()
         all_drivers = drivers_res.data or []
         
         driver_scores = {str(d['user_id']): [] for d in all_drivers}
         driver_details = {str(d['user_id']): d for d in all_drivers}
 
-        # 2. Grab ALL trips to map evaluations safely
         trips_res = supabase.table('trip_schedule').select('trip_id, user_id').limit(20000).execute()
         trip_to_driver = {str(t['trip_id']): str(t['user_id']) for t in (trips_res.data or []) if t.get('user_id')}
 
-        # 3. UNIFIED EVALUATION FETCH: Paginate through ALL evaluations cleanly
         raw_evals = []
         batch_size = 1000
         offset = 0
         
-        # Determine if we are filtering by date or pulling everything
         is_all_time = (raw_period == 'all' or raw_year == 'all' or raw_year == '0' or not raw_year.isdigit())
 
         while True:
@@ -547,7 +534,6 @@ def get_driver_leaderboard():
         all_trip_scores = []
         driver_eval_scores = {str(d['user_id']): [] for d in all_drivers}
 
-        # 4. Match scores to drivers
         for ev in raw_evals:
             t_id = str(ev.get('trip_id'))
             driver_id = trip_to_driver.get(t_id)
@@ -562,7 +548,6 @@ def get_driver_leaderboard():
                 driver_scores[driver_id].append(eval_avg)
                 driver_eval_scores[driver_id].append({'safety': s, 'punctuality': p, 'professionalism': pr})
 
-        # 5. Auto-classification check
         for d_id, drv in driver_details.items():
             current_ml = drv.get("ml_classification")
             if not current_ml or current_ml == "Pending Sweep" or current_ml == "Needs Review":
@@ -589,14 +574,13 @@ def get_driver_leaderboard():
                 else:
                     drv["ml_classification"] = "Pending Sweep"
 
-        # 6. Compile Final Payload
         top_drivers = []
         for d_id, scores in driver_scores.items():
             review_count = len(scores)
             avg_rating = sum(scores) / review_count if review_count > 0 else 0.0
             
             drv_info = driver_details.get(d_id, {})
-            license_val = drv_info.get("license_no") or drv_info.get("license_number") or drv_info.get("driver_license") or "N/A"
+            phone_val = drv_info.get("phone_no") or "09123456789"
 
             top_drivers.append({
                 "driver_id": d_id,
@@ -604,19 +588,15 @@ def get_driver_leaderboard():
                 "full_name": drv_info.get("full_name") or "Unknown Driver",
                 "ml_classification": drv_info.get("ml_classification") or "Pending Sweep",
                 "employment_status": drv_info.get("employment_status") or "Active",
-                "license_no": license_val,
+                "phone_no": phone_val,
                 "rating": round(avg_rating, 2),
                 "review_count": review_count,
                 "eval_count": review_count
             })
 
-        # Sort all drivers by Rating -> Total Reviews -> Alphabetical name
         top_drivers.sort(key=lambda x: (x['rating'], x['review_count']), reverse=True)
-
-        # Count EVERY single rated driver across the entire database BEFORE slicing
         total_rated = len([d for d in top_drivers if d['review_count'] > 0])
 
-        # Conditionally slice the list (Returns all 41+ if limit_param is 'all')
         if limit_param != 'all' and limit_param.isdigit():
             display_top_drivers = top_drivers[:int(limit_param)]
         else:
@@ -636,7 +616,7 @@ def get_driver_leaderboard():
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e), "top_drivers": [], "total_rated_drivers": 0, "overall_average": 0.0}), 500
 
-# ─────────── USER INTERFACE ACCOUNT MASTER KEYS ───────────
+
 @admin_bp.route('/api/auth/update-user/<user_id>', methods=['PUT'])
 def update_system_user(user_id):
     try:
@@ -687,10 +667,9 @@ def delete_system_user(user_id):
         print(f"❌ System User Deletion Crash: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
-# ─────────── CLIENT COMPANY MANAGEMENT ───────────
+
 @admin_bp.route('/api/companies', methods=['GET'])
 def get_client_companies():
-    """Fetch all registered client companies with assigned-user totals."""
     try:
         res = supabase.table('client_company').select('*').order('company_name', desc=False).execute()
         profiles = supabase.table('oic_profile').select('company_name').execute().data or []
@@ -710,7 +689,6 @@ def get_client_companies():
 
 @admin_bp.route('/api/companies', methods=['POST'])
 def add_client_company():
-    """Add a new client company."""
     try:
         data = request.get_json() or {}
         name = (data.get('company_name') or '').strip()
@@ -726,7 +704,6 @@ def add_client_company():
 
 @admin_bp.route('/api/companies/<int:company_id>', methods=['DELETE'])
 def delete_client_company(company_id):
-    """Delete a company and prevent deletion if referenced."""
     try:
         comp_res = supabase.table('client_company').select('company_name').eq('company_id', company_id).execute()
         if not comp_res.data:
