@@ -52,22 +52,39 @@ def train_driver_classification_model():
     except Exception as e:
         print(f"❌ Driver ML Compiler Exception: {e}")
 
-@driver_ml_bp.route('/api/drivers/classify/<string:driver_uuid>', methods=['GET'])
-def classify_driver(driver_uuid):
+@driver_ml_bp.route('/api/drivers/classify/<string:driver_identifier>', methods=['GET'])
+def classify_driver(driver_identifier):
     global is_trained, model, scaler
     
     if not is_trained:
         train_driver_classification_model()
         
     try:
-        if not driver_uuid or driver_uuid == 'null' or driver_uuid == 'None':
+        if not driver_identifier or driver_identifier == 'null' or driver_identifier == 'None':
              return jsonify({
                  "success": True, 
                  "classification": "Insufficient Data",
                  "message": "Invalid Driver ID."
              }), 200
 
-        trips_res = supabase.table('trip_schedule').select('trip_id').eq('user_id', driver_uuid).execute()
+        driver_id = None
+        if str(driver_identifier).isdigit():
+            driver_id = int(driver_identifier)
+        else:
+            profile_res = (
+                supabase.table('driver_profile')
+                .select('driver_id')
+                .eq('user_id', driver_identifier)
+                .limit(1)
+                .execute()
+            )
+            if profile_res.data:
+                driver_id = profile_res.data[0].get('driver_id')
+
+        if driver_id is None:
+             return jsonify({"success": True, "classification": "Insufficient Data"}), 200
+
+        trips_res = supabase.table('trip_schedule').select('trip_id').eq('driver_id', driver_id).execute()
         
         if not trips_res.data:
              return jsonify({
@@ -87,7 +104,7 @@ def classify_driver(driver_uuid):
         
         if total_evals < 3:
              # Save Insufficient Data status to DB so it clears "Pending Sweep"
-             supabase.table('driver_profile').update({"ml_classification": "Insufficient Data"}).eq('user_id', driver_uuid).execute()
+             supabase.table('driver_profile').update({"ml_classification": "Insufficient Data"}).eq('driver_id', driver_id).execute()
              return jsonify({
                  "success": True, 
                  "classification": "Insufficient Data",
@@ -110,7 +127,7 @@ def classify_driver(driver_uuid):
         # 🔥 THE MISSING PIECE: SAVE THE ANSWER TO SUPABASE 🔥
         supabase.table('driver_profile').update({
             "ml_classification": predicted_class
-        }).eq('user_id', driver_uuid).execute()
+        }).eq('driver_id', driver_id).execute()
         
         return jsonify({
             "success": True,
@@ -124,7 +141,7 @@ def classify_driver(driver_uuid):
         }), 200
 
     except Exception as e:
-        print(f"🚨 CLASSIFICATION ERROR FOR {driver_uuid}: {e}")
+        print(f"CLASSIFICATION ERROR FOR {driver_identifier}: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
 # ---------------------------------------------------------
@@ -146,8 +163,8 @@ def sweep_all_drivers():
             # or ensure it's imported from your main app file e.g.: from app import supabase
             pass
 
-        drivers_res = supabase.table('driver_profile').select('user_id').limit(5000).execute()
-        driver_ids = [d['user_id'] for d in drivers_res.data] if drivers_res.data else []
+        drivers_res = supabase.table('driver_profile').select('driver_id').limit(5000).execute()
+        driver_ids = [d['driver_id'] for d in drivers_res.data if d.get('driver_id') is not None] if drivers_res.data else []
 
         updated_count = 0
         for d_id in driver_ids:

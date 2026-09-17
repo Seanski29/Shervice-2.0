@@ -137,10 +137,10 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
           if (!mounted) return;
           setState(() {
             _metrics = [
-              DashboardMetric(title: 'All Drivers', value: (metricsMap['totalDrivers'] ?? 0).toString(), subTitle: 'Registered profiles', icon: Icons.people_alt, baseColor: const Color(0xFF3B82F6)),
+              DashboardMetric(title: 'Total Trips', value: (metricsMap['totalTrips'] ?? metricsMap['ongoingTrips'] ?? 0).toString(), subTitle: 'This month', icon: Icons.route, baseColor: const Color(0xFF3B82F6)),
+              DashboardMetric(title: 'Total Passengers', value: (metricsMap['totalPassengers'] ?? 0).toString(), subTitle: 'This month', icon: Icons.groups_outlined, baseColor: const Color(0xFF8B5CF6)),
+              DashboardMetric(title: 'Active Drivers', value: (metricsMap['activeDrivers'] ?? metricsMap['totalDrivers'] ?? 0).toString(), subTitle: 'Available profiles', icon: Icons.people_alt, baseColor: const Color(0xFF06B6D4)),
               DashboardMetric(title: 'Active Vehicles', value: (metricsMap['activeVehicles'] ?? 0).toString(), subTitle: 'Ready for operation', icon: Icons.directions_car, baseColor: const Color(0xFF10B981)),
-              DashboardMetric(title: 'Ongoing Trips', value: (metricsMap['ongoingTrips'] ?? 0).toString(), subTitle: 'Currently in transit', icon: Icons.directions_bus, baseColor: const Color(0xFF8B5CF6)),
-              DashboardMetric(title: 'Unscheduled', value: (metricsMap['unassignedSchedules'] ?? 0).toString(), subTitle: 'Pending assignment', icon: Icons.assignment_late, baseColor: const Color(0xFFF59E0B)),
               DashboardMetric(title: 'Maintenance Alerts', value: (metricsMap['maintenanceAlerts'] ?? 0).toString(), subTitle: 'Attention required', icon: Icons.build_circle, baseColor: const Color(0xFFEF4444)),
             ];
             _alerts = alertsList.map((log) => MaintenanceAlert.fromJson(log)).toList();
@@ -346,7 +346,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
 
   Future<void> _showMetricDetails(DashboardMetric metric) async {
     var details = _metricDetails[metric.title] ?? const <dynamic>[];
-    if (metric.title == 'All Drivers' || (details.isEmpty && metric.value != '0')) {
+    if (metric.title == 'Active Drivers' || (details.isEmpty && metric.value != '0')) {
       final fetchedDetails = await _fetchDetailsForMetric(metric.title);
       if (fetchedDetails.isNotEmpty || details.isEmpty) {
         details = fetchedDetails;
@@ -360,22 +360,24 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
     try {
       if (title == 'Maintenance Alerts') return _alertsAsDetails();
       if (title == 'Client Monthly Dispatches') return _companyTripsAsDetails();
-      final endpoint = title == 'All Drivers' ? '/test-db' : title == 'Active Vehicles' ? '/vehicles' : '/schedules/all';
+      final endpoint = title == 'Active Drivers' ? '/test-db' : title == 'Active Vehicles' ? '/vehicles' : '/schedules/all';
       final response = await http.get(Uri.parse('$backendUrl$endpoint')).timeout(const Duration(seconds: 10));
       if (response.statusCode != 200) return [];
       final data = json.decode(response.body) as Map<String, dynamic>;
       final rawItems = data['data'] ?? data['sample_data_payload'] ?? data['drivers'] ?? data['vehicles'] ?? [];
       if (rawItems is! List) return [];
-      if (title == 'All Drivers') {
-        return rawItems.whereType<Map>().map((item) => {'label': item['full_name'] ?? 'Unnamed Driver', ...Map<String, dynamic>.from(item)}).toList();
+      if (title == 'Active Drivers') {
+        return rawItems.whereType<Map>().where((item) {
+          return (item['employment_status'] ?? 'Active').toString().toLowerCase() == 'active';
+        }).map((item) => {'label': item['full_name'] ?? 'Unnamed Driver', ...Map<String, dynamic>.from(item)}).toList();
       }
       if (title == 'Active Vehicles') {
         return rawItems.whereType<Map>().where((item) => item['is_available'] == true).map((item) => {'label': item['plate_number'] ?? 'Unknown Vehicle', ...Map<String, dynamic>.from(item)}).toList();
       }
       return rawItems.whereType<Map>().where((item) {
         final status = item['trip_status']?.toString().toLowerCase();
-        if (title == 'Ongoing Trips') return status == 'ongoing' || status == 'in progress';
-        return const {'pending staff assignment', 'pending', 'scheduled'}.contains(status) && (item['user_id'] == null || item['vehicle_id'] == null);
+        if (title == 'Total Trips' || title == 'Total Passengers') return true;
+        return const {'pending staff assignment', 'pending', 'scheduled'}.contains(status) && (item['driver_id'] == null || item['vehicle_id'] == null);
       }).map((item) => {'label': 'Trip ${item['trip_id'] ?? 'Unknown'}', 'status': item['trip_status'] ?? 'Needs assignment', ...Map<String, dynamic>.from(item)}).toList();
     } catch (_) {
       return [];
@@ -1134,7 +1136,8 @@ class _DetailsDialogState extends State<_DetailsDialog> {
   IconData get _itemIcon {
     switch (widget.title) {
       case 'Active Vehicles': return Icons.directions_car;
-      case 'All Drivers': return Icons.person_outline;
+      case 'Active Drivers': return Icons.person_outline;
+      case 'Total Passengers': return Icons.groups_outlined;
       case 'Maintenance Alerts': return Icons.car_repair;
       default: return Icons.directions_bus;
     }

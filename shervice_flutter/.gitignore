@@ -50,4 +50,7 @@ app.*.map.json
 !lib/
 !lib/screens/
 !lib/screens/staff/
-!lib/screens/staff/trip_summary_editor_page.dart
+!lib/widgets/
+!lib/widgets/staff/
+!lib/widgets/staff/staff_trips.dart
+!lib/widgets/staff/trip_summary_editor_page.dart

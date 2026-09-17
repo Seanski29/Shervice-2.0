@@ -21,12 +21,8 @@ class _CompanyAnalyticsTabState extends State<CompanyAnalyticsTab> {
 
   static const int _companiesPerPage = 3;
   static const List<String> _statusOptions = [
-    'All states',
+    'All summaries',
     'Completed',
-    'Scheduled',
-    'Ongoing',
-    'Rejected',
-    'Expired',
   ];
 
   String _companyName(dynamic trip) {
@@ -44,7 +40,7 @@ class _CompanyAnalyticsTabState extends State<CompanyAnalyticsTab> {
       int.tryParse((trip['passenger_count'] ?? 0).toString()) ?? 0;
 
   String _driverId(dynamic trip) =>
-      (trip['user_id'] ?? trip['driver_id'] ?? '').toString();
+      (trip['driver_id'] ?? trip['user_id'] ?? '').toString();
 
   String _date(dynamic trip) =>
       (trip['schedule_date'] ?? '').toString().split(' ').first;
@@ -73,7 +69,7 @@ class _CompanyAnalyticsTabState extends State<CompanyAnalyticsTab> {
   }
 
   String _status(dynamic trip) =>
-      (trip['trip_status'] ?? trip['status'] ?? 'Scheduled')
+      (trip['trip_status'] ?? trip['status'] ?? 'Completed')
           .toString()
           .toLowerCase();
 
@@ -82,14 +78,7 @@ class _CompanyAnalyticsTabState extends State<CompanyAnalyticsTab> {
   String _statusLabel(dynamic trip) {
     final status = _status(trip);
     if (status.contains('completed')) return 'Completed';
-    if (status.contains('ongoing') || status.contains('progress')) {
-      return 'Ongoing';
-    }
-    if (status.contains('reject') || status.contains('cancel')) {
-      return 'Rejected';
-    }
-    if (status.contains('expired')) return 'Expired';
-    return 'Scheduled';
+    return 'Completed';
   }
 
   Map<String, List<dynamic>> _groupTrips() {
@@ -194,7 +183,7 @@ class _CompanyAnalyticsTabState extends State<CompanyAnalyticsTab> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Compare company activity, personnel movement, and scheduled service dates.',
+                  'Compare company activity from documented trip summaries.',
                   style: TextStyle(color: mutedColor, fontSize: 13),
                 ),
                 const SizedBox(height: 14),
@@ -223,13 +212,13 @@ class _CompanyAnalyticsTabState extends State<CompanyAnalyticsTab> {
                       ),
                     );
                     final scheduleChart = _chartCard(
-                      'Scheduled trips over time',
+                      'Trip summaries over time',
                       _scheduleLineChart(isDark),
                       cardColor,
                       textColor,
                       onTap: () => _showTripsModal(
                         context,
-                        'Scheduled trips and current states',
+                        'Trip summaries over time',
                         filteredTrips,
                       ),
                     );
@@ -843,7 +832,7 @@ class _CompanyAnalyticsTabState extends State<CompanyAnalyticsTab> {
     String companyName,
     List<dynamic> companyTrips,
   ) async {
-    String selectedStatus = 'All states';
+    String selectedStatus = 'All summaries';
     String sortBy = 'Date';
     bool ascending = false;
     String searchQuery = '';
@@ -869,7 +858,7 @@ class _CompanyAnalyticsTabState extends State<CompanyAnalyticsTab> {
                 searchQuery.trim().isEmpty ||
                 searchableText.contains(searchQuery.trim().toLowerCase());
             final matchesStatus =
-                selectedStatus == 'All states' ||
+                selectedStatus == 'All summaries' ||
                 _statusLabel(trip) == selectedStatus;
             return matchesSearch && matchesStatus;
           }).toList();
@@ -922,7 +911,7 @@ class _CompanyAnalyticsTabState extends State<CompanyAnalyticsTab> {
                         selectedStatus,
                         _statusOptions,
                         (value) => setModalState(
-                          () => selectedStatus = value ?? 'All states',
+                          () => selectedStatus = value ?? 'All summaries',
                         ),
                       ),
                       _modalDropdown<String>(

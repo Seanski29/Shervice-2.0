@@ -24,6 +24,10 @@ set user_id = null
 where user_id in (select user_id from removed_role_accounts);
 
 update public.trip_schedule
+set oic_id = null
+where oic_id is not null;
+
+update public.trip_schedule
 set user_id = null
 where user_id in (select user_id from removed_role_accounts);
 
@@ -40,5 +44,7 @@ where lower(target_role) in ('oic', 'driver')
 -- user_account.role is not nullable.
 delete from public.user_account
 where user_id in (select user_id from removed_role_accounts);
+
+delete from public.oic_profile;
 
 commit;

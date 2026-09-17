@@ -27,6 +27,7 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
   // --- Clean Inline Filter State ---
   int _selectedYear = DateTime.now().year;
   int _selectedMonth = DateTime.now().month;
+  String _trendMode = 'Auto';
 
   final List<String> _monthNames = [
     'January',
@@ -68,6 +69,46 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
     return double.tryParse(val.toString()) ?? 0.0;
   }
 
+  int _parseInt(dynamic val) {
+    if (val == null) return 0;
+    if (val is num) return val.toInt();
+    return int.tryParse(val.toString()) ?? 0;
+  }
+
+  DateTime? _tripDate(dynamic trip) {
+    return DateTime.tryParse(
+      (trip['schedule_date'] ?? trip['date'] ?? '').toString().split(' ').first,
+    );
+  }
+
+  String _trendBucket(DateTime date) {
+    final mode = _trendMode == 'Auto'
+        ? (_selectedYear == 0
+              ? 'Month'
+              : _selectedMonth == 0
+              ? 'Month'
+              : 'Day')
+        : _trendMode;
+    if (mode == 'Day') {
+      return '${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    }
+    if (mode == 'Week') {
+      final week = ((date.day - 1) ~/ 7) + 1;
+      return '${date.year}-${date.month.toString().padLeft(2, '0')} W$week';
+    }
+    if (mode == 'Month') {
+      return '${date.year}-${date.month.toString().padLeft(2, '0')}';
+    }
+    return date.year.toString();
+  }
+
+  String _trendLabel() {
+    final mode = _trendMode == 'Auto'
+        ? (_selectedMonth == 0 ? 'Month' : 'Day')
+        : _trendMode;
+    return 'Trip Volume Trend by $mode';
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
@@ -77,7 +118,7 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
     // --- Filter Data based on Dropdowns ---
     List<dynamic> fTrips = widget.trips.where((t) {
       if (_selectedYear == 0) return true; // All Time
-      DateTime? d = DateTime.tryParse((t['schedule_date'] ?? '').toString());
+      DateTime? d = _tripDate(t);
       if (d == null) return false;
       if (_selectedMonth == 0) return d.year == _selectedYear; // All Months
       return d.year == _selectedYear &&
@@ -95,14 +136,9 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
     }).toList();
 
     // --- KPIs ---
-    double totalDist = fTrips.fold(
-      0.0,
-      (s, t) => s + _parseDouble(t['route_distance']),
-    );
     int totalPax = fTrips.fold(
       0,
-      (s, t) =>
-          s + (int.tryParse(t['passenger_count']?.toString() ?? '0') ?? 0),
+      (s, t) => s + _parseInt(t['passenger_count']),
     );
 
     int readyV = widget.vehicles.where((v) {
@@ -140,30 +176,24 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
     }
 
     // --- CHART DATA GROUPING ---
-    bool isLongTerm = _selectedMonth == 0;
     Map<String, int> timeBuckets = {};
 
     for (var t in fTrips) {
-      String fullDate = t['schedule_date']?.toString().split(' ').first ?? '';
-      if (fullDate.length >= 10) {
-        String bucketKey = isLongTerm
-            ? fullDate.substring(0, 7)
-            : fullDate.substring(5);
-        timeBuckets[bucketKey] = (timeBuckets[bucketKey] ?? 0) + 1;
-      }
+      final date = _tripDate(t);
+      if (date == null) continue;
+      final bucketKey = _trendBucket(date);
+      timeBuckets[bucketKey] = (timeBuckets[bucketKey] ?? 0) + 1;
     }
 
-    var sortedKeys = timeBuckets.keys.toList()..sort();
-    var displayKeys = isLongTerm
-        ? sortedKeys
-        : (sortedKeys.reversed.take(15).toList()..sort());
+    final displayKeys = timeBuckets.keys.toList()..sort();
     List<MapEntry<String, int>> tripVolData = displayKeys
         .map((k) => MapEntry(k, timeBuckets[k]!))
         .toList();
 
     Map<String, int> routeCounts = {};
     for (var t in fTrips) {
-      String r = t['route_name'] ?? 'Unknown Route';
+      String r = (t['route_name'] ?? '').toString().trim();
+      if (r.isEmpty) r = 'Unknown Route';
       routeCounts[r] = (routeCounts[r] ?? 0) + 1;
     }
     var sortedRoutes = routeCounts.entries.toList()
@@ -292,6 +322,39 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
                         },
                       ),
                     ),
+                    Container(
+                      width: 1,
+                      height: 16,
+                      color: isDark
+                          ? Colors.grey.shade700
+                          : Colors.grey.shade300,
+                      margin: const EdgeInsets.symmetric(horizontal: 10),
+                    ),
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _trendMode,
+                        dropdownColor: cardBg,
+                        icon: Icon(
+                          Icons.keyboard_arrow_down,
+                          size: 16,
+                          color: textColor,
+                        ),
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: textColor,
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'Auto', child: Text('Auto trend')),
+                          DropdownMenuItem(value: 'Day', child: Text('Trips / day')),
+                          DropdownMenuItem(value: 'Week', child: Text('Trips / week')),
+                          DropdownMenuItem(value: 'Month', child: Text('Trips / month')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) setState(() => _trendMode = val);
+                        },
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -303,14 +366,7 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
             builder: (context, kpiConstraints) {
               final cards = [
                 _buildKpiCard(
-                  'Total Distance',
-                  '${totalDist.toStringAsFixed(0)} km',
-                  Icons.route,
-                  const Color(0xFF3B82F6),
-                  isDark,
-                ),
-                _buildKpiCard(
-                  'Passengers Received',
+                  'Total Passengers',
                   totalPax.toString(),
                   Icons.people,
                   const Color(0xFF8B5CF6),
@@ -364,7 +420,7 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
                 children: [
                   if (isMobile) ...[
                     _buildLineChart(
-                      'Trip Volume Trend',
+                      _trendLabel(),
                       tripVolData,
                       const Color(0xFF3B82F6),
                       isDark,
@@ -373,7 +429,7 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
                     _buildRiskDistributionBar(widget.vehicles, isDark),
                     const SizedBox(height: 16),
                     _buildHorizontalBarChart(
-                      'High-Demand Routes',
+                      'Routes',
                       topRoutesData,
                       const Color(0xFF8B5CF6),
                       isDark,
@@ -392,7 +448,7 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
                         Expanded(
                           flex: 3,
                           child: _buildLineChart(
-                            'Trip Volume Trend',
+                            _trendLabel(),
                             tripVolData,
                             const Color(0xFF3B82F6),
                             isDark,
@@ -415,7 +471,7 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
                         children: [
                           Expanded(
                             child: _buildHorizontalBarChart(
-                              'High-Demand Routes',
+                              'Routes',
                               topRoutesData,
                               const Color(0xFF8B5CF6),
                               isDark,
@@ -536,7 +592,7 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    "Trips Completed",
+                    "Trips",
                     style: TextStyle(
                       fontSize: 10,
                       color: isDark

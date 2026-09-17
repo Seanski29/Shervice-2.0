@@ -331,12 +331,11 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                   itemCount: paginatedDrivers.length,
                   itemBuilder: (context, index) {
                     final driver = paginatedDrivers[index];
-                    final String driverId = (driver['user_id'] ?? driver['driver_id'] ?? '').toString();
+                    final String driverId = (driver['driver_id'] ?? driver['user_id'] ?? '').toString();
                     
                     final double rating = (driver['rating'] as num?)?.toDouble() ?? 0.0;
                     final int evaluationCount = (driver['review_count'] as num?)?.toInt() ?? (driver['eval_count'] as num?)?.toInt() ?? 0;
                     final String status = driver['employment_status'] ?? 'Active';
-                    final String mlClass = driver['ml_classification']?.toString() ?? 'Pending Sweep';
                     
                     Color statusColor = status.toLowerCase() == 'active' 
                         ? const Color(0xFF10B981) 
@@ -453,32 +452,6 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                                     ),
                                   ],
                                 ),
-                              ),
-                              Builder(
-                                builder: (context) {
-                                  Color mlColor = const Color(0xFF64748B);
-                                  if (mlClass == 'Consistent Performer') {
-                                    mlColor = const Color(0xFF10B981);
-                                  } else if (mlClass == 'Aggressive Driving Risk' || mlClass == 'Needs Review') {
-                                    mlColor = const Color(0xFFEF4444);
-                                  } else if (mlClass == 'Tardiness Risk' || mlClass == 'Unprofessional Conduct') {
-                                    mlColor = const Color(0xFFF97316);
-                                  }
-
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    margin: const EdgeInsets.only(right: 8),
-                                    decoration: BoxDecoration(
-                                      color: mlColor.withOpacity(0.1),
-                                      border: Border.all(color: mlColor.withOpacity(0.4)),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      mlClass.toUpperCase(),
-                                      style: TextStyle(color: mlColor, fontSize: 10, fontWeight: FontWeight.bold),
-                                    ),
-                                  );
-                                },
                               ),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
