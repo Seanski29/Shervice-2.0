@@ -1,8 +1,9 @@
 import os
 from io import BytesIO
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 import traceback
+import re
 import numpy as np
 
 from flask import Blueprint, jsonify, request
@@ -93,6 +94,93 @@ def parse_legacy_xls_bytes(file_bytes: bytes) -> Dict[str, Any]:
     except Exception as exc:
         return {"success": False, "error": f"Unable to convert legacy .xls file: {exc}"}
 
+<<<<<<< HEAD
+=======
+
+def _clean_attendance_value(value: Any) -> str:
+    normalized = _normalize_xls_cell(value).strip()
+    return "" if normalized.lower() in {"", "nan", "null", "none"} else normalized
+
+
+def _coerce_attendance_date(value: Any) -> Optional[str]:
+    raw = _clean_attendance_value(value)
+    if not raw:
+        return None
+
+    raw = raw.split("T")[0].strip()
+    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%m/%d/%y", "%d/%m/%Y", "%d/%m/%y"):
+        try:
+            return datetime.strptime(raw, fmt).date().isoformat()
+        except ValueError:
+            continue
+
+    try:
+        return datetime.fromisoformat(raw).date().isoformat()
+    except ValueError:
+        return None
+
+
+def _split_employee_label(label: str) -> Tuple[str, str]:
+    match = re.match(r"^(.*?)\s*\((.*?)\)\s*$", label.strip())
+    if not match:
+        return label.strip(), ""
+    return match.group(1).strip(), match.group(2).strip()
+
+
+def _attendance_payload_from_row(row: Dict[str, Any], source_file: str) -> Dict[str, Any]:
+    employee_label = _clean_attendance_value(
+        row.get("employee")
+        or row.get("employee_name")
+        or row.get("name")
+        or row.get("Employee")
+        or row.get("Employee Name")
+    )
+    employee_name, employee_id = _split_employee_label(employee_label)
+    employee_id = employee_id or _clean_attendance_value(
+        row.get("employee_id") or row.get("Employee ID")
+    )
+    raw_date = _clean_attendance_value(row.get("date") or row.get("work_date") or row.get("Date"))
+
+    return {
+        "employee_name": employee_name or "Unknown",
+        "employee_id": employee_id or None,
+        "pay_period": _clean_attendance_value(row.get("pay_period") or row.get("Pay Period")) or None,
+        "day_label": _clean_attendance_value(row.get("day") or row.get("Day")) or None,
+        "work_date": _coerce_attendance_date(raw_date),
+        "raw_date": raw_date or None,
+        "time_in": _clean_attendance_value(row.get("in_time") or row.get("time_in") or row.get("IN") or row.get("Time In")) or None,
+        "time_out": _clean_attendance_value(row.get("out_time") or row.get("time_out") or row.get("OUT") or row.get("Time Out")) or None,
+        "work_time": _clean_attendance_value(row.get("work_time") or row.get("work_hours") or row.get("Work Time")) or None,
+        "daily_total": _clean_attendance_value(row.get("daily_total") or row.get("total_hours") or row.get("Daily Total")) or None,
+        "note": _clean_attendance_value(row.get("note") or row.get("notes") or row.get("remarks") or row.get("Note")) or None,
+        "source_file": source_file or None,
+        "raw_payload": row,
+    }
+
+
+def _save_attendance_rows(rows: List[Dict[str, Any]], source_file: str) -> List[Dict[str, Any]]:
+    payloads = [
+        _attendance_payload_from_row(row, source_file)
+        for row in rows
+        if isinstance(row, dict)
+    ]
+    payloads = [
+        row
+        for row in payloads
+        if row["employee_name"] != "Unknown" or row["work_date"] or row["time_in"] or row["time_out"]
+    ]
+
+    if not payloads:
+        return []
+
+    result = supabase.table("attendance_record").upsert(
+        payloads,
+        on_conflict="source_file,employee_name,work_date,time_in,time_out",
+    ).execute()
+    return result.data or []
+
+
+>>>>>>> 1dcbca3b34875e4eeb3cb1ae8026492ffb68ff18
 @admin_bp.route('/api/test-db', methods=['GET'])
 @admin_bp.route('/driver/all', methods=['GET'])
 def diagnostic_database_check():
@@ -199,6 +287,7 @@ def get_admin_schedules():
         return jsonify({"success": False, "error": str(e)}), 500
 
 @admin_bp.route('/api/admin/attendance/upload-legacy-xls', methods=['POST'])
+@admin_bp.route('/api/staff/attendance/upload-legacy-xls', methods=['POST'])
 def upload_legacy_xls_attendance():
     try:
         if 'file' not in request.files:
@@ -227,6 +316,54 @@ def upload_legacy_xls_attendance():
     except Exception as exc:
         return jsonify({"success": False, "error": f"Unable to convert legacy .xls file: {exc}"}), 500
 
+<<<<<<< HEAD
+=======
+
+@admin_bp.route('/api/admin/attendance', methods=['GET'])
+@admin_bp.route('/api/staff/attendance', methods=['GET'])
+@admin_bp.route('/api/admin/timecards', methods=['GET'])
+@admin_bp.route('/api/staff/timecards', methods=['GET'])
+def get_attendance_records():
+    try:
+        result = (
+            supabase.table("attendance_record")
+            .select("*")
+            .order("work_date", desc=True)
+            .order("created_at", desc=True)
+            .limit(10000)
+            .execute()
+        )
+        return jsonify({
+            "success": True,
+            "data": result.data or [],
+            "attendance": result.data or [],
+        }), 200
+    except Exception as exc:
+        return jsonify({"success": False, "error": f"Unable to load attendance records: {exc}"}), 500
+
+
+@admin_bp.route('/api/admin/attendance/import', methods=['POST'])
+@admin_bp.route('/api/staff/attendance/import', methods=['POST'])
+def import_attendance_records():
+    try:
+        payload = request.get_json(silent=True) or {}
+        rows = payload.get("rows") or []
+        source_file = _clean_attendance_value(payload.get("source_file")) or "Imported attendance"
+
+        if not isinstance(rows, list):
+            return jsonify({"success": False, "error": "Rows must be a list."}), 400
+
+        saved_rows = _save_attendance_rows(rows, source_file)
+        return jsonify({
+            "success": True,
+            "saved_count": len(saved_rows),
+            "data": saved_rows,
+        }), 200
+    except Exception as exc:
+        return jsonify({"success": False, "error": f"Unable to save attendance import: {exc}"}), 500
+
+
+>>>>>>> 1dcbca3b34875e4eeb3cb1ae8026492ffb68ff18
 @admin_bp.route('/api/dashboard/metrics', methods=['GET'])
 def get_dashboard_metrics():
     try:

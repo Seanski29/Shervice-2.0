@@ -183,8 +183,8 @@ class _AdminDesktopLayoutState extends State<AdminDesktopLayout> {
                 _buildNavItem(6, 'Analytics', Icons.analytics),
                 _buildNavItem(
                   7,
-                  'Import & Export',
-                  Icons.import_export_outlined,
+                  'Attendance',
+                  Icons.fact_check_outlined,
                 ),
                 _buildNavItem(8, 'Settings', Icons.settings_outlined),
               ],
