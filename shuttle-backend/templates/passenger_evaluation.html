@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trip Evaluation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-50 p-6 font-sans antialiased text-slate-800">
+
+    <div class="max-w-md mx-auto mt-8 bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+        <div class="bg-blue-900 p-6 text-center">
+            <h1 class="text-2xl font-bold text-white tracking-wide">SHERVICE</h1>
+            <p class="text-blue-200 text-sm mt-1">Passenger Feedback</p>
+        </div>
+
+        <div id="evaluation-container" class="p-6">
+            <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">Your Driver</p>
+                    <p class="text-lg font-bold text-slate-800">{{ driver_name }}</p>
+                </div>
+                <div class="h-10 w-10 bg-blue-200 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <form id="evalForm">
+                <input type="hidden" id="trip_id" value="{{ trip_id }}">
+
+                <div class="mb-5">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">1. Safety of the Ride</label>
+                    <select id="safety"
+                        class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                        required>
+                        <option value="" disabled selected>Select rating (1-5)</option>
+                        <option value="5">5 - Excellent (Very Safe)</option>
+                        <option value="4">4 - Good</option>
+                        <option value="3">3 - Average</option>
+                        <option value="2">2 - Poor</option>
+                        <option value="1">1 - Terrible (Felt Unsafe)</option>
+                    </select>
+                </div>
+
+                <div class="mb-5">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">2. Punctuality</label>
+                    <select id="punctuality"
+                        class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                        required>
+                        <option value="" disabled selected>Select rating (1-5)</option>
+                        <option value="5">5 - Excellent (Perfectly on time)</option>
+                        <option value="4">4 - Good</option>
+                        <option value="3">3 - Average</option>
+                        <option value="2">2 - Poor</option>
+                        <option value="1">1 - Terrible (Very late)</option>
+                    </select>
+                </div>
+
+                <div class="mb-5">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">3. Driver Professionalism</label>
+                    <select id="professionalism"
+                        class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                        required>
+                        <option value="" disabled selected>Select rating (1-5)</option>
+                        <option value="5">5 - Excellent (Very Polite)</option>
+                        <option value="4">4 - Good</option>
+                        <option value="3">3 - Average</option>
+                        <option value="2">2 - Poor</option>
+                        <option value="1">1 - Terrible (Rude)</option>
+                    </select>
+                </div>
+
+                <div class="mb-8">
+                    <label class="block text-sm font-bold text-slate-700 mb-2">4. Additional Comments (Optional)</label>
+                    <textarea id="comments" rows="3"
+                        class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 placeholder-slate-400"
+                        placeholder="Tell us about your experience..."></textarea>
+                </div>
+
+                <button type="submit" id="submitBtn"
+                    class="w-full text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-bold rounded-lg text-sm px-5 py-3.5 text-center transition-colors">
+                    Submit Evaluation
+                </button>
+            </form>
+        </div>
+
+        <div id="success-message" class="hidden p-8 text-center">
+            <svg class="w-16 h-16 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <h2 class="text-xl font-bold text-slate-800 mb-2">Evaluation Complete</h2>
+            <p class="text-slate-500">Thank you for traveling with GT LANTIN Shuttle Rental Services. You may now close
+                this window.</p>
+        </div>
+    </div>
+
+    <script>
+        const tripId = document.getElementById('trip_id').value;
+        const storageKey = 'shervice_rated_trip_' + tripId;
+        const container = document.getElementById('evaluation-container');
+        const successMessage = document.getElementById('success-message');
+        const form = document.getElementById('evalForm');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // Check if already evaluated
+        if (localStorage.getItem(storageKey)) {
+            container.classList.add('hidden');
+            successMessage.classList.remove('hidden');
+            successMessage.querySelector('h2').innerText = "Already Evaluated";
+            successMessage.querySelector('p').innerText = "You have already submitted an evaluation for this trip. Thank you!";
+        }
+
+        // Handle submission
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = "Submitting...";
+
+            const payload = {
+                trip_id: tripId,
+                safety_score: parseInt(document.getElementById('safety').value),
+                punctuality_score: parseInt(document.getElementById('punctuality').value),
+                professionalism_score: parseInt(document.getElementById('professionalism').value),
+                comments: document.getElementById('comments').value // Grab the text from the new comments box
+            };
+
+            try {
+                const response = await fetch('/api/evaluate/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    localStorage.setItem(storageKey, 'true');
+                    container.classList.add('hidden');
+                    successMessage.classList.remove('hidden');
+                } else {
+                    alert("Error: " + result.message);
+                    submitBtn.disabled = false;
+                    submitBtn.innerText = "Submit Evaluation";
+                }
+            } catch (error) {
+                alert("Network error. Please try again.");
+                submitBtn.disabled = false;
+                submitBtn.innerText = "Submit Evaluation";
+            }
+        });
+    </script>
+</body>
+
+</html>
