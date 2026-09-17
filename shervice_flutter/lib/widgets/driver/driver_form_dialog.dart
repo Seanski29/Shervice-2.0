@@ -5,7 +5,7 @@ import 'driver_profile_model.dart';
 import '../../constant.dart';
 
 class DriverFormDialogs {
-  // ─── 1. VIEW DRIVER MODAL ───
+  // ─── 1. VIEW DRIVER MODAL (WEB FRIENDLY) ───
   static void showViewDriverModal(
     BuildContext context,
     DriverProfileModel driver, {
@@ -14,131 +14,138 @@ class DriverFormDialogs {
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    showModalBottomSheet(
+    Color statusColor;
+    switch (driver.status.toLowerCase()) {
+      case 'active':
+        statusColor = const Color(0xFF10B981); // Green
+        break;
+      case 'on leave':
+        statusColor = const Color(0xFFF59E0B); // Amber
+        break;
+      case 'suspended':
+        statusColor = const Color(0xFFEF4444); // Red
+        break;
+      default:
+        statusColor = const Color(0xFF64748B); // Grey
+    }
+
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            top: 20,
-            left: 24,
-            right: 24,
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        return Dialog(
+          backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 450),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          driver.name,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              driver.name,
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "Driver ID: ${driver.id}",
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          driver.status.toUpperCase(),
                           style: TextStyle(
-                            fontSize: 22,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            color: statusColor,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "Driver ID: ${driver.id}",
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
-                          ),
+                      ),
+                      const SizedBox(width: 12),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () => Navigator.pop(ctx),
+                        child: Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: Icon(Icons.close, size: 20, color: isDark ? Colors.grey.shade400 : Colors.grey.shade600),
                         ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  const Divider(),
+                  const SizedBox(height: 12),
+                  _buildDetailRow(Icons.phone_outlined, "Phone Number", driver.phoneNumber, isDark),
+                  _buildDetailRow(Icons.cake_outlined, "Birthday", driver.birthday, isDark),
+                  _buildDetailRow(Icons.event_available_outlined, "Date Hired", driver.dateHired, isDark),
+                  if (driver.mlClassification != null)
+                    _buildDetailRow(Icons.analytics_outlined, "Classification", driver.mlClassification!, isDark),
+                  const SizedBox(height: 24),
+                  if (onEdit != null || onDelete != null)
+                    Row(
+                      children: [
+                        if (onEdit != null)
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                onEdit();
+                              },
+                              icon: const Icon(Icons.edit, size: 16),
+                              label: const Text("Edit"),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                            ),
+                          ),
+                        if (onEdit != null && onDelete != null) const SizedBox(width: 12),
+                        if (onDelete != null)
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                onDelete();
+                              },
+                              icon: const Icon(Icons.delete_forever, size: 16),
+                              label: const Text("Delete"),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red.shade600,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: (driver.status.toLowerCase() == 'active'
-                              ? const Color(0xFF10B981)
-                              : const Color(0xFFF59E0B))
-                          .withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      driver.status.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: driver.status.toLowerCase() == 'active'
-                            ? const Color(0xFF10B981)
-                            : const Color(0xFFF59E0B),
-                      ),
-                    ),
-                  ),
                 ],
               ),
-              const SizedBox(height: 20),
-              const Divider(),
-              const SizedBox(height: 12),
-              _buildDetailRow(Icons.phone_outlined, "Phone Number", driver.phoneNumber, isDark),
-              _buildDetailRow(Icons.email_outlined, "Account Email", driver.email.isNotEmpty ? driver.email : 'None registered', isDark),
-              _buildDetailRow(Icons.cake_outlined, "Birthday", driver.birthday, isDark),
-              _buildDetailRow(Icons.event_available_outlined, "Date Hired", driver.dateHired, isDark),
-              _buildDetailRow(Icons.star_outline, "Rating", "${driver.rating.toStringAsFixed(2)} / 5.0", isDark),
-              if (driver.mlClassification != null)
-                _buildDetailRow(Icons.analytics_outlined, "Classification", driver.mlClassification!, isDark),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        if (onEdit != null) onEdit();
-                      },
-                      icon: const Icon(Icons.edit, size: 16),
-                      label: const Text("Edit"),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        if (onDelete != null) onDelete();
-                      },
-                      icon: const Icon(Icons.delete_forever, size: 16),
-                      label: const Text("Delete"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade600,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         );
       },
@@ -149,7 +156,6 @@ class DriverFormDialogs {
   static void showAddDriverDialog(BuildContext context, {required VoidCallback onSuccess}) {
     final formKey = GlobalKey<FormState>();
     final nameCtrl = TextEditingController();
-    final emailCtrl = TextEditingController();
     final phoneCtrl = TextEditingController(text: '09');
     final bdayCtrl = TextEditingController(text: '1995-05-15');
     final hiredCtrl = TextEditingController(
@@ -191,17 +197,7 @@ class DriverFormDialogs {
                           isDark: isDark,
                           validator: (val) => val == null || val.trim().isEmpty ? "Required" : null,
                         ),
-                        const SizedBox(height: 12),
-                        _buildInputField(
-                          controller: emailCtrl,
-                          label: "Email Address (Required for Auth)",
-                          hint: "driver@example.com",
-                          icon: Icons.email_outlined, // FIXED TYPO
-                          keyboardType: TextInputType.emailAddress,
-                          isDark: isDark,
-                          validator: (val) => val == null || !val.contains('@') ? "Enter a valid email" : null,
-                        ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
                         _buildInputField(
                           controller: phoneCtrl,
                           label: "Phone Number",
@@ -217,7 +213,7 @@ class DriverFormDialogs {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
                         _buildInputField(
                           controller: bdayCtrl,
                           label: "Date of Birth (YYYY-MM-DD)",
@@ -226,7 +222,7 @@ class DriverFormDialogs {
                           isDark: isDark,
                           validator: (val) => val == null || val.isEmpty ? "Required" : null,
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
                         _buildInputField(
                           controller: hiredCtrl,
                           label: "Date Hired (YYYY-MM-DD)",
@@ -254,7 +250,6 @@ class DriverFormDialogs {
 
                           final payload = {
                             "full_name": nameCtrl.text.trim(),
-                            "email": emailCtrl.text.trim(),
                             "phone_no": phoneCtrl.text.trim(),
                             "birthday": bdayCtrl.text.trim(),
                             "date_hired": hiredCtrl.text.trim(),
@@ -263,7 +258,7 @@ class DriverFormDialogs {
 
                           try {
                             final response = await http.post(
-                              Uri.parse('$backendUrl/api/auth/register-driver'),
+                              Uri.parse('$backendUrl/auth/register-driver'),
                               headers: {"Content-Type": "application/json"},
                               body: jsonEncode(payload),
                             );
@@ -342,7 +337,7 @@ class DriverFormDialogs {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "Driver Profile (DRV-${driver.id})",
+                    "Edit Driver",
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: isDark ? Colors.white : const Color(0xFF0F172A),
@@ -388,7 +383,7 @@ class DriverFormDialogs {
                         ),
                         const SizedBox(height: 16),
                         DropdownButtonFormField<String>(
-                          value: ['Active', 'Inactive', 'On Leave'].contains(status) ? status : 'Active',
+                          value: ['Active', 'On Leave', 'Suspended'].contains(status) ? status : 'Active',
                           decoration: InputDecoration(
                             labelText: "Employment Status",
                             prefixIcon: const Icon(Icons.work_outline, size: 20),
@@ -398,8 +393,8 @@ class DriverFormDialogs {
                           dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
                           items: const [
                             DropdownMenuItem(value: 'Active', child: Text('Active')),
-                            DropdownMenuItem(value: 'Inactive', child: Text('Inactive')),
                             DropdownMenuItem(value: 'On Leave', child: Text('On Leave')),
+                            DropdownMenuItem(value: 'Suspended', child: Text('Suspended')),
                           ],
                           onChanged: (val) => setState(() => status = val ?? 'Active'),
                         ),
@@ -448,7 +443,7 @@ class DriverFormDialogs {
 
                           try {
                             final response = await http.put(
-                              Uri.parse('$backendUrl/api/auth/update-driver/${driver.userId}'),
+                              Uri.parse('$backendUrl/auth/update-driver/${driver.id}'),
                               headers: {"Content-Type": "application/json"},
                               body: jsonEncode(payload),
                             );
@@ -506,7 +501,7 @@ class DriverFormDialogs {
     showDialog(
       context: context,
       builder: (ctx) {
-        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final isDark = Theme.of(context).brightness == Brightness.dark;
 
         return StatefulBuilder(
           builder: (dialogContext, setState) {
@@ -521,7 +516,7 @@ class DriverFormDialogs {
                 ],
               ),
               content: Text(
-                "Are you sure you want to delete ${driver.name}? This will purge their profile and associated authentication account permanently.",
+                "Are you sure you want to delete ${driver.name}? This will purge their profile permanently.",
                 style: TextStyle(
                   color: isDark ? Colors.grey.shade300 : const Color(0xFF475569),
                   fontSize: 14,
@@ -539,7 +534,7 @@ class DriverFormDialogs {
                           setState(() => isDeleting = true);
                           try {
                             final response = await http.delete(
-                              Uri.parse('$backendUrl/api/auth/delete-driver/${driver.userId}'),
+                              Uri.parse('$backendUrl/auth/delete-driver/${driver.id}'),
                             );
 
                             final resData = jsonDecode(response.body);
