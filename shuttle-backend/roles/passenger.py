@@ -72,12 +72,28 @@ def submit_passenger_evaluation():
         print(f"❌ Evaluation Submit Error: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
-@passenger_bp.route('/api/evaluate/driver/<string:driver_uuid>', methods=['GET'])
-def get_driver_evaluations(driver_uuid):
+@passenger_bp.route('/api/evaluate/driver/<string:driver_identifier>', methods=['GET'])
+def get_driver_evaluations(driver_identifier):
     """Fetches all passenger evaluations for a specific driver."""
     try:
-        # 1. Find all trips that belong to this driver
-        trips = supabase.table('trip_schedule').select('trip_id').eq('user_id', driver_uuid).execute()
+        driver_id = None
+        if str(driver_identifier).isdigit():
+            driver_id = int(driver_identifier)
+        else:
+            profile = (
+                supabase.table('driver_profile')
+                .select('driver_id')
+                .eq('user_id', driver_identifier)
+                .limit(1)
+                .execute()
+            )
+            if profile.data:
+                driver_id = profile.data[0].get('driver_id')
+
+        if driver_id is None:
+            return jsonify({"success": True, "data": []}), 200
+
+        trips = supabase.table('trip_schedule').select('trip_id').eq('driver_id', driver_id).execute()
         
         # If the driver has no trips yet, return an empty list safely
         if not trips.data:

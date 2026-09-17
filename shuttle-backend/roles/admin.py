@@ -106,11 +106,11 @@ def diagnostic_database_check():
         ).execute()
         raw_data = test_query.data or []
 
-        trips_res = supabase.table('trip_schedule').select('trip_id, user_id').execute()
+        trips_res = supabase.table('trip_schedule').select('trip_id, driver_id').execute()
         trip_to_driver = {
-            str(t['trip_id']): t['user_id']
+            str(t['trip_id']): t['driver_id']
             for t in trips_res.data
-            if t.get('user_id') is not None and t.get('trip_id') is not None
+            if t.get('driver_id') is not None and t.get('trip_id') is not None
         }
         evals_query = supabase.table('passenger_evaluation').select('trip_id, safety_score, punctuality_score, professionalism_score').limit(10000).execute()
         
@@ -136,8 +136,8 @@ def diagnostic_database_check():
             if not row.get('phone_no'):
                 row['phone_no'] = '09123456789'
                 
-            d_uuid = row.get('user_id')
-            scores = driver_scores.get(d_uuid, [])
+            d_id = row.get('driver_id')
+            scores = driver_scores.get(d_id, [])
             row['rating'] = sum(scores) / len(scores) if scores else 0.0
             
             flattened_drivers.append(row)
@@ -252,6 +252,11 @@ def get_dashboard_metrics():
         ).execute()
         all_drivers = drivers_query.data or []
         total_drivers = len(all_drivers)
+        active_driver_rows = [
+            driver for driver in all_drivers
+            if str(driver.get('employment_status') or 'Active').strip().lower() == 'active'
+        ]
+        active_drivers_count = len(active_driver_rows)
         driver_details = [
             {
                 "label": driver.get('full_name') or f"Driver {driver.get('user_id', 'Unknown')}",
@@ -296,42 +301,63 @@ def get_dashboard_metrics():
                     "description": log.get('description', 'No details provided.')
                 })
 
-        ongoing_query = supabase.table('trip_schedule').select('trip_id, trip_status')\
-            .in_('trip_status', ['Ongoing', 'ongoing', 'ONGOING', 'In Progress', 'in progress', 'IN PROGRESS'])\
-            .execute()
-        ongoing_trips_count = len(ongoing_query.data) if ongoing_query.data else 0
-        ongoing_trip_details = [
-            {"label": f"Trip {trip.get('trip_id', 'Unknown')}", "status": trip.get('trip_status', 'Ongoing')}
-            for trip in (ongoing_query.data or [])
-        ]
-
-        pending_query = supabase.table('trip_schedule').select('trip_id, user_id, vehicle_id')\
-            .in_('trip_status', ['Pending Staff Assignment', 'pending staff assignment', 'Pending', 'pending', 'Scheduled', 'scheduled'])\
-            .execute()
-        
-        unassigned_count = 0
-        if pending_query.data:
-            unassigned_count = sum(1 for t in pending_query.data if t.get('user_id') is None or t.get('vehicle_id') is None)
-        unassigned_details = [
-            {"label": f"Trip {trip.get('trip_id', 'Unknown')}", "status": "Needs assignment"}
-            for trip in (pending_query.data or [])
-            if trip.get('user_id') is None or trip.get('vehicle_id') is None
-        ]
-
-        company_monthly_metrics = []
         selected_month = int(request.args.get('month', datetime.now().month))
         selected_year = int(request.args.get('year', datetime.now().year))
+        if selected_month < 1 or selected_month > 12:
+            selected_month = datetime.now().month
+        period_start_dt = datetime(selected_year, selected_month, 1)
+        if selected_month == 12:
+            period_end_dt = datetime(selected_year + 1, 1, 1)
+        else:
+            period_end_dt = datetime(selected_year, selected_month + 1, 1)
+        period_start = period_start_dt.date().isoformat()
+        period_end = period_end_dt.date().isoformat()
+
+        monthly_trips_query = supabase.table('trip_schedule')\
+            .select('trip_id, passenger_count, route_name, schedule_date')\
+            .gte('schedule_date', period_start)\
+            .lt('schedule_date', period_end)\
+            .execute()
+        monthly_trips = monthly_trips_query.data or []
+        total_trips_count = len(monthly_trips)
+        total_passengers_count = sum(int(trip.get('passenger_count') or 0) for trip in monthly_trips)
+        total_trip_details = [
+            {
+                "label": f"Trip {trip.get('trip_id', 'Unknown')}",
+                "status": trip.get('route_name') or 'Recorded trip',
+                "schedule_date": trip.get('schedule_date'),
+            }
+            for trip in monthly_trips
+        ]
+        passenger_details = [
+            {
+                "label": trip.get('route_name') or f"Trip {trip.get('trip_id', 'Unknown')}",
+                "status": f"{int(trip.get('passenger_count') or 0)} passengers",
+                "schedule_date": trip.get('schedule_date'),
+            }
+            for trip in monthly_trips
+        ]
+
+        monthly_maintenance_query = supabase.table('maintenance_log')\
+            .select('maintenance_id, description, repair_date, incident_date, vehicle_id, vehicle(plate_number)')\
+            .gte('repair_date', period_start)\
+            .lt('repair_date', period_end)\
+            .execute()
+        monthly_maintenance = monthly_maintenance_query.data or []
+        monthly_maintenance_count = len(monthly_maintenance)
+        monthly_maintenance_details = []
+        for log in monthly_maintenance:
+            vehicle = log.get('vehicle') or {}
+            if isinstance(vehicle, list):
+                vehicle = vehicle[0] if vehicle else {}
+            monthly_maintenance_details.append({
+                "label": vehicle.get('plate_number') or f"Asset {log.get('vehicle_id', 'Unknown')}",
+                "status": log.get('repair_date') or log.get('incident_date') or '',
+                "description": log.get('description') or 'Maintenance record',
+            })
+
+        company_monthly_metrics = []
         try:
-            if selected_month < 1 or selected_month > 12:
-                raise ValueError('month must be between 1 and 12')
-            
-            period_start = datetime(selected_year, selected_month, 1).date().isoformat()
-            if selected_month == 12:
-                next_month = datetime(selected_year + 1, 1, 1)
-            else:
-                next_month = datetime(selected_year, selected_month + 1, 1)
-            period_end = next_month.date().isoformat()
-            
             companies_fetch = supabase.table('client_company').select('company_id, company_name').execute()
             
             company_map = {}
@@ -386,7 +412,7 @@ def get_dashboard_metrics():
         }
         try:
             period_trips = supabase.table('trip_schedule').select(
-                'trip_id, company_id, passenger_count, user_id'
+                'trip_id, company_id, passenger_count, driver_id'
             ).gte('schedule_date', period_start).lt('schedule_date', period_end).execute().data or []
             trip_ids = [trip['trip_id'] for trip in period_trips if trip.get('trip_id') is not None]
             evaluations = supabase.table('passenger_evaluation').select(
@@ -420,7 +446,7 @@ def get_dashboard_metrics():
             }
             scores_by_driver = {}
             for trip in period_trips:
-                driver_id = trip.get('user_id')
+                driver_id = trip.get('driver_id')
                 if not driver_id:
                     continue
                 for evaluation in evaluations:
@@ -433,15 +459,15 @@ def get_dashboard_metrics():
             if scores_by_driver:
                 driver_ids = list(scores_by_driver.keys())
                 driver_rows = supabase.table('driver_profile').select(
-                    'user_id, full_name'
-                ).in_('user_id', driver_ids).execute().data or []
-                names = {row.get('user_id'): row.get('full_name') for row in driver_rows}
+                    'driver_id, full_name'
+                ).in_('driver_id', driver_ids).execute().data or []
+                names = {row.get('driver_id'): row.get('full_name') for row in driver_rows}
                 leader_id, leader_scores = max(
                     scores_by_driver.items(),
                     key=lambda item: sum(item[1]) / len(item[1])
                 )
                 analytics['top_driver'] = {
-                    'user_id': leader_id,
+                    'driver_id': leader_id,
                     'full_name': names.get(leader_id, 'Unknown Driver'),
                     'rating': round(sum(leader_scores) / len(leader_scores), 2),
                     'evaluation_count': len(leader_scores)
@@ -452,17 +478,24 @@ def get_dashboard_metrics():
         return jsonify({
             "success": True,
             "metrics": {
+                "totalTrips": total_trips_count,
+                "monthlyMaintenance": monthly_maintenance_count,
+                "totalPassengers": total_passengers_count,
+                "activeDrivers": active_drivers_count,
                 "totalDrivers": total_drivers,
                 "activeVehicles": active_vehicles,
-                "ongoingTrips": ongoing_trips_count,
-                "unassignedSchedules": unassigned_count,
                 "maintenanceAlerts": maintenance_alerts_count
             },
             "details": {
+                "Total Trips": total_trip_details,
+                "Monthly Maintenance": monthly_maintenance_details,
+                "Total Passengers": passenger_details,
+                "Active Drivers": [
+                    detail for detail in driver_details
+                    if str(detail.get('employment_status') or 'Active').strip().lower() == 'active'
+                ],
                 "All Drivers": driver_details,
                 "Active Vehicles": vehicle_details,
-                "Ongoing Trips": ongoing_trip_details,
-                "Unscheduled": unassigned_details,
                 "Maintenance Alerts": formatted_alerts
             },
             "alerts": formatted_alerts,
@@ -492,11 +525,11 @@ def get_driver_leaderboard():
         drivers_res = supabase.table('driver_profile').select('*').limit(5000).execute()
         all_drivers = drivers_res.data or []
         
-        driver_scores = {str(d['user_id']): [] for d in all_drivers}
-        driver_details = {str(d['user_id']): d for d in all_drivers}
+        driver_scores = {str(d['driver_id']): [] for d in all_drivers if d.get('driver_id') is not None}
+        driver_details = {str(d['driver_id']): d for d in all_drivers if d.get('driver_id') is not None}
 
-        trips_res = supabase.table('trip_schedule').select('trip_id, user_id').limit(20000).execute()
-        trip_to_driver = {str(t['trip_id']): str(t['user_id']) for t in (trips_res.data or []) if t.get('user_id')}
+        trips_res = supabase.table('trip_schedule').select('trip_id, driver_id').limit(20000).execute()
+        trip_to_driver = {str(t['trip_id']): str(t['driver_id']) for t in (trips_res.data or []) if t.get('driver_id')}
 
         raw_evals = []
         batch_size = 1000
@@ -532,7 +565,7 @@ def get_driver_leaderboard():
             offset += batch_size
 
         all_trip_scores = []
-        driver_eval_scores = {str(d['user_id']): [] for d in all_drivers}
+        driver_eval_scores = {str(d['driver_id']): [] for d in all_drivers if d.get('driver_id') is not None}
 
         for ev in raw_evals:
             t_id = str(ev.get('trip_id'))
@@ -567,7 +600,7 @@ def get_driver_leaderboard():
                         else:
                             predicted_class = "Consistent Performer"
                         
-                        supabase.table('driver_profile').update({"ml_classification": predicted_class}).eq('user_id', d_id).execute()
+                        supabase.table('driver_profile').update({"ml_classification": predicted_class}).eq('driver_id', d_id).execute()
                         drv["ml_classification"] = predicted_class
                     except Exception:
                         pass
@@ -584,7 +617,7 @@ def get_driver_leaderboard():
 
             top_drivers.append({
                 "driver_id": d_id,
-                "user_id": d_id,
+                "user_id": drv_info.get("user_id"),
                 "full_name": drv_info.get("full_name") or "Unknown Driver",
                 "ml_classification": drv_info.get("ml_classification") or "Pending Sweep",
                 "employment_status": drv_info.get("employment_status") or "Active",
@@ -672,15 +705,9 @@ def delete_system_user(user_id):
 def get_client_companies():
     try:
         res = supabase.table('client_company').select('*').order('company_name', desc=False).execute()
-        profiles = supabase.table('oic_profile').select('company_name').execute().data or []
-        counts = {}
-        for profile in profiles:
-            name = profile.get('company_name')
-            if name:
-                counts[name] = counts.get(name, 0) + 1
         companies = res.data or []
         for company in companies:
-            company['user_count'] = counts.get(company.get('company_name'), 0)
+            company['user_count'] = 0
         return jsonify({"success": True, "data": companies}), 200
     except Exception as e:
         print(f"❌ Fetch Companies Error: {e}")
@@ -711,12 +738,9 @@ def delete_client_company(company_id):
 
         comp_name = comp_res.data[0]['company_name']
 
-        oic_check = supabase.table('oic_profile').select('oic_id').eq('company_name', comp_name).execute()
-        if oic_check.data and len(oic_check.data) > 0:
-            return jsonify({
-                "success": False, 
-                "message": f"Cannot delete '{comp_name}' because active client profiles are assigned to it."
-            }), 400
+        supabase.table('trip_schedule').update({
+            "company_id": None
+        }).eq('company_id', company_id).execute()
 
         supabase.table('client_company').delete().eq('company_id', company_id).execute()
         return jsonify({"success": True, "message": f"'{comp_name}' deleted successfully."}), 200

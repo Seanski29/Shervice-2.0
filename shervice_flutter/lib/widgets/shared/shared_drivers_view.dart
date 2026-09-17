@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../driver/driver_profile_model.dart';
 import '../../constant.dart';
-import '../driver/driver_rating_badge.dart';
 import 'universal_pagination.dart';
 import '../driver/driver_form_dialog.dart';
 
@@ -41,8 +40,6 @@ class SharedDriversViewState extends State<SharedDriversView> {
   final List<String> _sortOptions = [
     'A to Z',
     'Z to A',
-    'Rating (High-Low)',
-    'Rating (Low-High)',
   ];
 
   int _currentPage = 0;
@@ -104,10 +101,8 @@ class SharedDriversViewState extends State<SharedDriversView> {
       );
 
       bool matchesStatus = true;
-      if (_selectedStatusFilter == 'Active') {
-        matchesStatus = driver.status.toLowerCase() == 'active';
-      } else if (_selectedStatusFilter == 'Inactive') {
-        matchesStatus = driver.status.toLowerCase() != 'active';
+      if (_selectedStatusFilter != 'All') {
+        matchesStatus = driver.status.toLowerCase() == _selectedStatusFilter.toLowerCase();
       }
 
       return matchesSearch && matchesStatus;
@@ -117,10 +112,6 @@ class SharedDriversViewState extends State<SharedDriversView> {
       switch (_currentSort) {
         case 'Z to A':
           return b.name.toLowerCase().compareTo(a.name.toLowerCase());
-        case 'Rating (High-Low)':
-          return b.rating.compareTo(a.rating);
-        case 'Rating (Low-High)':
-          return a.rating.compareTo(b.rating);
         case 'A to Z':
         default:
           return a.name.toLowerCase().compareTo(b.name.toLowerCase());
@@ -145,9 +136,9 @@ class SharedDriversViewState extends State<SharedDriversView> {
   }
 
   int get _totalDrivers => _allDrivers.length;
-  int get _activeDrivers =>
-      _allDrivers.where((d) => d.status.toLowerCase() == 'active').length;
-  int get _inactiveDrivers => _totalDrivers - _activeDrivers;
+  int get _activeDrivers => _allDrivers.where((d) => d.status.toLowerCase() == 'active').length;
+  int get _onLeaveDrivers => _allDrivers.where((d) => d.status.toLowerCase() == 'on leave').length;
+  int get _suspendedDrivers => _allDrivers.where((d) => d.status.toLowerCase() == 'suspended').length;
 
   @override
   Widget build(BuildContext context) {
@@ -395,25 +386,32 @@ class SharedDriversViewState extends State<SharedDriversView> {
   Widget _buildTopSummaryStats(bool isDark, bool isMobile) {
     final List<Map<String, dynamic>> stats = [
       {
-        'label': 'Total Drivers',
+        'label': 'Total',
         'value': _totalDrivers.toString(),
         'icon': Icons.people_outline,
         'color': isDark ? Colors.grey.shade400 : Colors.grey.shade600,
         'filter': 'All',
       },
       {
-        'label': 'Active Duty',
+        'label': 'Active',
         'value': _activeDrivers.toString(),
         'icon': Icons.check_circle_outline,
         'color': const Color(0xFF10B981),
         'filter': 'Active',
       },
       {
-        'label': 'Inactive/Leave',
-        'value': _inactiveDrivers.toString(),
-        'icon': Icons.pause_circle_outline,
+        'label': 'On Leave',
+        'value': _onLeaveDrivers.toString(),
+        'icon': Icons.event_busy_outlined,
         'color': const Color(0xFFF59E0B),
-        'filter': 'Inactive',
+        'filter': 'On Leave',
+      },
+      {
+        'label': 'Suspended',
+        'value': _suspendedDrivers.toString(),
+        'icon': Icons.gavel_outlined,
+        'color': const Color(0xFFEF4444),
+        'filter': 'Suspended',
       },
     ];
 
@@ -424,7 +422,7 @@ class SharedDriversViewState extends State<SharedDriversView> {
       return Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(40),
+          borderRadius: BorderRadius.circular(16),
           onTap: () {
             setState(() {
               _selectedStatusFilter = stat['filter'] as String;
@@ -530,9 +528,21 @@ class SharedDriversViewState extends State<SharedDriversView> {
   }
 
   Widget _buildDriverCard(DriverProfileModel driver, bool isDark, bool isLast) {
-    final Color statusColor = (driver.status.toLowerCase() == 'active')
-        ? const Color(0xFF10B981)
-        : const Color(0xFFF59E0B);
+    Color statusColor;
+    switch (driver.status.toLowerCase()) {
+      case 'active':
+        statusColor = const Color(0xFF10B981); // Green
+        break;
+      case 'on leave':
+        statusColor = const Color(0xFFF59E0B); // Amber
+        break;
+      case 'suspended':
+        statusColor = const Color(0xFFEF4444); // Red
+        break;
+      default:
+        statusColor = const Color(0xFF64748B); // Grey
+    }
+
     final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0);
 
     return InkWell(
@@ -608,23 +618,6 @@ class SharedDriversViewState extends State<SharedDriversView> {
                         Icons.event_available,
                         "Hired: ${driver.dateHired}",
                         isDark,
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.amber.withValues(alpha: 0.1)
-                              : Colors.amber.shade50,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: DriverRatingBadge(
-                          key: UniqueKey(),
-                          driverUuid: driver.userId,
-                          backendUrl: backendUrl,
-                        ),
                       ),
                     ],
                   ),

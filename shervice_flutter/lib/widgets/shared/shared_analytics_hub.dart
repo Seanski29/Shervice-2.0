@@ -48,7 +48,7 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
             .get(Uri.parse('$cleanBaseUrl/test-db'))
             .timeout(const Duration(seconds: 10)),
         http
-            .get(Uri.parse('$cleanBaseUrl/trips'))
+            .get(Uri.parse('$cleanBaseUrl/schedules/staff-summary/all'))
             .timeout(const Duration(seconds: 10)),
         http
             .get(Uri.parse('$cleanBaseUrl/vehicles/maintenance'))
@@ -65,13 +65,16 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
       final tRes = results[1];
       final mRes = results[2];
       final vRes = results[3];
-      // 2. Parse Trips
+      // 2. Parse Trip Summary rows
       List<dynamic> trips = [];
       if (tRes.statusCode == 200) {
         final tData = jsonDecode(tRes.body);
         trips = tData is List
             ? tData
-            : (tData['trips'] ?? tData['sample_data_payload'] ?? []);
+            : (tData['data'] ??
+                  tData['trips'] ??
+                  tData['sample_data_payload'] ??
+                  []);
         _allTrips = trips;
       }
 
@@ -104,7 +107,7 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
         final Map<String, List<double>> ratingTotalsByDriver = {};
         final Set<String> driversWithTrips = {};
         for (final trip in trips) {
-          final driverId = (trip['user_id'] ?? '').toString();
+          final driverId = (trip['driver_id'] ?? trip['user_id'] ?? '').toString();
           if (driverId.isEmpty) continue;
           driversWithTrips.add(driverId);
           final rating = double.tryParse(
@@ -121,7 +124,7 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
         }
 
         for (var d in rawDrivers) {
-          final String dUid = (d['user_id'] ?? d['id'] ?? '').toString();
+          final String dUid = (d['driver_id'] ?? d['user_id'] ?? d['id'] ?? '').toString();
 
           // Check if driver has an existing rating in payload
           double existingRating =
@@ -179,7 +182,7 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
 
       await Future.wait(
         chunk.map((d) async {
-          final String dId = (d['user_id'] ?? d['id'] ?? '').toString();
+          final String dId = (d['driver_id'] ?? d['user_id'] ?? d['id'] ?? '').toString();
           if (dId.isEmpty) return;
           try {
             final res = await http

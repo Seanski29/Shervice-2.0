@@ -217,4 +217,4 @@ def delete_driver(driver_id):
         return jsonify({"success": True, "message": "Driver completely expunged from system."}), 200
     except Exception as e:
         print(f"Driver Delete Error: {e}")
-        return jsonify({"success": False, "message": f"Server processing error: {str(e)}"}), 500    
+        return jsonify({"success": False, "message": f"Server processing error: {str(e)}"}), 500
