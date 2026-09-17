@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class DriverEvaluationView extends StatefulWidget {
-  final String driverUuid;
+  final String driverId;
   final String backendUrl;
 
   const DriverEvaluationView({
     super.key,
-    required this.driverUuid,
+    required this.driverId,
     required this.backendUrl,
   });
 
@@ -23,8 +23,8 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
   int? _expandedIndex;
 
   List<dynamic> _rawEvals = [];
+  List<dynamic> _rawTrips = [];
 
-  // --- Clean Inline Filter State ---
   int? _selectedYear;
   int? _selectedMonth;
 
@@ -50,12 +50,13 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
   double _safetyAvg = 0.0;
   double _professionalismAvg = 0.0;
   int _filteredEvaluationCount = 0;
+  int _filteredTripCount = 0;
 
   String _mlClassification = 'Analyzing...';
   Color _mlBadgeColor = const Color(0xFF64748B);
   IconData _mlIcon = Icons.analytics_outlined;
 
-  List<Map<String, dynamic>> _groupedTrips = [];
+  List<Map<String, dynamic>> _processedEvals = [];
 
   int _currentPage = 0;
   final int _itemsPerPage = 5;
@@ -72,48 +73,53 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
     super.initState();
     _selectedYear = DateTime.now().year;
     _selectedMonth = DateTime.now().month;
-    _fetchEvaluations();
+    _fetchData();
   }
 
-  Future<void> _fetchEvaluations() async {
+  Future<void> _fetchData() async {
+    setState(() => _isLoading = true);
     try {
-      final res = await http.get(
-        Uri.parse('${widget.backendUrl}/evaluate/driver/${widget.driverUuid}'),
+      // 🔥 FIX: Reverted to /evaluate/driver/ because backendUrl already includes /api
+      final evalRes = await http.get(
+        Uri.parse('${widget.backendUrl}/evaluate/driver/${widget.driverId}'),
+      );
+
+      final tripsRes = await http.get(
+        Uri.parse('${widget.backendUrl}/schedules/driver/${widget.driverId}'),
       );
 
       if (mounted) {
-        if (res.statusCode == 200) {
-          final data = jsonDecode(res.body);
+        if (evalRes.statusCode == 200) {
+          final data = jsonDecode(evalRes.body);
           _rawEvals = data['data'] ?? data['evaluations'] ?? [];
-
-          Set<int> years = {DateTime.now().year};
-          for (var e in _rawEvals) {
-            DateTime? dt = DateTime.tryParse(
-              (e['submit_date'] ?? e['created_at'] ?? '').toString(),
-            );
-            if (dt != null) years.add(dt.year);
-          }
-          _availableYears = years.toList()..sort((a, b) => b.compareTo(a));
-
-          _recomputeForHorizon();
-        } else if (res.statusCode == 404) {
-          setState(() {
-            _rawEvals = [];
-            _groupedTrips = [];
-            _isLoading = false;
-          });
-        } else {
-          setState(() {
-            _errorMessage = 'Failed to load evaluations.';
-            _isLoading = false;
-          });
         }
+        if (tripsRes.statusCode == 200) {
+          final data = jsonDecode(tripsRes.body);
+          _rawTrips = data['data'] ?? [];
+        }
+
+        Set<int> years = {DateTime.now().year};
+        for (var e in _rawEvals) {
+          DateTime? dt = DateTime.tryParse(
+            (e['submit_date'] ?? e['created_at'] ?? '').toString(),
+          );
+          if (dt != null) years.add(dt.year);
+        }
+        for (var t in _rawTrips) {
+          DateTime? dt = DateTime.tryParse(
+            (t['schedule_date'] ?? t['date'] ?? '').toString(),
+          );
+          if (dt != null) years.add(dt.year);
+        }
+
+        _availableYears = years.toList()..sort((a, b) => b.compareTo(a));
+        _recomputeForHorizon();
       }
 
       try {
         final mlRes = await http.get(
           Uri.parse(
-            '${widget.backendUrl}/drivers/classify/${widget.driverUuid}?cb=${DateTime.now().millisecondsSinceEpoch}',
+            '${widget.backendUrl}/drivers/classify/${widget.driverId}?cb=${DateTime.now().millisecondsSinceEpoch}',
           ),
         );
         if (mlRes.statusCode == 200 && mounted) {
@@ -155,54 +161,49 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
 
   void _recomputeForHorizon() {
     List<dynamic> targetEvals = _rawEvals.where((e) {
-      if (_selectedYear == null) return true; // All Time
+      if (_selectedYear == null) return true;
       DateTime? dt = DateTime.tryParse(
         (e['submit_date'] ?? e['created_at'] ?? '').toString(),
       );
       if (dt == null) return false;
-      if (_selectedMonth == null)
-        return dt.year == _selectedYear; // Entire Year
-      return dt.year == _selectedYear &&
-          dt.month == _selectedMonth; // Specific Month
+      if (_selectedMonth == null) return dt.year == _selectedYear;
+      return dt.year == _selectedYear && dt.month == _selectedMonth;
     }).toList();
+
+    _filteredTripCount = _rawTrips.where((t) {
+      if (_selectedYear == null) return true;
+      DateTime? dt = DateTime.tryParse(
+        (t['schedule_date'] ?? t['date'] ?? '').toString(),
+      );
+      if (dt == null) return false;
+      if (_selectedMonth == null) return dt.year == _selectedYear;
+      return dt.year == _selectedYear && dt.month == _selectedMonth;
+    }).length;
 
     _filteredEvaluationCount = targetEvals.length;
     double cumTotalScore = 0.0, cumPunct = 0.0, cumSafe = 0.0, cumProf = 0.0;
 
-    Map<String, List<dynamic>> tripGroups = {};
+    List<Map<String, dynamic>> compiledEvals = [];
+
     for (var e in targetEvals) {
       final p = (e['punctuality_score'] as num?)?.toDouble() ?? 5.0;
       final s = (e['safety_score'] as num?)?.toDouble() ?? 5.0;
       final pr = (e['professionalism_score'] as num?)?.toDouble() ?? 5.0;
+
       cumPunct += p;
       cumSafe += s;
       cumProf += pr;
       cumTotalScore += (p + s + pr) / 3.0;
 
-      String tripId = e['trip_id']?.toString() ?? 'Unassigned';
-      tripGroups.putIfAbsent(tripId, () => []).add(e);
-    }
-
-    List<Map<String, dynamic>> compiledTrips = [];
-    for (var entry in tripGroups.entries) {
-      final tId = entry.key;
-      final tripEvals = entry.value;
-      double tPunct = 0.0, tSafe = 0.0, tProf = 0.0;
-      for (var te in tripEvals) {
-        tPunct += (te['punctuality_score'] as num?)?.toDouble() ?? 5.0;
-        tSafe += (te['safety_score'] as num?)?.toDouble() ?? 5.0;
-        tProf += (te['professionalism_score'] as num?)?.toDouble() ?? 5.0;
-      }
-      int tCount = tripEvals.length;
-      compiledTrips.add({
-        'trip_id': tId,
-        'date': tripEvals.first['submit_date'] ?? 'Unknown Date',
-        'eval_count': tCount,
-        'avg_punctuality': tPunct / tCount,
-        'avg_safety': tSafe / tCount,
-        'avg_professionalism': tProf / tCount,
-        'overall_avg': ((tPunct + tSafe + tProf) / tCount) / 3.0,
-        'passenger_reviews': tripEvals,
+      compiledEvals.add({
+        'eval_id': e['evaluation_id']?.toString() ?? 'N/A',
+        'date': e['submit_date'] ?? 'Unknown Date',
+        'overall_avg': (p + s + pr) / 3.0,
+        'avg_punctuality': p,
+        'avg_safety': s,
+        'avg_professionalism': pr,
+        'comments':
+            e['comments']?.toString().trim() ?? 'No commentary provided.',
       });
     }
 
@@ -220,7 +221,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
           ? 0.0
           : (cumProf / _filteredEvaluationCount);
 
-      _groupedTrips = compiledTrips;
+      _processedEvals = compiledEvals;
       _currentPage = 0;
       _expandedIndex = null;
       _applySort();
@@ -229,7 +230,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
   }
 
   void _applySort() {
-    _groupedTrips.sort((a, b) {
+    _processedEvals.sort((a, b) {
       if (_currentSort.contains('Date')) {
         DateTime dateA =
             DateTime.tryParse(a['date']?.toString() ?? '') ?? DateTime(2000);
@@ -259,13 +260,29 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
     }
   }
 
-  int get _totalPages => max(1, (_groupedTrips.length / _itemsPerPage).ceil());
-  List<Map<String, dynamic>> get _paginatedTrips {
-    if (_groupedTrips.isEmpty) return [];
+  void _openSubmitEvaluationDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => StaffSubmitEvaluationDialog(
+        driverId: widget.driverId,
+        backendUrl: widget.backendUrl,
+      ),
+    ).then((success) {
+      if (success == true) {
+        _fetchData();
+      }
+    });
+  }
+
+  int get _totalPages =>
+      max(1, (_processedEvals.length / _itemsPerPage).ceil());
+  List<Map<String, dynamic>> get _paginatedEvals {
+    if (_processedEvals.isEmpty) return [];
     int start = _currentPage * _itemsPerPage;
-    return _groupedTrips.sublist(
+    return _processedEvals.sublist(
       start,
-      min(start + _itemsPerPage, _groupedTrips.length),
+      min(start + _itemsPerPage, _processedEvals.length),
     );
   }
 
@@ -292,21 +309,46 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
     final isDark = theme.brightness == Brightness.dark;
     final Color textColor = isDark ? Colors.white : const Color(0xFF0F172A);
 
-    if (_errorMessage != null)
+    if (_errorMessage != null) {
       return Center(
         child: Text(
           _errorMessage!,
           style: TextStyle(color: theme.colorScheme.error),
         ),
       );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // --- INLINE DROPDOWN FILTERS ---
         Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            ElevatedButton.icon(
+              onPressed: _openSubmitEvaluationDialog,
+              icon: const Icon(
+                Icons.star_rate_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+              label: const Text(
+                'Evaluate Driver',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF59E0B),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+            ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
               decoration: BoxDecoration(
@@ -408,7 +450,6 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
         ),
         const SizedBox(height: 16),
 
-        // --- SCORE CARD ---
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
@@ -459,6 +500,16 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
                           ? Colors.blue.shade400
                           : Colors.blue.shade700,
                       fontWeight: FontWeight.w600,
+                      fontSize: 11,
+                    ),
+                  ),
+                  Text(
+                    '$_filteredTripCount Trip${_filteredTripCount == 1 ? '' : 's'} Made',
+                    style: TextStyle(
+                      color: isDark
+                          ? Colors.blue.shade400
+                          : Colors.blue.shade700,
+                      fontWeight: FontWeight.w800,
                       fontSize: 11,
                     ),
                   ),
@@ -514,12 +565,11 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
 
         const SizedBox(height: 20),
 
-        // --- SORTING & HEADER ROW ---
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'TRIP LOGS (${_groupedTrips.length})',
+              'EVALUATION LOGS (${_processedEvals.length})',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
@@ -565,9 +615,8 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
         ),
         const SizedBox(height: 12),
 
-        // --- TRIP LIST ---
         Expanded(
-          child: _groupedTrips.isEmpty
+          child: _processedEvals.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -589,13 +638,10 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
                   ),
                 )
               : ListView.builder(
-                  itemCount: _paginatedTrips.length,
+                  itemCount: _paginatedEvals.length,
                   itemBuilder: (context, index) {
-                    final trip = _paginatedTrips[index];
+                    final eval = _paginatedEvals[index];
                     final bool isExpanded = _expandedIndex == index;
-                    final String tripId = trip['trip_id'] == 'Unassigned'
-                        ? 'Unassigned Trip'
-                        : '#TRP-${trip['trip_id']}';
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -638,7 +684,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
                                           ),
                                         ),
                                         child: const Icon(
-                                          Icons.directions_bus,
+                                          Icons.assignment_ind,
                                           size: 18,
                                           color: Color(0xFF3B82F6),
                                         ),
@@ -649,7 +695,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            tripId,
+                                            'Staff Evaluation',
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 15,
@@ -660,7 +706,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            '${trip['date']} • ${trip['eval_count']} review(s)',
+                                            'Date Submitted: ${eval['date']}',
                                             style: TextStyle(
                                               fontSize: 12,
                                               color: isDark
@@ -690,7 +736,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
                                         child: Row(
                                           children: [
                                             Text(
-                                              trip['overall_avg']
+                                              eval['overall_avg']
                                                   .toStringAsFixed(1),
                                               style: TextStyle(
                                                 fontWeight: FontWeight.bold,
@@ -738,25 +784,25 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
                                       MainAxisAlignment.spaceAround,
                                   children: [
                                     _buildMiniTripScore(
-                                      'Trip Safety',
-                                      trip['avg_safety'],
+                                      'Safety',
+                                      eval['avg_safety'],
                                       isDark,
                                     ),
                                     _buildMiniTripScore(
-                                      'Trip Punctuality',
-                                      trip['avg_punctuality'],
+                                      'Punctuality',
+                                      eval['avg_punctuality'],
                                       isDark,
                                     ),
                                     _buildMiniTripScore(
-                                      'Trip Professionalism',
-                                      trip['avg_professionalism'],
+                                      'Professionalism',
+                                      eval['avg_professionalism'],
                                       isDark,
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'PASSENGER REVIEWS (${trip['eval_count']})',
+                                  'STAFF REMARKS',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
@@ -767,82 +813,31 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
                                   ),
                                 ),
                                 const SizedBox(height: 8),
-                                ...(trip['passenger_reviews'] as List).map((
-                                  review,
-                                ) {
-                                  final double indAvg =
-                                      (((review['safety_score'] as num?)
-                                                  ?.toDouble() ??
-                                              5.0) +
-                                          ((review['punctuality_score'] as num?)
-                                                  ?.toDouble() ??
-                                              5.0) +
-                                          ((review['professionalism_score']
-                                                      as num?)
-                                                  ?.toDouble() ??
-                                              5.0)) /
-                                      3;
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? const Color(0xFF1E293B)
+                                        : const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
                                       color: isDark
-                                          ? const Color(0xFF1E293B)
-                                          : const Color(0xFFF8FAFC),
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: isDark
-                                            ? Colors.grey.shade800
-                                            : Colors.grey.shade200,
-                                      ),
+                                          ? Colors.grey.shade800
+                                          : Colors.grey.shade200,
                                     ),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 6,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.amber.withOpacity(
-                                              0.2,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              4,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            '${indAvg.toStringAsFixed(1)} ★',
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.amber,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Expanded(
-                                          child: Text(
-                                            review['comments']
-                                                    ?.toString()
-                                                    .trim() ??
-                                                'No commentary provided.',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              fontStyle: FontStyle.italic,
-                                              color: isDark
-                                                  ? Colors.grey.shade300
-                                                  : const Color(0xFF334155),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                  ),
+                                  child: Text(
+                                    eval['comments'],
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontStyle: FontStyle.italic,
+                                      color: isDark
+                                          ? Colors.grey.shade300
+                                          : const Color(0xFF334155),
                                     ),
-                                  );
-                                }),
+                                  ),
+                                ),
                               ],
                             ],
                           ),
@@ -853,7 +848,6 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
                 ),
         ),
 
-        // --- PAGINATION CONTROLS ---
         if (_totalPages > 0)
           Padding(
             padding: const EdgeInsets.only(top: 16.0),
@@ -861,7 +855,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Showing ${(_currentPage * _itemsPerPage) + 1} - ${min((_currentPage + 1) * _itemsPerPage, _groupedTrips.length)} of ${_groupedTrips.length} trips',
+                  'Showing ${(_currentPage * _itemsPerPage) + 1} - ${min((_currentPage + 1) * _itemsPerPage, _processedEvals.length)} of ${_processedEvals.length} entries',
                   style: TextStyle(
                     fontSize: 12,
                     color: theme.colorScheme.onSurfaceVariant,
@@ -980,6 +974,220 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
               color: isDark ? Colors.blue.shade200 : Colors.blue.shade900,
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class StaffSubmitEvaluationDialog extends StatefulWidget {
+  final String driverId;
+  final String backendUrl;
+
+  const StaffSubmitEvaluationDialog({
+    super.key,
+    required this.driverId,
+    required this.backendUrl,
+  });
+
+  @override
+  State<StaffSubmitEvaluationDialog> createState() =>
+      _StaffSubmitEvaluationDialogState();
+}
+
+class _StaffSubmitEvaluationDialogState
+    extends State<StaffSubmitEvaluationDialog> {
+  int _safety = 5;
+  int _punctuality = 5;
+  int _professionalism = 5;
+  final TextEditingController _commentsController = TextEditingController();
+  bool _isSubmitting = false;
+
+  Future<void> _submitEvaluation() async {
+    setState(() => _isSubmitting = true);
+    try {
+      final res = await http.post(
+        Uri.parse('${widget.backendUrl}/evaluate/staff-submit'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          "driver_id": widget.driverId,
+          "safety_score": _safety,
+          "punctuality_score": _punctuality,
+          "professionalism_score": _professionalism,
+          "comments": _commentsController.text.trim(),
+        }),
+      );
+
+      if (res.statusCode == 200 && mounted) {
+        Navigator.pop(context, true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Driver evaluated successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else if (mounted) {
+        final decoded = jsonDecode(res.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(decoded['message'] ?? 'Failed to submit evaluation.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() => _isSubmitting = false);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Network error.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() => _isSubmitting = false);
+      }
+    }
+  }
+
+  Widget _buildStarRow(
+    String label,
+    int value,
+    ValueChanged<int> onChanged,
+    bool isDark,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+          Row(
+            children: List.generate(5, (index) {
+              return IconButton(
+                onPressed: () => onChanged(index + 1),
+                icon: Icon(
+                  index < value ? Icons.star : Icons.star_border,
+                  color: Colors.amber,
+                  size: 28,
+                ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+
+    return AlertDialog(
+      backgroundColor: bgColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Text(
+        'Evaluate Driver',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: isDark ? Colors.white : Colors.black87,
+        ),
+      ),
+      content: SizedBox(
+        width: 400,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Submit an internal staff evaluation for the designated operational period.',
+                style: TextStyle(
+                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildStarRow(
+                'Safety',
+                _safety,
+                (v) => setState(() => _safety = v),
+                isDark,
+              ),
+              _buildStarRow(
+                'Punctuality',
+                _punctuality,
+                (v) => setState(() => _punctuality = v),
+                isDark,
+              ),
+              _buildStarRow(
+                'Professionalism',
+                _professionalism,
+                (v) => setState(() => _professionalism = v),
+                isDark,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _commentsController,
+                maxLines: 3,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                decoration: InputDecoration(
+                  labelText: 'Staff Remarks (Optional)',
+                  labelStyle: TextStyle(
+                    color: isDark ? Colors.grey.shade500 : Colors.grey.shade600,
+                  ),
+                  filled: true,
+                  fillColor: isDark
+                      ? const Color(0xFF0F172A)
+                      : Colors.grey.shade50,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text(
+            'Cancel',
+            style: TextStyle(
+              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+            ),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: _isSubmitting ? null : _submitEvaluation,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFF59E0B),
+          ),
+          child: _isSubmitting
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Text(
+                  'Submit Evaluation',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
         ),
       ],
     );

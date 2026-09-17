@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:skeletonizer/skeletonizer.dart';
@@ -33,14 +34,44 @@ class _StaffTripsState extends State<StaffTrips> {
   bool _isCalendarExpanded = true;
   List<Map<String, dynamic>> _trips = [];
   DateTime _focusedMonth = DateTime.now();
-  DateTime? _selectedDate = DateTime.now();
+
+  DateTime? _selectedDate;
   String _searchQuery = '';
   String _selectedDriver = 'All Drivers';
   String _selectedVehicle = 'All Vehicles';
+
+  String _currentSort = 'Date (Newest)';
+  int? _filterMonth = DateTime.now().month;
+  int? _filterYear = DateTime.now().year;
+
+  List<int> _availableYears = [DateTime.now().year];
+  final List<String> _monthNames = const [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
+  int _currentTripPage = 0;
+  int _currentSummaryPage = 0;
+  final int _itemsPerPage = 10;
+
   int _activeTab = 0;
   final ScrollController _summaryListScrollController = ScrollController();
 
-  static const List<String> _excludedStatuses = ['ongoing', 'expired', 'rejected'];
+  static const List<String> _excludedStatuses = [
+    'ongoing',
+    'expired',
+    'rejected',
+  ];
 
   @override
   void initState() {
@@ -63,7 +94,9 @@ class _StaffTripsState extends State<StaffTrips> {
 
     try {
       final response = await http
-          .get(Uri.parse('$backendUrl/schedules/staff-summary/${widget.staffId}'))
+          .get(
+            Uri.parse('$backendUrl/schedules/staff-summary/${widget.staffId}'),
+          )
           .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
@@ -73,7 +106,19 @@ class _StaffTripsState extends State<StaffTrips> {
             .map((row) => Map<String, dynamic>.from(row))
             .where(_isSummaryTrip)
             .toList();
-        if (mounted) setState(() => _trips = rows);
+
+        Set<int> years = {DateTime.now().year};
+        for (var t in rows) {
+          final d = _parseDate(t['schedule_date'] ?? t['date']);
+          if (d != null) years.add(d.year);
+        }
+
+        if (mounted) {
+          setState(() {
+            _trips = rows;
+            _availableYears = years.toList()..sort((a, b) => b.compareTo(a));
+          });
+        }
       }
     } catch (error) {
       debugPrint('Trip summary fetch failed: $error');
@@ -87,6 +132,13 @@ class _StaffTripsState extends State<StaffTrips> {
     }
   }
 
+  void _resetPagination() {
+    setState(() {
+      _currentTripPage = 0;
+      _currentSummaryPage = 0;
+    });
+  }
+
   bool _isSummaryTrip(Map<String, dynamic> trip) {
     final status = (trip['trip_status'] ?? '').toString().toLowerCase();
     return !_excludedStatuses.any((blocked) => status.contains(blocked));
@@ -94,17 +146,26 @@ class _StaffTripsState extends State<StaffTrips> {
 
   List<Map<String, dynamic>> get _visibleTrips {
     final query = _searchQuery.trim().toLowerCase();
-    final selectedDateText = _selectedDate == null ? null : _dateKey(_selectedDate!);
 
     final rows = _trips.where((trip) {
-      final dateText = (trip['schedule_date'] ?? trip['date'] ?? '').toString();
-      if (selectedDateText != null && !dateText.startsWith(selectedDateText)) return false;
+      DateTime? tripDate = _parseDate(trip['schedule_date'] ?? trip['date']);
+      if (tripDate == null) return false;
+
+      if (_selectedDate != null) {
+        if (_dateKey(tripDate) != _dateKey(_selectedDate!)) return false;
+      } else {
+        if (_filterYear != null && tripDate.year != _filterYear) return false;
+        if (_filterMonth != null && tripDate.month != _filterMonth)
+          return false;
+      }
+
       if (_selectedDriver != 'All Drivers' &&
           (trip['driver_name'] ?? 'Unassigned').toString() != _selectedDriver) {
         return false;
       }
       if (_selectedVehicle != 'All Vehicles' &&
-          (trip['plate_number'] ?? 'Unassigned').toString() != _selectedVehicle) {
+          (trip['plate_number'] ?? 'Unassigned').toString() !=
+              _selectedVehicle) {
         return false;
       }
       if (query.isEmpty) return true;
@@ -121,40 +182,56 @@ class _StaffTripsState extends State<StaffTrips> {
     }).toList();
 
     rows.sort((a, b) {
-      final dateCompare = (a['schedule_date'] ?? '').toString().compareTo((b['schedule_date'] ?? '').toString());
-      if (dateCompare != 0) return dateCompare;
-      return _timeText(a['departure_time']).compareTo(_timeText(b['departure_time']));
+      final dateA = (a['schedule_date'] ?? '').toString();
+      final dateB = (b['schedule_date'] ?? '').toString();
+
+      int cmp = 0;
+      if (_currentSort == 'Date (Newest)') {
+        cmp = dateB.compareTo(dateA);
+      } else {
+        cmp = dateA.compareTo(dateB);
+      }
+
+      if (cmp != 0) return cmp;
+      return _timeText(
+        a['departure_time'],
+      ).compareTo(_timeText(b['departure_time']));
     });
     return rows;
   }
 
   List<String> get _driverOptions {
-    final values = _trips
-        .map((trip) => (trip['driver_name'] ?? 'Unassigned').toString())
-        .where((name) => name.trim().isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final values =
+        _trips
+            .map((trip) => (trip['driver_name'] ?? 'Unassigned').toString())
+            .where((name) => name.trim().isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
     return ['All Drivers', ...values];
   }
 
   List<String> get _vehicleOptions {
-    final values = _trips
-        .map((trip) => (trip['plate_number'] ?? 'Unassigned').toString())
-        .where((plate) => plate.trim().isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    final values =
+        _trips
+            .map((trip) => (trip['plate_number'] ?? 'Unassigned').toString())
+            .where((plate) => plate.trim().isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort();
     return ['All Vehicles', ...values];
   }
 
   int get _totalPassengers => _visibleTrips.fold<int>(
-        0,
-        (sum, trip) => sum + (int.tryParse('${trip['passenger_count'] ?? 0}') ?? 0),
-      );
+    0,
+    (sum, trip) => sum + (int.tryParse('${trip['passenger_count'] ?? 0}') ?? 0),
+  );
 
   double get _averageUtilization {
-    final values = _visibleTrips.map(_utilizationValue).whereType<double>().toList();
+    final values = _visibleTrips
+        .map(_utilizationValue)
+        .whereType<double>()
+        .toList();
     if (values.isEmpty) return 0;
     return values.reduce((a, b) => a + b) / values.length;
   }
@@ -163,16 +240,24 @@ class _StaffTripsState extends State<StaffTrips> {
     final grouped = <String, List<Map<String, dynamic>>>{};
     for (final trip in _visibleTrips) {
       final summaryId = (trip['summary_id'] ?? '').toString().trim();
-      final fallback = 'SUMMARY-${(trip['schedule_date'] ?? trip['date'] ?? 'NO-DATE').toString()}';
-      grouped.putIfAbsent(summaryId.isEmpty ? fallback : summaryId, () => []).add(trip);
+      final fallback =
+          'SUMMARY-${(trip['schedule_date'] ?? trip['date'] ?? 'NO-DATE').toString()}';
+      grouped
+          .putIfAbsent(summaryId.isEmpty ? fallback : summaryId, () => [])
+          .add(trip);
     }
 
     final groups = grouped.entries.map((entry) {
       final rows = entry.value;
-      rows.sort((a, b) => _timeText(a['departure_time']).compareTo(_timeText(b['departure_time'])));
+      rows.sort(
+        (a, b) => _timeText(
+          a['departure_time'],
+        ).compareTo(_timeText(b['departure_time'])),
+      );
       final totalPassengers = rows.fold<int>(
         0,
-        (sum, trip) => sum + (int.tryParse('${trip['passenger_count'] ?? 0}') ?? 0),
+        (sum, trip) =>
+            sum + (int.tryParse('${trip['passenger_count'] ?? 0}') ?? 0),
       );
       final vehicles = rows
           .map((trip) => (trip['plate_number'] ?? '').toString())
@@ -181,8 +266,10 @@ class _StaffTripsState extends State<StaffTrips> {
           .join(', ');
       return {
         'summary_id': entry.key,
-        'date': (rows.first['schedule_date'] ?? rows.first['date'] ?? '').toString(),
-        'company': (rows.first['client_company'] ?? 'Unassigned Company').toString(),
+        'date': (rows.first['schedule_date'] ?? rows.first['date'] ?? '')
+            .toString(),
+        'company': (rows.first['client_company'] ?? 'Unassigned Company')
+            .toString(),
         'working_day': _workingDay(rows.first),
         'rows': rows,
         'row_count': rows.length,
@@ -191,7 +278,15 @@ class _StaffTripsState extends State<StaffTrips> {
       };
     }).toList();
 
-    groups.sort((a, b) => '${a['date']}'.compareTo('${b['date']}'));
+    groups.sort((a, b) {
+      int cmp = 0;
+      if (_currentSort == 'Date (Newest)') {
+        cmp = '${b['date']}'.compareTo('${a['date']}');
+      } else {
+        cmp = '${a['date']}'.compareTo('${b['date']}');
+      }
+      return cmp;
+    });
     return groups;
   }
 
@@ -213,14 +308,23 @@ class _StaffTripsState extends State<StaffTrips> {
     if (explicit.isNotEmpty) return explicit.toUpperCase();
     final date = _parseDate(trip['schedule_date'] ?? trip['date']);
     if (date == null) return '';
-    const days = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+    const days = [
+      'MONDAY',
+      'TUESDAY',
+      'WEDNESDAY',
+      'THURSDAY',
+      'FRIDAY',
+      'SATURDAY',
+      'SUNDAY',
+    ];
     return days[date.weekday - 1];
   }
 
   String _timeText(dynamic value) {
     final text = (value ?? '').toString();
     if (text.isEmpty) return '--:--';
-    if (text.toUpperCase().contains('AM') || text.toUpperCase().contains('PM')) return text;
+    if (text.toUpperCase().contains('AM') || text.toUpperCase().contains('PM'))
+      return text;
     return text.length >= 5 ? text.substring(0, 5) : text;
   }
 
@@ -242,7 +346,9 @@ class _StaffTripsState extends State<StaffTrips> {
   List<Map<String, dynamic>> _tripsForDate(DateTime date) {
     final key = _dateKey(date);
     return _trips.where((trip) {
-      return (trip['schedule_date'] ?? trip['date'] ?? '').toString().startsWith(key);
+      return (trip['schedule_date'] ?? trip['date'] ?? '')
+          .toString()
+          .startsWith(key);
     }).toList();
   }
 
@@ -254,12 +360,17 @@ class _StaffTripsState extends State<StaffTrips> {
     );
 
     if (createdDate == null || !mounted) return;
-    setState(() => _selectedDate = createdDate);
+    setState(() {
+      _selectedDate = createdDate;
+      _filterMonth = null;
+      _filterYear = null;
+      _resetPagination();
+    });
     await _fetchTripSummary();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Trip summary batch added.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Trip summary batch added.')));
   }
 
   void _showTripDetails(Map<String, dynamic> trip) {
@@ -274,22 +385,78 @@ class _StaffTripsState extends State<StaffTrips> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _detailRow('Date', (trip['schedule_date'] ?? trip['date'] ?? '').toString(), isDark),
-                _detailRow('Summary ID', (trip['summary_id'] ?? '').toString(), isDark),
-                _detailRow('Company', (trip['client_company'] ?? 'Unassigned Company').toString(), isDark),
+                _detailRow(
+                  'Date',
+                  (trip['schedule_date'] ?? trip['date'] ?? '').toString(),
+                  isDark,
+                ),
+                _detailRow(
+                  'Summary ID',
+                  (trip['summary_id'] ?? '').toString(),
+                  isDark,
+                ),
+                _detailRow(
+                  'Company',
+                  (trip['client_company'] ?? 'Unassigned Company').toString(),
+                  isDark,
+                ),
                 _detailRow('Working Day', _workingDay(trip), isDark),
-                _detailRow('Bus Type', (trip['bus_type'] ?? '').toString(), isDark),
-                _detailRow('Classification', (trip['classification'] ?? '').toString(), isDark),
-                _detailRow('Vehicle', (trip['plate_number'] ?? 'Unassigned').toString(), isDark),
-                _detailRow('Seating Capacity', (trip['seating_capacity'] ?? '').toString(), isDark),
-                _detailRow('Ticket No.', (trip['ticket_no'] ?? '').toString(), isDark),
-                _detailRow('Driver', (trip['driver_name'] ?? 'Unassigned').toString(), isDark),
-                _detailRow('Route', (trip['route_name'] ?? '').toString(), isDark),
-                _detailRow('No. of Passengers', (trip['passenger_count'] ?? '').toString(), isDark),
-                _detailRow('Departure', _timeText(trip['departure_time']), isDark),
-                _detailRow('Arrival', _timeText(trip['estimated_arrival_time']), isDark),
+                _detailRow(
+                  'Bus Type',
+                  (trip['bus_type'] ?? '').toString(),
+                  isDark,
+                ),
+                _detailRow(
+                  'Classification',
+                  (trip['classification'] ?? '').toString(),
+                  isDark,
+                ),
+                _detailRow(
+                  'Vehicle',
+                  (trip['plate_number'] ?? 'Unassigned').toString(),
+                  isDark,
+                ),
+                _detailRow(
+                  'Seating Capacity',
+                  (trip['seating_capacity'] ?? '').toString(),
+                  isDark,
+                ),
+                _detailRow(
+                  'Ticket No.',
+                  (trip['ticket_no'] ?? '').toString(),
+                  isDark,
+                ),
+                _detailRow(
+                  'Driver',
+                  (trip['driver_name'] ?? 'Unassigned').toString(),
+                  isDark,
+                ),
+                _detailRow(
+                  'Route',
+                  (trip['route_name'] ?? '').toString(),
+                  isDark,
+                ),
+                _detailRow(
+                  'No. of Passengers',
+                  (trip['passenger_count'] ?? '').toString(),
+                  isDark,
+                ),
+                _detailRow(
+                  'Departure',
+                  _timeText(trip['departure_time']),
+                  isDark,
+                ),
+                _detailRow(
+                  'Arrival',
+                  _timeText(trip['estimated_arrival_time']),
+                  isDark,
+                ),
                 _detailRow('Utilization', _utilizationText(trip), isDark),
-                _detailRow('Remarks', (trip['remarks'] ?? '').toString(), isDark),
+                _detailRow(
+                  'Remarks',
+                  (trip['remarks'] ?? '').toString(),
+                  isDark,
+                ),
               ],
             ),
           ),
@@ -308,7 +475,11 @@ class _StaffTripsState extends State<StaffTrips> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0))),
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0),
+          ),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -337,7 +508,10 @@ class _StaffTripsState extends State<StaffTrips> {
     );
   }
 
-  Future<bool> _updateSummaryRow(Map<String, dynamic> trip, Map<String, dynamic> payload) async {
+  Future<bool> _updateSummaryRow(
+    Map<String, dynamic> trip,
+    Map<String, dynamic> payload,
+  ) async {
     final tripId = int.tryParse('${trip['trip_id'] ?? ''}');
     if (tripId == null) return false;
 
@@ -421,7 +595,9 @@ class _StaffTripsState extends State<StaffTrips> {
                 isNarrow
                     ? Column(
                         children: [
-                          _isCalendarExpanded ? _buildCalendar(isDark, isNarrow) : _buildCollapsedCalendarBar(isDark, true),
+                          _isCalendarExpanded
+                              ? _buildCalendar(isDark, isNarrow)
+                              : _buildCollapsedCalendarBar(isDark, true),
                           const SizedBox(height: 18),
                           _buildTripWorkspace(isDark),
                         ],
@@ -432,7 +608,10 @@ class _StaffTripsState extends State<StaffTrips> {
                           AnimatedSwitcher(
                             duration: const Duration(milliseconds: 220),
                             child: _isCalendarExpanded
-                                ? SizedBox(width: 360, child: _buildCalendar(isDark, isNarrow))
+                                ? SizedBox(
+                                    width: 360,
+                                    child: _buildCalendar(isDark, isNarrow),
+                                  )
                                 : _buildCollapsedCalendarBar(isDark, false),
                           ),
                           const SizedBox(width: 20),
@@ -496,7 +675,9 @@ class _StaffTripsState extends State<StaffTrips> {
       children: [
         _buildTripTabs(isDark),
         const SizedBox(height: 12),
-        _activeTab == 0 ? _buildSummaryTable(isDark) : _buildEditableSummarySheet(isDark),
+        _activeTab == 0
+            ? _buildSummaryTable(isDark)
+            : _buildEditableSummarySheet(isDark),
       ],
     );
   }
@@ -525,7 +706,10 @@ class _StaffTripsState extends State<StaffTrips> {
     return Expanded(
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () => setState(() => _activeTab = index),
+        onTap: () => setState(() {
+          _activeTab = index;
+          _resetPagination();
+        }),
         child: Container(
           alignment: Alignment.center,
           decoration: BoxDecoration(
@@ -535,7 +719,9 @@ class _StaffTripsState extends State<StaffTrips> {
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? Colors.white : (isDark ? Colors.grey.shade300 : const Color(0xFF475569)),
+              color: selected
+                  ? Colors.white
+                  : (isDark ? Colors.grey.shade300 : const Color(0xFF475569)),
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -551,27 +737,101 @@ class _StaffTripsState extends State<StaffTrips> {
       alignment: WrapAlignment.end,
       children: [
         SizedBox(
-          width: isNarrow ? double.infinity : 220,
+          width: isNarrow ? double.infinity : 180,
           height: 42,
           child: TextField(
-            onChanged: (value) => setState(() => _searchQuery = value),
-            style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 13),
-            decoration: _inputDecoration(isDark, 'Search route, ticket, driver...', Icons.search),
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value;
+                _resetPagination();
+              });
+            },
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black87,
+              fontSize: 13,
+            ),
+            decoration: _inputDecoration(
+              isDark,
+              'Search ID, route...',
+              Icons.search,
+            ),
           ),
         ),
         _dropdown(
           isDark: isDark,
-          width: isNarrow ? double.infinity : 170,
-          value: _driverOptions.contains(_selectedDriver) ? _selectedDriver : 'All Drivers',
-          values: _driverOptions,
-          onChanged: (value) => setState(() => _selectedDriver = value ?? 'All Drivers'),
+          width: isNarrow ? double.infinity : 120,
+          value: _filterMonth == null
+              ? 'All Months'
+              : _monthNames[_filterMonth! - 1],
+          values: ['All Months', ..._monthNames],
+          onChanged: (value) {
+            setState(() {
+              if (value == 'All Months') {
+                _filterMonth = null;
+              } else {
+                _filterMonth = _monthNames.indexOf(value!) + 1;
+                _selectedDate = null;
+              }
+              _resetPagination();
+            });
+          },
         ),
         _dropdown(
           isDark: isDark,
-          width: isNarrow ? double.infinity : 170,
-          value: _vehicleOptions.contains(_selectedVehicle) ? _selectedVehicle : 'All Vehicles',
+          width: isNarrow ? double.infinity : 110,
+          value: _filterYear == null ? 'All Years' : _filterYear.toString(),
+          values: ['All Years', ..._availableYears.map((y) => y.toString())],
+          onChanged: (value) {
+            setState(() {
+              if (value == 'All Years') {
+                _filterYear = null;
+              } else {
+                _filterYear = int.parse(value!);
+                _selectedDate = null;
+              }
+              _resetPagination();
+            });
+          },
+        ),
+        _dropdown(
+          isDark: isDark,
+          width: isNarrow ? double.infinity : 140,
+          value: _currentSort,
+          values: ['Date (Newest)', 'Date (Oldest)'],
+          onChanged: (value) {
+            setState(() {
+              _currentSort = value ?? 'Date (Newest)';
+              _resetPagination();
+            });
+          },
+        ),
+        _dropdown(
+          isDark: isDark,
+          width: isNarrow ? double.infinity : 140,
+          value: _driverOptions.contains(_selectedDriver)
+              ? _selectedDriver
+              : 'All Drivers',
+          values: _driverOptions,
+          onChanged: (value) {
+            setState(() {
+              _selectedDriver = value ?? 'All Drivers';
+              _resetPagination();
+            });
+          },
+        ),
+        _dropdown(
+          isDark: isDark,
+          width: isNarrow ? double.infinity : 140,
+          value: _vehicleOptions.contains(_selectedVehicle)
+              ? _selectedVehicle
+              : 'All Vehicles',
           values: _vehicleOptions,
-          onChanged: (value) => setState(() => _selectedVehicle = value ?? 'All Vehicles'),
+          onChanged: (value) {
+            setState(() {
+              _selectedVehicle = value ?? 'All Vehicles';
+              _resetPagination();
+            });
+          },
         ),
         if (widget.canManageSummaries)
           SizedBox(
@@ -584,7 +844,9 @@ class _StaffTripsState extends State<StaffTrips> {
                 backgroundColor: const Color(0xFF2563EB),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
             ),
           ),
@@ -612,7 +874,9 @@ class _StaffTripsState extends State<StaffTrips> {
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+        borderSide: BorderSide(
+          color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+        ),
       ),
     );
   }
@@ -624,18 +888,25 @@ class _StaffTripsState extends State<StaffTrips> {
     required List<String> values,
     required ValueChanged<String?> onChanged,
   }) {
+    final List<String> safeValues = values.toSet().toList();
+    final String safeValue = safeValues.contains(value)
+        ? value
+        : safeValues.first;
+
     return Container(
       width: width,
       height: 42,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+        ),
         borderRadius: BorderRadius.circular(10),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: value,
+          value: safeValue,
           isExpanded: true,
           dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
           style: TextStyle(
@@ -643,7 +914,9 @@ class _StaffTripsState extends State<StaffTrips> {
             fontSize: 13,
             fontWeight: FontWeight.w600,
           ),
-          items: values.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
+          items: safeValues
+              .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+              .toList(),
           onChanged: onChanged,
         ),
       ),
@@ -651,14 +924,46 @@ class _StaffTripsState extends State<StaffTrips> {
   }
 
   Widget _buildSummaryCards(bool isDark, bool isNarrow) {
-    final selectedLabel = _selectedDate == null ? 'All Dates' : _dateKey(_selectedDate!);
+    String selectedLabel = 'All Time';
+    if (_selectedDate != null) {
+      selectedLabel = _dateKey(_selectedDate!);
+    } else if (_filterMonth != null && _filterYear != null) {
+      selectedLabel = '${_monthNames[_filterMonth! - 1]} $_filterYear';
+    } else if (_filterYear != null) {
+      selectedLabel = 'Year $_filterYear';
+    } else if (_filterMonth != null) {
+      selectedLabel = '${_monthNames[_filterMonth! - 1]} (All Years)';
+    }
+
     final screenWidth = MediaQuery.of(context).size.width;
-    final cardWidth = isNarrow ? 170.0 : ((screenWidth - 520) / 4).clamp(185.0, 245.0).toDouble();
+    final cardWidth = isNarrow
+        ? 170.0
+        : ((screenWidth - 520) / 4).clamp(185.0, 245.0).toDouble();
     final cards = [
-      ('Rows', '${_visibleTrips.length}', Icons.receipt_long, const Color(0xFF3B82F6)),
-      ('Passengers', '$_totalPassengers', Icons.groups_outlined, const Color(0xFF10B981)),
-      ('Avg Utilization', '${(_averageUtilization * 100).round()}%', Icons.percent, const Color(0xFFF59E0B)),
-      ('Date Basis', selectedLabel, Icons.calendar_today, const Color(0xFF8B5CF6)),
+      (
+        'Rows',
+        '${_visibleTrips.length}',
+        Icons.receipt_long,
+        const Color(0xFF3B82F6),
+      ),
+      (
+        'Passengers',
+        '$_totalPassengers',
+        Icons.groups_outlined,
+        const Color(0xFF10B981),
+      ),
+      (
+        'Avg Utilization',
+        '${(_averageUtilization * 100).round()}%',
+        Icons.percent,
+        const Color(0xFFF59E0B),
+      ),
+      (
+        'Date Basis',
+        selectedLabel,
+        Icons.calendar_today,
+        const Color(0xFF8B5CF6),
+      ),
     ];
 
     return SingleChildScrollView(
@@ -697,7 +1002,9 @@ class _StaffTripsState extends State<StaffTrips> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          color: isDark
+                              ? Colors.white
+                              : const Color(0xFF0F172A),
                           fontWeight: FontWeight.w900,
                           fontSize: 18,
                         ),
@@ -707,7 +1014,9 @@ class _StaffTripsState extends State<StaffTrips> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
+                          color: isDark
+                              ? Colors.grey.shade400
+                              : const Color(0xFF64748B),
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
                         ),
@@ -760,7 +1069,9 @@ class _StaffTripsState extends State<StaffTrips> {
                   child: Text(
                     'CALENDAR',
                     style: TextStyle(
-                      color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
+                      color: isDark
+                          ? Colors.grey.shade400
+                          : const Color(0xFF64748B),
                       fontWeight: FontWeight.w800,
                       letterSpacing: 3,
                     ),
@@ -780,7 +1091,11 @@ class _StaffTripsState extends State<StaffTrips> {
 
   Widget _buildCalendar(bool isDark, bool isNarrow) {
     final firstDay = DateTime(_focusedMonth.year, _focusedMonth.month, 1);
-    final daysInMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 0).day;
+    final daysInMonth = DateTime(
+      _focusedMonth.year,
+      _focusedMonth.month + 1,
+      0,
+    ).day;
     final firstWeekday = firstDay.weekday % 7;
     final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0);
     const weekdays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -799,7 +1114,9 @@ class _StaffTripsState extends State<StaffTrips> {
               children: [
                 IconButton(
                   onPressed: () => setState(() => _isCalendarExpanded = false),
-                  icon: Icon(isNarrow ? Icons.keyboard_arrow_up : Icons.menu_open),
+                  icon: Icon(
+                    isNarrow ? Icons.keyboard_arrow_up : Icons.menu_open,
+                  ),
                   tooltip: 'Collapse calendar',
                 ),
                 Expanded(
@@ -813,14 +1130,20 @@ class _StaffTripsState extends State<StaffTrips> {
                 ),
                 IconButton(
                   onPressed: () => setState(() {
-                    _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month - 1);
+                    _focusedMonth = DateTime(
+                      _focusedMonth.year,
+                      _focusedMonth.month - 1,
+                    );
                   }),
                   icon: const Icon(Icons.chevron_left),
                   tooltip: 'Previous month',
                 ),
                 IconButton(
                   onPressed: () => setState(() {
-                    _focusedMonth = DateTime(_focusedMonth.year, _focusedMonth.month + 1);
+                    _focusedMonth = DateTime(
+                      _focusedMonth.year,
+                      _focusedMonth.month + 1,
+                    );
                   }),
                   icon: const Icon(Icons.chevron_right),
                   tooltip: 'Next month',
@@ -842,7 +1165,9 @@ class _StaffTripsState extends State<StaffTrips> {
                           child: Text(
                             day,
                             style: TextStyle(
-                              color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
+                              color: isDark
+                                  ? Colors.grey.shade400
+                                  : const Color(0xFF64748B),
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -863,15 +1188,26 @@ class _StaffTripsState extends State<StaffTrips> {
                   itemBuilder: (context, index) {
                     if (index < firstWeekday) return const SizedBox.shrink();
                     final day = index - firstWeekday + 1;
-                    final date = DateTime(_focusedMonth.year, _focusedMonth.month, day);
+                    final date = DateTime(
+                      _focusedMonth.year,
+                      _focusedMonth.month,
+                      day,
+                    );
                     final trips = _tripsForDate(date);
                     final hasTrips = trips.isNotEmpty;
-                    final isSelected = _selectedDate != null && _dateKey(_selectedDate!) == _dateKey(date);
+                    final isSelected =
+                        _selectedDate != null &&
+                        _dateKey(_selectedDate!) == _dateKey(date);
                     final isToday = _dateKey(DateTime.now()) == _dateKey(date);
 
                     return InkWell(
                       onTap: () => setState(() {
                         _selectedDate = isSelected ? null : date;
+                        if (_selectedDate != null) {
+                          _filterMonth = null;
+                          _filterYear = null;
+                        }
+                        _resetPagination();
                       }),
                       borderRadius: BorderRadius.circular(8),
                       child: Container(
@@ -879,14 +1215,16 @@ class _StaffTripsState extends State<StaffTrips> {
                           color: isSelected
                               ? const Color(0xFF3B82F6)
                               : hasTrips
-                                  ? (isDark ? const Color(0xFF0F2D52) : const Color(0xFFEFF6FF))
-                                  : Colors.transparent,
+                              ? (isDark
+                                    ? const Color(0xFF0F2D52)
+                                    : const Color(0xFFEFF6FF))
+                              : Colors.transparent,
                           border: Border.all(
                             color: isToday
                                 ? const Color(0xFFF59E0B)
                                 : isSelected
-                                    ? const Color(0xFF3B82F6)
-                                    : borderColor,
+                                ? const Color(0xFF3B82F6)
+                                : borderColor,
                           ),
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -899,16 +1237,22 @@ class _StaffTripsState extends State<StaffTrips> {
                                 color: isSelected
                                     ? Colors.white
                                     : hasTrips
-                                        ? const Color(0xFF3B82F6)
-                                        : (isDark ? Colors.grey.shade300 : const Color(0xFF0F172A)),
-                                fontWeight: isSelected || hasTrips ? FontWeight.w800 : FontWeight.w500,
+                                    ? const Color(0xFF3B82F6)
+                                    : (isDark
+                                          ? Colors.grey.shade300
+                                          : const Color(0xFF0F172A)),
+                                fontWeight: isSelected || hasTrips
+                                    ? FontWeight.w800
+                                    : FontWeight.w500,
                               ),
                             ),
                             if (hasTrips)
                               Text(
                                 '${trips.length}',
                                 style: TextStyle(
-                                  color: isSelected ? Colors.white : const Color(0xFF64748B),
+                                  color: isSelected
+                                      ? Colors.white
+                                      : const Color(0xFF64748B),
                                   fontSize: 10,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -931,6 +1275,25 @@ class _StaffTripsState extends State<StaffTrips> {
     final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0);
     final rows = _isLoading ? List.generate(5, _skeletonTrip) : _visibleTrips;
 
+    final int totalPages = max(1, (rows.length / _itemsPerPage).ceil());
+    final paginatedRows = rows.isEmpty
+        ? []
+        : rows.sublist(
+            _currentTripPage * _itemsPerPage,
+            min((_currentTripPage + 1) * _itemsPerPage, rows.length),
+          );
+
+    String selectedLabel = 'All Time';
+    if (_selectedDate != null) {
+      selectedLabel = _dateKey(_selectedDate!);
+    } else if (_filterMonth != null && _filterYear != null) {
+      selectedLabel = '${_monthNames[_filterMonth! - 1]} $_filterYear';
+    } else if (_filterYear != null) {
+      selectedLabel = 'Year $_filterYear';
+    } else if (_filterMonth != null) {
+      selectedLabel = '${_monthNames[_filterMonth! - 1]} (All Years)';
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -946,7 +1309,7 @@ class _StaffTripsState extends State<StaffTrips> {
               children: [
                 Expanded(
                   child: Text(
-                    _selectedDate == null ? 'All Summary Rows' : 'Summary for ${_dateKey(_selectedDate!)}',
+                    'Summary for $selectedLabel',
                     style: TextStyle(
                       color: isDark ? Colors.white : const Color(0xFF0F172A),
                       fontWeight: FontWeight.w800,
@@ -955,9 +1318,11 @@ class _StaffTripsState extends State<StaffTrips> {
                   ),
                 ),
                 Text(
-                  '${_visibleTrips.length} rows',
+                  '${rows.length} rows',
                   style: TextStyle(
-                    color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
+                    color: isDark
+                        ? Colors.grey.shade400
+                        : const Color(0xFF64748B),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -970,11 +1335,15 @@ class _StaffTripsState extends State<StaffTrips> {
               child: Center(
                 child: Text(
                   'No trip summary rows for the selected filters.',
-                  style: TextStyle(color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B)),
+                  style: TextStyle(
+                    color: isDark
+                        ? Colors.grey.shade400
+                        : const Color(0xFF64748B),
+                  ),
                 ),
               ),
             )
-          else
+          else ...[
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
@@ -998,21 +1367,34 @@ class _StaffTripsState extends State<StaffTrips> {
                   DataColumn(label: Text('Util')),
                   DataColumn(label: Text('Remarks')),
                 ],
-                rows: rows.map((trip) {
+                rows: paginatedRows.map((trip) {
                   return DataRow(
-                    onSelectChanged: _isLoading ? null : (_) => _showTripDetails(trip),
+                    onSelectChanged: _isLoading
+                        ? null
+                        : (_) => _showTripDetails(trip),
                     cells: [
-                      DataCell(Text((trip['schedule_date'] ?? trip['date'] ?? '').toString())),
+                      DataCell(
+                        Text(
+                          (trip['schedule_date'] ?? trip['date'] ?? '')
+                              .toString(),
+                        ),
+                      ),
                       DataCell(Text((trip['summary_id'] ?? '').toString())),
                       DataCell(Text(_workingDay(trip))),
                       DataCell(Text((trip['bus_type'] ?? '').toString())),
                       DataCell(Text((trip['classification'] ?? '').toString())),
                       DataCell(Text((trip['plate_number'] ?? '').toString())),
-                      DataCell(Text((trip['seating_capacity'] ?? '').toString())),
+                      DataCell(
+                        Text((trip['seating_capacity'] ?? '').toString()),
+                      ),
                       DataCell(Text((trip['ticket_no'] ?? '').toString())),
-                      DataCell(Text((trip['driver_name'] ?? 'Unassigned').toString())),
+                      DataCell(
+                        Text((trip['driver_name'] ?? 'Unassigned').toString()),
+                      ),
                       DataCell(Text((trip['route_name'] ?? '').toString())),
-                      DataCell(Text((trip['passenger_count'] ?? '').toString())),
+                      DataCell(
+                        Text((trip['passenger_count'] ?? '').toString()),
+                      ),
                       DataCell(Text(_timeText(trip['departure_time']))),
                       DataCell(Text(_timeText(trip['estimated_arrival_time']))),
                       DataCell(Text(_utilizationText(trip))),
@@ -1022,6 +1404,64 @@ class _StaffTripsState extends State<StaffTrips> {
                 }).toList(),
               ),
             ),
+            if (totalPages > 0)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 12.0,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Showing ${(_currentTripPage * _itemsPerPage) + 1} - ${min((_currentTripPage + 1) * _itemsPerPage, rows.length)} of ${rows.length} rows',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade600,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.chevron_left),
+                          onPressed: _currentTripPage > 0
+                              ? () => setState(() => _currentTripPage--)
+                              : null,
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF0F172A)
+                                : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'Page ${_currentTripPage + 1} of $totalPages',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.chevron_right),
+                          onPressed: _currentTripPage < totalPages - 1
+                              ? () => setState(() => _currentTripPage++)
+                              : null,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+          ],
         ],
       ),
     );
@@ -1044,6 +1484,26 @@ class _StaffTripsState extends State<StaffTrips> {
             };
           })
         : _summaryGroups;
+
+    final int totalPages = max(1, (groups.length / _itemsPerPage).ceil());
+    final paginatedGroups = groups.isEmpty
+        ? []
+        : groups.sublist(
+            _currentSummaryPage * _itemsPerPage,
+            min((_currentSummaryPage + 1) * _itemsPerPage, groups.length),
+          );
+
+    String selectedLabel = 'All Time';
+    if (_selectedDate != null) {
+      selectedLabel = _dateKey(_selectedDate!);
+    } else if (_filterMonth != null && _filterYear != null) {
+      selectedLabel = '${_monthNames[_filterMonth! - 1]} $_filterYear';
+    } else if (_filterYear != null) {
+      selectedLabel = 'Year $_filterYear';
+    } else if (_filterMonth != null) {
+      selectedLabel = '${_monthNames[_filterMonth! - 1]} (All Years)';
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -1059,7 +1519,7 @@ class _StaffTripsState extends State<StaffTrips> {
               children: [
                 Expanded(
                   child: Text(
-                    _selectedDate == null ? 'Summary Batches' : 'Summaries for ${_dateKey(_selectedDate!)}',
+                    'Summaries for $selectedLabel',
                     style: TextStyle(
                       color: isDark ? Colors.white : const Color(0xFF0F172A),
                       fontWeight: FontWeight.w800,
@@ -1070,7 +1530,9 @@ class _StaffTripsState extends State<StaffTrips> {
                 Text(
                   '${groups.length} summaries',
                   style: TextStyle(
-                    color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
+                    color: isDark
+                        ? Colors.grey.shade400
+                        : const Color(0xFF64748B),
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -1083,11 +1545,15 @@ class _StaffTripsState extends State<StaffTrips> {
               child: Center(
                 child: Text(
                   'No summaries for the selected filters.',
-                  style: TextStyle(color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B)),
+                  style: TextStyle(
+                    color: isDark
+                        ? Colors.grey.shade400
+                        : const Color(0xFF64748B),
+                  ),
                 ),
               ),
             )
-          else
+          else ...[
             Scrollbar(
               controller: _summaryListScrollController,
               thumbVisibility: true,
@@ -1111,20 +1577,53 @@ class _StaffTripsState extends State<StaffTrips> {
                     DataColumn(label: Text('Vehicles')),
                     DataColumn(label: Text('Action')),
                   ],
-                  rows: groups.map((summary) {
+                  rows: paginatedGroups.map((summary) {
                     return DataRow(
-                      onSelectChanged: _isLoading ? null : (_) => _showSummaryGroupDetails(summary),
+                      onSelectChanged: _isLoading
+                          ? null
+                          : (_) => _showSummaryGroupDetails(summary),
                       cells: [
-                        DataCell(SizedBox(width: 180, child: Text((summary['summary_id'] ?? '').toString()))),
-                        DataCell(SizedBox(width: 120, child: Text((summary['date'] ?? '').toString()))),
-                        DataCell(SizedBox(width: 180, child: Text((summary['company'] ?? '').toString()))),
-                        DataCell(SizedBox(width: 120, child: Text((summary['working_day'] ?? '').toString()))),
+                        DataCell(
+                          SizedBox(
+                            width: 180,
+                            child: Text(
+                              (summary['summary_id'] ?? '').toString(),
+                            ),
+                          ),
+                        ),
+                        DataCell(
+                          SizedBox(
+                            width: 120,
+                            child: Text((summary['date'] ?? '').toString()),
+                          ),
+                        ),
+                        DataCell(
+                          SizedBox(
+                            width: 180,
+                            child: Text((summary['company'] ?? '').toString()),
+                          ),
+                        ),
+                        DataCell(
+                          SizedBox(
+                            width: 120,
+                            child: Text(
+                              (summary['working_day'] ?? '').toString(),
+                            ),
+                          ),
+                        ),
                         DataCell(Text('${summary['row_count'] ?? 0}')),
                         DataCell(Text('${summary['passenger_count'] ?? 0}')),
-                        DataCell(SizedBox(width: 260, child: Text((summary['vehicles'] ?? '').toString()))),
+                        DataCell(
+                          SizedBox(
+                            width: 260,
+                            child: Text((summary['vehicles'] ?? '').toString()),
+                          ),
+                        ),
                         DataCell(
                           TextButton.icon(
-                            onPressed: _isLoading ? null : () => _showSummaryGroupDetails(summary),
+                            onPressed: _isLoading
+                                ? null
+                                : () => _showSummaryGroupDetails(summary),
                             icon: const Icon(Icons.table_view, size: 18),
                             label: const Text('Open'),
                           ),
@@ -1135,6 +1634,64 @@ class _StaffTripsState extends State<StaffTrips> {
                 ),
               ),
             ),
+            if (totalPages > 0)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 12.0,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Showing ${(_currentSummaryPage * _itemsPerPage) + 1} - ${min((_currentSummaryPage + 1) * _itemsPerPage, groups.length)} of ${groups.length} batches',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade600,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.chevron_left),
+                          onPressed: _currentSummaryPage > 0
+                              ? () => setState(() => _currentSummaryPage--)
+                              : null,
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF0F172A)
+                                : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'Page ${_currentSummaryPage + 1} of $totalPages',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.chevron_right),
+                          onPressed: _currentSummaryPage < totalPages - 1
+                              ? () => setState(() => _currentSummaryPage++)
+                              : null,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+          ],
         ],
       ),
     );
@@ -1166,7 +1723,11 @@ class _SummarySheetPage extends StatelessWidget {
   final bool canManageSummaries;
   final String summaryId;
   final List<Map<String, dynamic>> rows;
-  final Future<bool> Function(Map<String, dynamic> trip, Map<String, dynamic> payload) onSaveRow;
+  final Future<bool> Function(
+    Map<String, dynamic> trip,
+    Map<String, dynamic> payload,
+  )
+  onSaveRow;
 
   const _SummarySheetPage({
     required this.staffId,
@@ -1215,7 +1776,9 @@ class _SummarySheetPage extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF1E293B) : Colors.white,
-            border: Border.all(color: isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0)),
+            border: Border.all(
+              color: isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0),
+            ),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -1229,7 +1792,9 @@ class _SummarySheetPage extends StatelessWidget {
                       child: Text(
                         'Summary Information',
                         style: TextStyle(
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          color: isDark
+                              ? Colors.white
+                              : const Color(0xFF0F172A),
                           fontWeight: FontWeight.w800,
                           fontSize: 18,
                         ),
@@ -1238,7 +1803,9 @@ class _SummarySheetPage extends StatelessWidget {
                     Text(
                       '${rows.length} trips',
                       style: TextStyle(
-                        color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
+                        color: isDark
+                            ? Colors.grey.shade400
+                            : const Color(0xFF64748B),
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -1255,7 +1822,9 @@ class _SummarySheetPage extends StatelessWidget {
                     child: SingleChildScrollView(
                       child: DataTable(
                         headingRowColor: WidgetStatePropertyAll(
-                          isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                          isDark
+                              ? const Color(0xFF0F172A)
+                              : const Color(0xFFF8FAFC),
                         ),
                         columns: const [
                           DataColumn(label: Text('No.')),
@@ -1279,20 +1848,91 @@ class _SummarySheetPage extends StatelessWidget {
                           return DataRow(
                             cells: [
                               DataCell(Text('${index + 1}')),
-                              DataCell(_plainCell((trip['schedule_date'] ?? trip['date'] ?? '').toString(), 120)),
-                              DataCell(_plainCell((trip['working_day'] ?? '').toString(), 120)),
-                              DataCell(_plainCell((trip['bus_type'] ?? '').toString(), 180)),
-                              DataCell(_plainCell((trip['classification'] ?? '').toString(), 100)),
-                              DataCell(_plainCell((trip['plate_number'] ?? 'Unassigned').toString(), 130)),
-                              DataCell(_plainCell((trip['seating_capacity'] ?? '').toString(), 70)),
-                              DataCell(_plainCell((trip['ticket_no'] ?? '').toString(), 110)),
-                              DataCell(_plainCell((trip['driver_name'] ?? 'Unassigned').toString(), 160)),
-                              DataCell(_plainCell((trip['route_name'] ?? '').toString(), 190)),
-                              DataCell(_plainCell((trip['passenger_count'] ?? '').toString(), 70)),
-                              DataCell(_plainCell((trip['departure_time'] ?? '').toString(), 90)),
-                              DataCell(_plainCell((trip['estimated_arrival_time'] ?? '').toString(), 90)),
-                              DataCell(_plainCell(_summaryUtilizationText(trip), 70)),
-                              DataCell(_plainCell((trip['remarks'] ?? '').toString(), 180)),
+                              DataCell(
+                                _plainCell(
+                                  (trip['schedule_date'] ?? trip['date'] ?? '')
+                                      .toString(),
+                                  120,
+                                ),
+                              ),
+                              DataCell(
+                                _plainCell(
+                                  (trip['working_day'] ?? '').toString(),
+                                  120,
+                                ),
+                              ),
+                              DataCell(
+                                _plainCell(
+                                  (trip['bus_type'] ?? '').toString(),
+                                  180,
+                                ),
+                              ),
+                              DataCell(
+                                _plainCell(
+                                  (trip['classification'] ?? '').toString(),
+                                  100,
+                                ),
+                              ),
+                              DataCell(
+                                _plainCell(
+                                  (trip['plate_number'] ?? 'Unassigned')
+                                      .toString(),
+                                  130,
+                                ),
+                              ),
+                              DataCell(
+                                _plainCell(
+                                  (trip['seating_capacity'] ?? '').toString(),
+                                  70,
+                                ),
+                              ),
+                              DataCell(
+                                _plainCell(
+                                  (trip['ticket_no'] ?? '').toString(),
+                                  110,
+                                ),
+                              ),
+                              DataCell(
+                                _plainCell(
+                                  (trip['driver_name'] ?? 'Unassigned')
+                                      .toString(),
+                                  160,
+                                ),
+                              ),
+                              DataCell(
+                                _plainCell(
+                                  (trip['route_name'] ?? '').toString(),
+                                  190,
+                                ),
+                              ),
+                              DataCell(
+                                _plainCell(
+                                  (trip['passenger_count'] ?? '').toString(),
+                                  70,
+                                ),
+                              ),
+                              DataCell(
+                                _plainCell(
+                                  (trip['departure_time'] ?? '').toString(),
+                                  90,
+                                ),
+                              ),
+                              DataCell(
+                                _plainCell(
+                                  (trip['estimated_arrival_time'] ?? '')
+                                      .toString(),
+                                  90,
+                                ),
+                              ),
+                              DataCell(
+                                _plainCell(_summaryUtilizationText(trip), 70),
+                              ),
+                              DataCell(
+                                _plainCell(
+                                  (trip['remarks'] ?? '').toString(),
+                                  180,
+                                ),
+                              ),
                             ],
                           );
                         }),
@@ -1309,7 +1949,14 @@ class _SummarySheetPage extends StatelessWidget {
   }
 
   Widget _plainCell(String value, double width) {
-    return SizedBox(width: width, child: Text(value.trim().isEmpty ? '-' : value));
+    return SizedBox(
+      width: width,
+      child: Text(
+        value.trim().isEmpty ? '-' : value,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+    );
   }
 
   String _summaryUtilizationText(Map<String, dynamic> trip) {
@@ -1321,4 +1968,3 @@ class _SummarySheetPage extends StatelessWidget {
     return '${((pax / cap) * 100).round()}%';
   }
 }
-

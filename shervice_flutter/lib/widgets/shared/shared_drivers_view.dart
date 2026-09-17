@@ -12,7 +12,8 @@ class SharedDriversView extends StatefulWidget {
   final String title;
   final String subtitle;
   final Widget? actionWidget;
-  final Function(BuildContext context, DriverProfileModel? driver)? onDriverTapped;
+  final Function(BuildContext context, DriverProfileModel? driver)?
+  onDriverTapped;
 
   const SharedDriversView({
     super.key,
@@ -37,10 +38,7 @@ class SharedDriversViewState extends State<SharedDriversView> {
   String _currentSort = 'A to Z';
   String _selectedStatusFilter = 'All';
 
-  final List<String> _sortOptions = [
-    'A to Z',
-    'Z to A',
-  ];
+  final List<String> _sortOptions = ['A to Z', 'Z to A'];
 
   int _currentPage = 0;
   final int _itemsPerPage = 10;
@@ -102,7 +100,8 @@ class SharedDriversViewState extends State<SharedDriversView> {
 
       bool matchesStatus = true;
       if (_selectedStatusFilter != 'All') {
-        matchesStatus = driver.status.toLowerCase() == _selectedStatusFilter.toLowerCase();
+        matchesStatus =
+            driver.status.toLowerCase() == _selectedStatusFilter.toLowerCase();
       }
 
       return matchesSearch && matchesStatus;
@@ -136,9 +135,12 @@ class SharedDriversViewState extends State<SharedDriversView> {
   }
 
   int get _totalDrivers => _allDrivers.length;
-  int get _activeDrivers => _allDrivers.where((d) => d.status.toLowerCase() == 'active').length;
-  int get _onLeaveDrivers => _allDrivers.where((d) => d.status.toLowerCase() == 'on leave').length;
-  int get _suspendedDrivers => _allDrivers.where((d) => d.status.toLowerCase() == 'suspended').length;
+  int get _activeDrivers =>
+      _allDrivers.where((d) => d.status.toLowerCase() == 'active').length;
+  int get _onLeaveDrivers =>
+      _allDrivers.where((d) => d.status.toLowerCase() == 'on leave').length;
+  int get _suspendedDrivers =>
+      _allDrivers.where((d) => d.status.toLowerCase() == 'suspended').length;
 
   @override
   Widget build(BuildContext context) {
@@ -374,7 +376,9 @@ class SharedDriversViewState extends State<SharedDriversView> {
               foregroundColor: Colors.white,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
           ),
         if (widget.actionWidget != null)
@@ -643,11 +647,12 @@ class SharedDriversViewState extends State<SharedDriversView> {
                     icon: const Icon(Icons.delete_outline, size: 18),
                     color: Colors.red.shade600,
                     tooltip: "Delete Driver",
-                    onPressed: () => DriverFormDialogs.showDeleteConfirmationDialog(
-                      context,
-                      driver,
-                      onSuccess: refreshData,
-                    ),
+                    onPressed: () =>
+                        DriverFormDialogs.showDeleteConfirmationDialog(
+                          context,
+                          driver,
+                          onSuccess: refreshData,
+                        ),
                   ),
                 ],
               )

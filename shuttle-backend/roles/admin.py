@@ -7,17 +7,16 @@ import numpy as np
 
 from flask import Blueprint, jsonify, request
 from supabase import create_client
-import xlrd
-from openpyxl import Workbook
-from roles.schedules import _sweep_expired_trips
 
 try:
     from driver_ml import is_trained, train_driver_classification_model, model, scaler
 except ImportError:
     is_trained = False
 
-admin_bp = Blueprint('admin', __name__)
+import xlrd
+from openpyxl import Workbook
 
+admin_bp = Blueprint('admin', __name__)
 supabase = None
 
 def get_admin_client():
@@ -25,7 +24,6 @@ def get_admin_client():
     if not admin_key:
         raise RuntimeError("Missing SUPABASE_SERVICE_ROLE_KEY for admin auth operations.")
     return create_client(os.getenv("SUPABASE_URL"), admin_key)
-
 
 def _normalize_xls_cell(value: Any) -> Any:
     if value is None:
@@ -37,7 +35,6 @@ def _normalize_xls_cell(value: Any) -> Any:
     if isinstance(value, datetime):
         return value.strftime("%Y-%m-%d %H:%M:%S")
     return str(value).strip()
-
 
 def parse_legacy_xls_bytes(file_bytes: bytes) -> Dict[str, Any]:
     try:
@@ -96,7 +93,6 @@ def parse_legacy_xls_bytes(file_bytes: bytes) -> Dict[str, Any]:
     except Exception as exc:
         return {"success": False, "error": f"Unable to convert legacy .xls file: {exc}"}
 
-
 @admin_bp.route('/api/test-db', methods=['GET'])
 @admin_bp.route('/driver/all', methods=['GET'])
 def diagnostic_database_check():
@@ -106,18 +102,11 @@ def diagnostic_database_check():
         ).execute()
         raw_data = test_query.data or []
 
-        trips_res = supabase.table('trip_schedule').select('trip_id, driver_id').execute()
-        trip_to_driver = {
-            str(t['trip_id']): t['driver_id']
-            for t in trips_res.data
-            if t.get('driver_id') is not None and t.get('trip_id') is not None
-        }
-        evals_query = supabase.table('passenger_evaluation').select('trip_id, safety_score, punctuality_score, professionalism_score').limit(10000).execute()
+        evals_query = supabase.table('evaluation').select('driver_id, safety_score, punctuality_score, professionalism_score').limit(10000).execute()
         
         driver_scores = {}
         for ev in evals_query.data or []:
-            t_id = ev.get('trip_id')
-            driver_id = trip_to_driver.get(str(t_id)) if t_id is not None else None
+            driver_id = ev.get('driver_id')
             if driver_id:
                 s = float(ev.get('safety_score') or 0)
                 p = float(ev.get('punctuality_score') or 0)
@@ -152,17 +141,14 @@ def diagnostic_database_check():
         print(f"❌ Diagnostic database connection failed: {e}")
         return jsonify({"connection_status": "FAILED", "error_details": str(e)}), 500
 
-
 @admin_bp.route('/trips', methods=['GET'])
 def get_admin_schedules():
     try:
-        _sweep_expired_trips()
         trips_res = supabase.table('trip_schedule').select(
-            'trip_id, schedule_date, departure_time, route_name, route_distance, '
-            'trip_status, passenger_count, estimated_arrival_time, '
-            'actual_start_time, actual_end_time, company_id, '
+            'trip_id, schedule_date, departure_time, route_name, '
+            'passenger_count, estimated_arrival_time, company_id, '
             'vehicle_id, vehicle(plate_number, bus_type), '
-            'user_id, user_account(full_name)'
+            'driver_id, user_account(full_name)'
         ).order('schedule_date', desc=False).execute()
         
         raw_trips = trips_res.data or []
@@ -174,7 +160,7 @@ def get_admin_schedules():
             if c.get('company_id') is not None
         }
 
-        evals_res = supabase.table('passenger_evaluation').select('trip_id, safety_score, punctuality_score, professionalism_score').execute()
+        evals_res = supabase.table('evaluation').select('trip_id, safety_score, punctuality_score, professionalism_score').execute()
         
         trip_evals = {}
         for ev in (evals_res.data or []):
@@ -212,7 +198,6 @@ def get_admin_schedules():
         print(f"❌ Admin Schedule Fetch Exception: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
-
 @admin_bp.route('/api/admin/attendance/upload-legacy-xls', methods=['POST'])
 def upload_legacy_xls_attendance():
     try:
@@ -241,7 +226,6 @@ def upload_legacy_xls_attendance():
         }), 200
     except Exception as exc:
         return jsonify({"success": False, "error": f"Unable to convert legacy .xls file: {exc}"}), 500
-
 
 @admin_bp.route('/api/dashboard/metrics', methods=['GET'])
 def get_dashboard_metrics():
@@ -373,8 +357,7 @@ def get_dashboard_metrics():
                 company_list = ["Bandai", "NX Logistics", "EPSON"]
 
             trips_fetch = supabase.table('trip_schedule')\
-                .select('trip_id, company_id, trip_status')\
-                .in_('trip_status', ['Completed', 'COMPLETED', 'completed'])\
+                .select('trip_id, company_id')\
                 .gte('schedule_date', period_start)\
                 .lt('schedule_date', period_end)\
                 .execute()
@@ -406,7 +389,7 @@ def get_dashboard_metrics():
             "evaluation_participation": {
                 "evaluated": 0,
                 "passengers": 0,
-                "label": "0 out of 0 passengers evaluated"
+                "label": "0 evaluations recorded"
             },
             "top_driver": None
         }
@@ -414,11 +397,10 @@ def get_dashboard_metrics():
             period_trips = supabase.table('trip_schedule').select(
                 'trip_id, company_id, passenger_count, driver_id'
             ).gte('schedule_date', period_start).lt('schedule_date', period_end).execute().data or []
-            trip_ids = [trip['trip_id'] for trip in period_trips if trip.get('trip_id') is not None]
-            evaluations = supabase.table('passenger_evaluation').select(
-                'trip_id, safety_score, punctuality_score, professionalism_score'
-            ).in_('trip_id', trip_ids).execute().data if trip_ids else []
-            evaluations = evaluations or []
+            
+            evaluations = supabase.table('evaluation').select(
+                'driver_id, safety_score, punctuality_score, professionalism_score'
+            ).gte('submit_date', period_start).lt('submit_date', period_end).execute().data or []
 
             company_stats = {}
             for trip in period_trips:
@@ -427,35 +409,25 @@ def get_dashboard_metrics():
                     'company_name': name,
                     'trip_count': 0,
                     'passengers': 0,
-                    'evaluated': 0
                 })
                 stats['trip_count'] += 1
                 stats['passengers'] += int(trip.get('passenger_count') or 0)
-                stats['evaluated'] += sum(1 for evaluation in evaluations if evaluation.get('trip_id') == trip.get('trip_id'))
 
-            for stats in company_stats.values():
-                stats['participation_rate'] = round(
-                    stats['evaluated'] / stats['passengers'] * 100, 2
-                ) if stats['passengers'] else 0
-                stats['participation_label'] = f"{stats['evaluated']} out of {stats['passengers']} passengers evaluated"
             analytics['companies'] = sorted(company_stats.values(), key=lambda item: item['company_name'])
             analytics['evaluation_participation'] = {
                 'evaluated': len(evaluations),
                 'passengers': sum(int(trip.get('passenger_count') or 0) for trip in period_trips),
-                'label': f"{len(evaluations)} out of {sum(int(trip.get('passenger_count') or 0) for trip in period_trips)} passengers evaluated"
+                'label': f"{len(evaluations)} staff evaluations logged this period."
             }
             scores_by_driver = {}
-            for trip in period_trips:
-                driver_id = trip.get('driver_id')
-                if not driver_id:
-                    continue
-                for evaluation in evaluations:
-                    if evaluation.get('trip_id') != trip.get('trip_id'):
-                        continue
-                    score = sum(float(evaluation.get(field) or 0) for field in (
-                        'safety_score', 'punctuality_score', 'professionalism_score'
-                    )) / 3
-                    scores_by_driver.setdefault(driver_id, []).append(score)
+            for evaluation in evaluations:
+                driver_id = evaluation.get('driver_id')
+                if not driver_id: continue
+                score = sum(float(evaluation.get(field) or 0) for field in (
+                    'safety_score', 'punctuality_score', 'professionalism_score'
+                )) / 3
+                scores_by_driver.setdefault(driver_id, []).append(score)
+                
             if scores_by_driver:
                 driver_ids = list(scores_by_driver.keys())
                 driver_rows = supabase.table('driver_profile').select(
@@ -506,7 +478,6 @@ def get_dashboard_metrics():
         print(f"❌ Dashboard Metrics Engine Failure: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
-
 @admin_bp.route('/api/dashboard/driver-leaderboard', methods=['GET'])
 def get_driver_leaderboard():
     global is_trained, model, scaler
@@ -525,11 +496,8 @@ def get_driver_leaderboard():
         drivers_res = supabase.table('driver_profile').select('*').limit(5000).execute()
         all_drivers = drivers_res.data or []
         
-        driver_scores = {str(d['driver_id']): [] for d in all_drivers if d.get('driver_id') is not None}
-        driver_details = {str(d['driver_id']): d for d in all_drivers if d.get('driver_id') is not None}
-
-        trips_res = supabase.table('trip_schedule').select('trip_id, driver_id').limit(20000).execute()
-        trip_to_driver = {str(t['trip_id']): str(t['driver_id']) for t in (trips_res.data or []) if t.get('driver_id')}
+        driver_scores = {d['driver_id']: [] for d in all_drivers if d.get('driver_id') is not None}
+        driver_details = {d['driver_id']: d for d in all_drivers if d.get('driver_id') is not None}
 
         raw_evals = []
         batch_size = 1000
@@ -538,7 +506,7 @@ def get_driver_leaderboard():
         is_all_time = (raw_period == 'all' or raw_year == 'all' or raw_year == '0' or not raw_year.isdigit())
 
         while True:
-            evals_query = supabase.table('passenger_evaluation').select('trip_id, safety_score, punctuality_score, professionalism_score, submit_date')
+            evals_query = supabase.table('evaluation').select('driver_id, safety_score, punctuality_score, professionalism_score, submit_date')
             
             if not is_all_time and raw_year.isdigit():
                 selected_year = int(raw_year)
@@ -565,11 +533,10 @@ def get_driver_leaderboard():
             offset += batch_size
 
         all_trip_scores = []
-        driver_eval_scores = {str(d['driver_id']): [] for d in all_drivers if d.get('driver_id') is not None}
+        driver_eval_scores = {d['driver_id']: [] for d in all_drivers if d.get('driver_id') is not None}
 
         for ev in raw_evals:
-            t_id = str(ev.get('trip_id'))
-            driver_id = trip_to_driver.get(t_id)
+            driver_id = ev.get('driver_id')
             
             if driver_id and driver_id in driver_scores:
                 s = float(ev.get('safety_score') if ev.get('safety_score') is not None else 5.0)
@@ -580,32 +547,6 @@ def get_driver_leaderboard():
                 all_trip_scores.append(eval_avg)
                 driver_scores[driver_id].append(eval_avg)
                 driver_eval_scores[driver_id].append({'safety': s, 'punctuality': p, 'professionalism': pr})
-
-        for d_id, drv in driver_details.items():
-            current_ml = drv.get("ml_classification")
-            if not current_ml or current_ml == "Pending Sweep" or current_ml == "Needs Review":
-                evals_list = driver_eval_scores.get(d_id, [])
-                total_evals = len(evals_list)
-                
-                if total_evals > 0:
-                    try:
-                        avg_s = sum(e['safety'] for e in evals_list) / total_evals
-                        avg_p = sum(e['punctuality'] for e in evals_list) / total_evals
-                        avg_pr = sum(e['professionalism'] for e in evals_list) / total_evals
-                        
-                        if is_trained:
-                            live_features = np.array([[avg_s, avg_p, avg_pr, total_evals]])
-                            scaled = scaler.transform(live_features)
-                            predicted_class = str(model.predict(scaled)[0])
-                        else:
-                            predicted_class = "Consistent Performer"
-                        
-                        supabase.table('driver_profile').update({"ml_classification": predicted_class}).eq('driver_id', d_id).execute()
-                        drv["ml_classification"] = predicted_class
-                    except Exception:
-                        pass
-                else:
-                    drv["ml_classification"] = "Pending Sweep"
 
         top_drivers = []
         for d_id, scores in driver_scores.items():
@@ -649,7 +590,6 @@ def get_driver_leaderboard():
         traceback.print_exc()
         return jsonify({"success": False, "error": str(e), "top_drivers": [], "total_rated_drivers": 0, "overall_average": 0.0}), 500
 
-
 @admin_bp.route('/api/auth/update-user/<user_id>', methods=['PUT'])
 def update_system_user(user_id):
     try:
@@ -682,7 +622,6 @@ def update_system_user(user_id):
         print(f"❌ System User Update Error: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
-
 @admin_bp.route('/api/auth/delete-user/<user_id>', methods=['DELETE'])
 def delete_system_user(user_id):
     try:
@@ -700,7 +639,6 @@ def delete_system_user(user_id):
         print(f"❌ System User Deletion Crash: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
-
 @admin_bp.route('/api/companies', methods=['GET'])
 def get_client_companies():
     try:
@@ -712,7 +650,6 @@ def get_client_companies():
     except Exception as e:
         print(f"❌ Fetch Companies Error: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
-
 
 @admin_bp.route('/api/companies', methods=['POST'])
 def add_client_company():
@@ -727,7 +664,6 @@ def add_client_company():
     except Exception as e:
         print(f"❌ Add Company Error: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
-
 
 @admin_bp.route('/api/companies/<int:company_id>', methods=['DELETE'])
 def delete_client_company(company_id):

@@ -84,22 +84,12 @@ def classify_driver(driver_identifier):
         if driver_id is None:
              return jsonify({"success": True, "classification": "Insufficient Data"}), 200
 
+        # 🔥 1. Get exact total trip volume for the ML Matrix
         trips_res = supabase.table('trip_schedule').select('trip_id').eq('driver_id', driver_id).execute()
+        total_trips = len(trips_res.data) if trips_res.data else 0
         
-        if not trips_res.data:
-             return jsonify({
-                 "success": True, 
-                 "classification": "Insufficient Data",
-                 "message": "Driver has no completed trips."
-             }), 200
-             
-        trip_ids = [t['trip_id'] for t in trips_res.data if t.get('trip_id')]
-        
-        if not trip_ids:
-             return jsonify({"success": True, "classification": "Insufficient Data"}), 200
-        
-        evals_res = supabase.table('passenger_evaluation').select('safety_score, punctuality_score, professionalism_score').in_('trip_id', trip_ids).execute()
-        
+        # 🔥 2. Get all staff evaluations for the driver
+        evals_res = supabase.table('evaluation').select('safety_score, punctuality_score, professionalism_score').eq('driver_id', driver_id).execute()
         total_evals = len(evals_res.data) if evals_res.data else 0
         
         if total_evals < 3:
@@ -119,12 +109,13 @@ def classify_driver(driver_identifier):
         avg_punct = total_punct / total_evals
         avg_prof = total_prof / total_evals
         
-        live_features = np.array([[avg_safety, avg_punct, avg_prof, total_evals]])
+        # 🔥 ML EXECUTION: Matrix relies on Trip Volume, NOT Evaluation Volume
+        live_features = np.array([[avg_safety, avg_punct, avg_prof, total_trips]])
         scaled_features = scaler.transform(live_features)
         
         predicted_class = str(model.predict(scaled_features)[0])
         
-        # 🔥 THE MISSING PIECE: SAVE THE ANSWER TO SUPABASE 🔥
+        # Save the answer to Supabase
         supabase.table('driver_profile').update({
             "ml_classification": predicted_class
         }).eq('driver_id', driver_id).execute()
@@ -136,6 +127,7 @@ def classify_driver(driver_identifier):
                 "avg_safety": round(avg_safety, 2),
                 "avg_punctuality": round(avg_punct, 2),
                 "avg_professionalism": round(avg_prof, 2),
+                "total_trips": total_trips,
                 "total_evaluations": total_evals
             }
         }), 200
@@ -144,11 +136,6 @@ def classify_driver(driver_identifier):
         print(f"CLASSIFICATION ERROR FOR {driver_identifier}: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
-# ---------------------------------------------------------
-# NEW: BULK SWEEP ROUTE
-# This allows your Flutter "Run AI Sweep" button to evaluate 
-# all 41+ drivers in one single fast swoop without crashing.
-# ---------------------------------------------------------
 @driver_ml_bp.route('/api/drivers/sweep', methods=['POST', 'GET'])
 def sweep_all_drivers():
     global is_trained, model, scaler, supabase
@@ -158,9 +145,6 @@ def sweep_all_drivers():
     try:
         # Import supabase dynamically from app if it was unassigned
         if supabase is None:
-            from flask import current_app
-            # If your main app stores supabase globally or in extensions, reference it here, 
-            # or ensure it's imported from your main app file e.g.: from app import supabase
             pass
 
         drivers_res = supabase.table('driver_profile').select('driver_id').limit(5000).execute()
@@ -169,7 +153,6 @@ def sweep_all_drivers():
         updated_count = 0
         for d_id in driver_ids:
             try:
-                # Call classify logic directly and save
                 classify_driver(d_id)
                 updated_count += 1
             except Exception as inner_e:

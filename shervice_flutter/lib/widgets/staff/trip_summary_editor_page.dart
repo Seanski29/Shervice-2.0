@@ -59,6 +59,14 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
     return days[_date.weekday - 1];
   }
 
+  bool _isInternalCompanyOption(Map<String, dynamic> company) {
+    final name = (company['company_name'] ?? '')
+        .toString()
+        .trim()
+        .toLowerCase();
+    return name == 'gt lantin' || name == 'gt lantin internal';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -129,6 +137,7 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
         _companies = (decoded['data'] as List? ?? [])
             .whereType<Map>()
             .map((row) => Map<String, dynamic>.from(row))
+            .where((company) => !_isInternalCompanyOption(company))
             .toList();
         if (_selectedCompanyLabel.trim().isEmpty && _selectedCompanyId != null) {
           for (final company in _companies) {
@@ -405,49 +414,36 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
         }
       }
 
-      final existingRows = filledRows.where((row) => row.trip != null).toList();
-      final newRows = filledRows.where((row) => row.trip == null).toList();
+      final endpoint = _isEditing
+          ? '$backendUrl/schedules/staff-summary/save'
+          : '$backendUrl/schedules/staff-summary';
+      final response = await http
+          .post(
+            Uri.parse(endpoint),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'staff_id': widget.staffId,
+              'company_id': _selectedCompanyId,
+              if (_isEditing && (widget.summaryId ?? '').isNotEmpty)
+                'summary_id': widget.summaryId,
+              'schedule_date': _dateText,
+              'rows': filledRows.map((row) => {
+                ...row.toPayload(
+                  _dateText, _workingDay, companyId: _selectedCompanyId,
+                ),
+                if (row.trip != null) 'trip_id': row.trip!['trip_id'],
+              }).toList(),
+            }),
+          )
+          .timeout(const Duration(seconds: 25));
 
-      for (final row in existingRows) {
-        final saveRow = widget.onSaveRow;
-        if (saveRow == null) {
-          throw Exception('Unable to save existing summary rows.');
-        }
-        final saved = await saveRow(
-          row.trip!,
-          row.toPayload(_dateText, _workingDay, companyId: _selectedCompanyId),
-        );
-        if (!saved) {
-          throw Exception('Unable to save one of the summary rows.');
-        }
-      }
-
-      if (newRows.isNotEmpty) {
-        final response = await http
-            .post(
-              Uri.parse('$backendUrl/schedules/staff-summary'),
-              headers: {'Content-Type': 'application/json'},
-              body: jsonEncode({
-                'staff_id': widget.staffId,
-                'company_id': _selectedCompanyId,
-                if (_isEditing && (widget.summaryId ?? '').isNotEmpty)
-                  'summary_id': widget.summaryId,
-                'schedule_date': _dateText,
-                'rows': newRows
-                    .map((row) => row.toPayload(_dateText, _workingDay, companyId: _selectedCompanyId))
-                    .toList(),
-              }),
-            )
-            .timeout(const Duration(seconds: 25));
-
-        if (response.statusCode != 200 && response.statusCode != 201) {
-          String message = 'Unable to save trip summary.';
-          try {
-            final decoded = jsonDecode(response.body);
-            message = decoded['message']?.toString() ?? message;
-          } catch (_) {}
-          throw Exception(message);
-        }
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        String message = 'Unable to save trip summary.';
+        try {
+          final decoded = jsonDecode(response.body);
+          message = decoded['message']?.toString() ?? message;
+        } catch (_) {}
+        throw Exception(message);
       }
 
       if (!mounted) return;

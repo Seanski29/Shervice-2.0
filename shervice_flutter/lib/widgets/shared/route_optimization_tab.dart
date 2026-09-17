@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:math'; // Added for pagination math
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:skeletonizer/skeletonizer.dart';
@@ -22,17 +22,16 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
   bool _isLoading = true;
   Map<String, dynamic>? _mlPayload;
 
-  // Filter States
-  String _timeFilter = 'all'; // 'all', 'today', 'week', 'month', 'date'
+  // 🔥 FIX: Default to 'month' instead of 'all'
+  String _timeFilter = 'month';
   DateTime? _customDate;
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year;
 
-  // UI Interactive States
   int? _selectedClusterId;
   String _tripSearchQuery = '';
+  String _currentSort = 'Date (Newest)';
 
-  // Pagination States
   int _currentPage = 0;
   final int _itemsPerPage = 10;
 
@@ -73,6 +72,7 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
           ? widget.backendUrl.substring(0, widget.backendUrl.length - 1)
           : widget.backendUrl;
 
+      // 🔥 FIX: Cleanly routing without duplicated /api
       final res = await http.get(
         Uri.parse('$baseUrl/routes/cluster?$queryParams'),
       );
@@ -81,7 +81,7 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
         setState(() {
           _mlPayload = jsonDecode(res.body);
           _selectedClusterId = null;
-          _currentPage = 0; // Reset pagination on new data
+          _currentPage = 0;
           _isLoading = false;
         });
       } else {
@@ -94,21 +94,15 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
   }
 
   Color _getClusterColor(String label) {
-    if (label.contains('Optimal')) return const Color(0xFF10B981);
-    if (label.contains('Departure')) return const Color(0xFFF97316);
-    if (label.contains('Transit') || label.contains('Traffic')) {
-      return const Color(0xFF3B82F6);
-    }
-    return const Color(0xFFEF4444);
+    if (label.contains('Stable')) return const Color(0xFF10B981);
+    if (label.contains('High')) return const Color(0xFFF97316);
+    return const Color(0xFF3B82F6);
   }
 
   IconData _getClusterIcon(String label) {
-    if (label.contains('Optimal')) return Icons.check_circle_outline;
-    if (label.contains('Departure')) return Icons.garage_outlined;
-    if (label.contains('Transit') || label.contains('Traffic')) {
-      return Icons.traffic_outlined;
-    }
-    return Icons.warning_amber_rounded;
+    if (label.contains('Stable')) return Icons.check_circle_outline;
+    if (label.contains('High')) return Icons.local_fire_department_outlined;
+    return Icons.trending_down;
   }
 
   @override
@@ -134,6 +128,14 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
           (t['trip_id'] ?? '').toString().toLowerCase().contains(q);
       return matchesCluster && matchesQuery;
     }).toList();
+
+    // 🔥 NEW: Sorting Logic
+    filteredTrips.sort((a, b) {
+      final dateA = (a['schedule_date'] ?? '').toString();
+      final dateB = (b['schedule_date'] ?? '').toString();
+      if (_currentSort == 'Date (Newest)') return dateB.compareTo(dateA);
+      return dateA.compareTo(dateB);
+    });
 
     return Skeletonizer(
       enabled: _isLoading,
@@ -240,7 +242,7 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'K-Means Route Delay Clusters',
+          'Destination Demand Profiling',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
@@ -251,7 +253,7 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Unsupervised grouping of schedule variances and route anomalies.',
+          'K-Means clustering based on passenger volume, trip frequency, and required fleet density.',
           style: TextStyle(
             color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
             fontSize: 13,
@@ -374,7 +376,7 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
       onTap: () {
         setState(() {
           _selectedClusterId = isSelected ? null : clusterId;
-          _currentPage = 0; // Reset pagination when filter changes
+          _currentPage = 0;
         });
       },
       borderRadius: BorderRadius.circular(16),
@@ -442,15 +444,20 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
               color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
             ),
             const SizedBox(height: 8),
-            _statRow("Trip Volume", "${cluster['count']} trips", isDark),
             _statRow(
-              "Avg Departure Delay",
-              "${cluster['avg_departure_delay_mins']} min",
+              "Total Destinations",
+              "${cluster['count']} routes",
+              isDark,
+            ),
+            _statRow("Avg Pax Volume", "${cluster['avg_pax']} pax", isDark),
+            _statRow(
+              "Avg Trip Frequency",
+              "${cluster['avg_trips']} trips",
               isDark,
             ),
             _statRow(
-              "Avg Arrival Delay",
-              "${cluster['avg_arrival_delay_mins']} min",
+              "Fleet Density",
+              "${cluster['avg_fleet']} vehicles",
               isDark,
             ),
             const SizedBox(height: 6),
@@ -514,11 +521,11 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
         ),
         child: const Row(
           children: [
-            const Icon(Icons.check_circle, color: Color(0xFF10B981)),
-            const SizedBox(width: 12),
-            const Expanded(
+            Icon(Icons.check_circle, color: Color(0xFF10B981)),
+            SizedBox(width: 12),
+            Expanded(
               child: Text(
-                'All routes operating within optimal schedule thresholds.',
+                'All destinations operating with optimally allocated fleet densities.',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -576,8 +583,8 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
     Color cardBg,
     Color textColor,
   ) {
-    // Math for Pagination
     int totalPages = max(1, (trips.length / _itemsPerPage).ceil());
+    if (_currentPage >= totalPages) _currentPage = max(0, totalPages - 1);
     int startIndex = _currentPage * _itemsPerPage;
     int endIndex = min(startIndex + _itemsPerPage, trips.length);
     List<dynamic> paginatedTrips = trips.isEmpty
@@ -604,7 +611,7 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
                     children: [
                       _buildTripBreakdownTitle(trips, isDark, textColor),
                       const SizedBox(height: 12),
-                      _buildTripSearchField(isDark),
+                      _buildTripFilters(isDark),
                     ],
                   )
                 : Row(
@@ -616,7 +623,7 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
                           textColor,
                         ),
                       ),
-                      _buildTripSearchField(isDark),
+                      _buildTripFilters(isDark),
                     ],
                   ),
           ),
@@ -705,36 +712,25 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Depart Delay: ${t['dep_delay']} min",
+                              "Passengers: ${t['passenger_count'] ?? 0}",
                               style: TextStyle(
-                                fontSize: 12,
-                                color: t['dep_delay'] > 15
-                                    ? const Color(0xFFEF4444)
-                                    : (isDark
-                                          ? Colors.grey.shade300
-                                          : Colors.black87),
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? Colors.grey.shade300
+                                    : Colors.black87,
                               ),
                             ),
                             Text(
-                              "Arrival Delay: ${t['arr_delay']} min",
+                              "Departed: ${t['departure_time'] ?? 'N/A'}",
                               style: TextStyle(
                                 fontSize: 12,
-                                color: t['arr_delay'] > 20
-                                    ? const Color(0xFFEF4444)
-                                    : (isDark
-                                          ? Colors.grey.shade300
-                                          : Colors.black87),
+                                color: isDark
+                                    ? Colors.grey.shade400
+                                    : Colors.black54,
                               ),
                             ),
                           ],
-                        ),
-                      ),
-                      Text(
-                        "${t['duration']} mins",
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                          color: textColor,
                         ),
                       ),
                     ],
@@ -743,7 +739,6 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
               },
             ),
 
-            // --- PAGINATION FOOTER CONTROLS ---
             Divider(
               height: 1,
               color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
@@ -826,8 +821,8 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
         ),
         Text(
           _selectedClusterId != null
-              ? 'Showing isolated cluster trips'
-              : 'Showing all trips across all delay clusters',
+              ? 'Showing isolated profile trips'
+              : 'Showing all trips across all demand profiles',
           style: TextStyle(
             fontSize: 12,
             color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
@@ -839,29 +834,81 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
     );
   }
 
-  Widget _buildTripSearchField(bool isDark) {
-    return SizedBox(
-      width: MediaQuery.of(context).size.width < 700 ? double.infinity : 240,
-      height: 38,
-      child: TextField(
-        onChanged: (v) => setState(() {
-          _tripSearchQuery = v;
-          _currentPage = 0;
-        }),
-        style: const TextStyle(fontSize: 13),
-        decoration: InputDecoration(
-          hintText: 'Search route, driver, plate...',
-          prefixIcon: const Icon(Icons.search, size: 18),
-          contentPadding: EdgeInsets.zero,
-          filled: true,
-          fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+  Widget _buildTripFilters(bool isDark) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          height: 38,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+            ),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _currentSort,
+              dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+              icon: Icon(
+                Icons.sort,
+                size: 16,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.w600,
+              ),
+              items: ['Date (Newest)', 'Date (Oldest)'].map((String opt) {
+                return DropdownMenuItem(value: opt, child: Text(opt));
+              }).toList(),
+              onChanged: (val) {
+                if (val != null) setState(() => _currentSort = val);
+              },
+            ),
+          ),
         ),
-      ),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: MediaQuery.of(context).size.width < 700 ? 120 : 200,
+          height: 38,
+          child: TextField(
+            onChanged: (v) => setState(() {
+              _tripSearchQuery = v;
+              _currentPage = 0;
+            }),
+            style: const TextStyle(fontSize: 13),
+            decoration: InputDecoration(
+              hintText: 'Search...',
+              prefixIcon: const Icon(Icons.search, size: 18),
+              contentPadding: EdgeInsets.zero,
+              filled: true,
+              fillColor: isDark
+                  ? const Color(0xFF0F172A)
+                  : const Color(0xFFF8FAFC),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildInsufficientDataCard(Color cardBg, Color textColor) {
+    final message = _mlPayload?['message']?.toString().trim();
+    final hasBackendMessage = message != null && message.isNotEmpty;
+    final totalTrips = _mlPayload?['total_evaluated'];
+    final totalDestinations = _mlPayload?['total_destinations'];
+    final diagnostic = <String>[
+      if (totalTrips != null) '$totalTrips trips found',
+      if (totalDestinations != null) '$totalDestinations destinations found',
+    ].join(' · ');
+
     return Container(
       padding: const EdgeInsets.all(40),
       alignment: Alignment.center,
@@ -887,11 +934,24 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
           ),
           const SizedBox(height: 6),
           Text(
-            _mlPayload?['message'] ??
-                "At least 3 completed trips with actual timestamps are required to generate clusters.",
+            hasBackendMessage
+                ? message
+                : 'The backend did not provide a reason. Restart the backend so it loads the latest destination profiling endpoint.',
             textAlign: TextAlign.center,
             style: const TextStyle(color: Color(0xFF64748B)),
           ),
+          if (diagnostic.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              diagnostic,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF64748B),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ],
       ),
     );

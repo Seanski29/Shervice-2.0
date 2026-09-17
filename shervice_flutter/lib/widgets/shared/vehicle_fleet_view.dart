@@ -96,14 +96,12 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
     List<dynamic> temp = _allVehicles.where((v) {
       final plate = (v['plate_number'] ?? '').toString().toLowerCase();
       final type = (v['bus_type'] ?? '').toString().toLowerCase();
-      final engine = (v['engine_no'] ?? '').toString().toLowerCase();
 
       final status = (v['health_status'] ?? 'Good').toString().toLowerCase();
 
       final matchesSearch =
           plate.contains(_searchQuery.toLowerCase()) ||
-          type.contains(_searchQuery.toLowerCase()) ||
-          engine.contains(_searchQuery.toLowerCase());
+          type.contains(_searchQuery.toLowerCase());
 
       bool matchesStatus = true;
       if (_statusFilter == 'Available') {
@@ -153,7 +151,6 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
           'plate_number': 'LOD-1234',
           'bus_type': '15 Seats - Standard Shuttle',
           'health_status': 'Good Condition',
-          'engine_no': 'ENG-LOADING-XXXX',
         },
       );
     }
@@ -179,14 +176,18 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
   });
 
   int get _totalVehicles => _isLoading ? 12 : _baseVehicles.length;
-  int get _availableVehicles => _isLoading ? 10 : _baseVehicles.where((v) {
-    final s = (v['health_status'] ?? 'Good').toString().toLowerCase();
-    return s == 'good' || s == 'excellent';
-  }).length;
-  int get _maintenanceVehicles => _isLoading ? 2 : _baseVehicles.where((v) {
-    final s = (v['health_status'] ?? '').toString().toLowerCase();
-    return s.contains('maintenance') || s.contains('repair');
-  }).length;
+  int get _availableVehicles => _isLoading
+      ? 10
+      : _baseVehicles.where((v) {
+          final s = (v['health_status'] ?? 'Good').toString().toLowerCase();
+          return s == 'good' || s == 'excellent';
+        }).length;
+  int get _maintenanceVehicles => _isLoading
+      ? 2
+      : _baseVehicles.where((v) {
+          final s = (v['health_status'] ?? '').toString().toLowerCase();
+          return s.contains('maintenance') || s.contains('repair');
+        }).length;
 
   Color _getStatusColor(String rawStatus) {
     final status = rawStatus.toLowerCase();
@@ -699,7 +700,6 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
     final String plate = v['plate_number'] ?? 'UNKNOWN';
     final String rawBusType = v['bus_type'] ?? 'Unknown Model';
     final String status = v['health_status'] ?? 'Good Condition';
-    final String engine = v['engine_no'] ?? 'N/A';
 
     final String modelDisplay = rawBusType.contains(' - ')
         ? rawBusType.split(' - ').last
@@ -748,7 +748,9 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          color: isDark
+                              ? Colors.white
+                              : const Color(0xFF0F172A),
                           decoration: TextDecoration.underline,
                         ),
                         maxLines: 1,
@@ -805,7 +807,6 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                       isDark,
                     ),
                     _cardIconText(Icons.group_outlined, seatCapacity, isDark),
-                    _cardIconText(Icons.pin_outlined, "Eng: $engine", isDark),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -991,8 +992,9 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
                         value: chosenCategory,
-                        dropdownColor:
-                            isDark ? const Color(0xFF1E293B) : Colors.white,
+                        dropdownColor: isDark
+                            ? const Color(0xFF1E293B)
+                            : Colors.white,
                         style: TextStyle(color: textColor, fontSize: 14),
                         decoration: InputDecoration(
                           labelText: 'Issue Category',
@@ -1012,21 +1014,22 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                             borderSide: BorderSide(color: borderColor),
                           ),
                         ),
-                        items: [
-                          'General',
-                          'Engine',
-                          'Exterior',
-                          'Interior',
-                          'Electrical',
-                          'Tires/Wheels',
-                        ]
-                            .map(
-                              (s) => DropdownMenuItem<String>(
-                                value: s,
-                                child: Text(s),
-                              ),
-                            )
-                            .toList(),
+                        items:
+                            [
+                                  'General',
+                                  'Engine',
+                                  'Exterior',
+                                  'Interior',
+                                  'Electrical',
+                                  'Tires/Wheels',
+                                ]
+                                .map(
+                                  (s) => DropdownMenuItem<String>(
+                                    value: s,
+                                    child: Text(s),
+                                  ),
+                                )
+                                .toList(),
                         onChanged: (val) => setModalState(
                           () => chosenCategory = val ?? 'General',
                         ),
@@ -1078,8 +1081,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                               onTap: () async {
                                 final picked = await showTimePicker(
                                   context: context,
-                                  initialTime:
-                                      incidentTime ?? TimeOfDay.now(),
+                                  initialTime: incidentTime ?? TimeOfDay.now(),
                                 );
                                 if (picked != null) {
                                   setModalState(() => incidentTime = picked);
@@ -1168,8 +1170,8 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                           String? currentUserId = widget.userId;
                           if (currentUserId == null || currentUserId.isEmpty) {
                             try {
-                              currentUserId = Supabase
-                                  .instance.client.auth.currentUser?.id;
+                              currentUserId =
+                                  Supabase.instance.client.auth.currentUser?.id;
                             } catch (_) {}
                           }
                           String? formatTime(TimeOfDay? time) {
@@ -1553,7 +1555,9 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                         width: 180,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                          color: isDark
+                              ? const Color(0xFF0F172A)
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: isDark
@@ -1565,25 +1569,27 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                           child: DropdownButton<String>(
                             value: currentSort,
                             isExpanded: true,
-                            dropdownColor:
-                                isDark ? const Color(0xFF1E293B) : Colors.white,
+                            dropdownColor: isDark
+                                ? const Color(0xFF1E293B)
+                                : Colors.white,
                             style: TextStyle(
                               color: isDark ? Colors.white : Colors.black87,
                               fontSize: 14,
                             ),
-                            items: [
-                              'Newest First',
-                              'Oldest First',
-                              'Ongoing First',
-                              'Fixed First',
-                            ]
-                                .map(
-                                  (s) => DropdownMenuItem(
-                                    value: s,
-                                    child: Text(s),
-                                  ),
-                                )
-                                .toList(),
+                            items:
+                                [
+                                      'Newest First',
+                                      'Oldest First',
+                                      'Ongoing First',
+                                      'Fixed First',
+                                    ]
+                                    .map(
+                                      (s) => DropdownMenuItem(
+                                        value: s,
+                                        child: Text(s),
+                                      ),
+                                    )
+                                    .toList(),
                             onChanged: (val) => setModalState(
                               () => currentSort = val ?? 'Ongoing First',
                             ),
@@ -1646,15 +1652,15 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                                               Container(
                                                 padding:
                                                     const EdgeInsets.symmetric(
-                                                  horizontal: 8,
-                                                  vertical: 2,
-                                                ),
+                                                      horizontal: 8,
+                                                      vertical: 2,
+                                                    ),
                                                 decoration: BoxDecoration(
                                                   color: isResolved
                                                       ? Colors.green
-                                                          .withOpacity(0.2)
+                                                            .withOpacity(0.2)
                                                       : Colors.orange
-                                                          .withOpacity(0.2),
+                                                            .withOpacity(0.2),
                                                   borderRadius:
                                                       BorderRadius.circular(20),
                                                 ),
@@ -1717,9 +1723,9 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                                       ElevatedButton.icon(
                                         onPressed: () =>
                                             _showMarkRepairedDialog(
-                                          log,
-                                          vehicleId,
-                                        ),
+                                              log,
+                                              vehicleId,
+                                            ),
                                         icon: const Icon(
                                           Icons.check_circle,
                                           color: Colors.white,
@@ -1785,11 +1791,8 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
   late TextEditingController _plateController;
   late TextEditingController _modelController;
   late TextEditingController _modelYearController;
-  late TextEditingController _engineController;
   late TextEditingController _insuranceNoController;
   late TextEditingController _insuranceExpiryController;
-  late TextEditingController _franchiseNoController;
-  late TextEditingController _franchiseExpiryController;
   late TextEditingController _crNoController;
   late TextEditingController _crDateController;
   late TextEditingController _orNoController;
@@ -1821,20 +1824,11 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
     _modelYearController = TextEditingController(
       text: isEdit ? (widget.vehicle!['model_year'] ?? '') : '',
     );
-    _engineController = TextEditingController(
-      text: isEdit ? (widget.vehicle!['engine_no'] ?? '') : '',
-    );
     _insuranceNoController = TextEditingController(
       text: isEdit ? (widget.vehicle!['insurance_policy_no'] ?? '') : '',
     );
     _insuranceExpiryController = TextEditingController(
       text: isEdit ? (widget.vehicle!['insurance_expiry'] ?? '') : '',
-    );
-    _franchiseNoController = TextEditingController(
-      text: isEdit ? (widget.vehicle!['franchise_no'] ?? '') : '',
-    );
-    _franchiseExpiryController = TextEditingController(
-      text: isEdit ? (widget.vehicle!['franchise_expiry'] ?? '') : '',
     );
     _crNoController = TextEditingController(
       text: isEdit ? (widget.vehicle!['cr_no'] ?? '') : '',
@@ -1933,11 +1927,8 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
         'bus_type':
             "$_selectedCapacity - ${cleanStr(_modelController, 'Standard Shuttle')}",
         'model_year': cleanStr(_modelYearController, '2026'),
-        'engine_no': cleanStr(_engineController, 'N/A'),
         'insurance_policy_no': cleanStr(_insuranceNoController, 'N/A'),
         'insurance_expiry': cleanStr(_insuranceExpiryController, '2027-01-01'),
-        'franchise_no': cleanStr(_franchiseNoController, 'N/A'),
-        'franchise_expiry': cleanStr(_franchiseExpiryController, 'N/A'),
         'cr_no': cleanStr(_crNoController, 'N/A'),
         'cr_date': cleanStr(_crDateController, 'N/A'),
         'or_no': cleanStr(_orNoController, 'N/A'),
@@ -1988,7 +1979,10 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Submission Error: $e", style: const TextStyle(color: Colors.white)),
+          content: Text(
+            "Submission Error: $e",
+            style: const TextStyle(color: Colors.white),
+          ),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -2003,11 +1997,8 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
     _plateController.dispose();
     _modelController.dispose();
     _modelYearController.dispose();
-    _engineController.dispose();
     _insuranceNoController.dispose();
     _insuranceExpiryController.dispose();
-    _franchiseNoController.dispose();
-    _franchiseExpiryController.dispose();
     _crNoController.dispose();
     _crDateController.dispose();
     _orNoController.dispose();
@@ -2101,7 +2092,9 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: _selectedCapacity,
-                        dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        dropdownColor: isDark
+                            ? const Color(0xFF1E293B)
+                            : Colors.white,
                         style: TextStyle(color: textColor),
                         decoration: _fieldStyle(
                           context: context,
@@ -2119,18 +2112,6 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 14),
-                TextFormField(
-                  controller: _engineController,
-                  readOnly: !_isWritingUnlocked,
-                  style: TextStyle(color: textColor),
-                  decoration: _fieldStyle(
-                    context: context,
-                    label: 'Engine Serial Code',
-                    icon: Icons.pin_outlined,
-                  ),
-                  validator: (val) => val!.isEmpty ? "Required" : null,
                 ),
                 const SizedBox(height: 24),
                 const Text(
@@ -2171,42 +2152,6 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
                           context: context,
                           label: 'Expiry',
                           icon: Icons.event_busy_outlined,
-                          isDatePicker: true,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: TextFormField(
-                        controller: _franchiseNoController,
-                        readOnly: !_isWritingUnlocked,
-                        style: TextStyle(color: textColor),
-                        decoration: _fieldStyle(
-                          context: context,
-                          label: 'Franchise No.',
-                          icon: Icons.assignment_outlined,
-                        ),
-                        validator: (val) => val!.isEmpty ? "Required" : null,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 1,
-                      child: TextFormField(
-                        controller: _franchiseExpiryController,
-                        readOnly: true,
-                        style: TextStyle(color: textColor),
-                        onTap: () =>
-                            _selectDate(context, _franchiseExpiryController),
-                        decoration: _fieldStyle(
-                          context: context,
-                          label: 'Expiry',
-                          icon: Icons.event_available_outlined,
                           isDatePicker: true,
                         ),
                       ),

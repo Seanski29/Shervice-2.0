@@ -10,7 +10,7 @@ import roles.notifs as notifs_module  #new
 import roles.admin as admin_module
 import roles.drivers as drivers_module
 import roles.staff as staff_module
-import roles.passenger as passenger_module
+import roles.evaluation as evaluation_module
 import roles.vehicle as vehicles_module  
 import roles.schedules as schedules_module
 import roles.predictive_ml as predictive_ml
@@ -60,7 +60,7 @@ class TransportBackendApp:
         admin_module.supabase = self.supabase
         drivers_module.supabase = self.supabase
         staff_module.supabase = self.supabase
-        passenger_module.supabase = self.supabase
+        evaluation_module.supabase = self.supabase
         vehicles_module.supabase = self.supabase  
         schedules_module.supabase = self.supabase
         predictive_ml.supabase = self.supabase
@@ -72,7 +72,7 @@ class TransportBackendApp:
         self.app.register_blueprint(admin_module.admin_bp)
         self.app.register_blueprint(drivers_module.drivers_bp)
         self.app.register_blueprint(staff_module.staff_bp)
-        self.app.register_blueprint(passenger_module.passenger_bp)
+        self.app.register_blueprint(evaluation_module.evaluate_bp)
         self.app.register_blueprint(vehicles_module.vehicles_bp) 
         self.app.register_blueprint(schedules_module.schedules_bp)
         self.app.register_blueprint(predictive_ml.predictive_bp)

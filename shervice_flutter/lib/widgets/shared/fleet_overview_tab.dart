@@ -24,7 +24,6 @@ class FleetOverviewTab extends StatefulWidget {
 }
 
 class _FleetOverviewTabState extends State<FleetOverviewTab> {
-  // --- Clean Inline Filter State ---
   int _selectedYear = DateTime.now().year;
   int _selectedMonth = DateTime.now().month;
   String _trendMode = 'Auto';
@@ -50,7 +49,6 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
   void initState() {
     super.initState();
     _extractAvailableYears();
-    // Default to the current month and year for immediate relevance.
   }
 
   void _extractAvailableYears() {
@@ -345,10 +343,22 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
                           color: textColor,
                         ),
                         items: const [
-                          DropdownMenuItem(value: 'Auto', child: Text('Auto trend')),
-                          DropdownMenuItem(value: 'Day', child: Text('Trips / day')),
-                          DropdownMenuItem(value: 'Week', child: Text('Trips / week')),
-                          DropdownMenuItem(value: 'Month', child: Text('Trips / month')),
+                          DropdownMenuItem(
+                            value: 'Auto',
+                            child: Text('Auto trend'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Day',
+                            child: Text('Trips / day'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Week',
+                            child: Text('Trips / week'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'Month',
+                            child: Text('Trips / month'),
+                          ),
                         ],
                         onChanged: (val) {
                           if (val != null) setState(() => _trendMode = val);
