@@ -7,13 +7,13 @@ import '../../../../widgets/driver/driver_evaluation_view.dart';
 class DriverPerformanceTab extends StatefulWidget {
   final List<dynamic> drivers;
   final String backendUrl;
-  final VoidCallback onSyncAction; 
+  final VoidCallback onSyncAction;
 
   const DriverPerformanceTab({
     super.key,
     required this.drivers,
     required this.backendUrl,
-    required this.onSyncAction, 
+    required this.onSyncAction,
   });
 
   @override
@@ -27,7 +27,7 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
   final int _itemsPerPage = 6;
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year;
-  
+
   List<dynamic> _leaderboard = [];
   bool _isFetching = true;
   String? _errorMessage;
@@ -60,12 +60,13 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
         queryParameters['year'] = _selectedYear.toString();
         queryParameters['month'] = _selectedMonth.toString();
       }
-      
+
       // EXPLICITLY REQUEST ALL RECORDS SO THE LIST IS NOT TRUNCATED TO 10
       queryParameters['limit'] = 'all';
 
-      final uri = Uri.parse('${widget.backendUrl}/dashboard/driver-leaderboard')
-          .replace(queryParameters: queryParameters);
+      final uri = Uri.parse(
+        '${widget.backendUrl}/dashboard/driver-leaderboard',
+      ).replace(queryParameters: queryParameters);
 
       final response = await http.get(uri).timeout(const Duration(seconds: 15));
 
@@ -73,37 +74,157 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
         final decoded = json.decode(response.body);
         if (decoded['success'] == true) {
           setState(() {
-             _leaderboard = decoded['top_drivers'] ?? [];
+            _leaderboard = decoded['top_drivers'] ?? [];
           });
         } else {
-          setState(() => _errorMessage = "Backend Error: ${decoded['error'] ?? 'Unknown'}");
+          setState(
+            () => _errorMessage =
+                "Backend Error: ${decoded['error'] ?? 'Unknown'}",
+          );
         }
       } else {
-        setState(() => _errorMessage = "Server crashed (Status ${response.statusCode}). Check Python console.");
+        setState(
+          () => _errorMessage =
+              "Server crashed (Status ${response.statusCode}). Check Python console.",
+        );
+        _recomputeDashboardRatingsLocally();
       }
     } catch (e) {
-      setState(() => _errorMessage = "Network Error: Cannot connect to backend.\n$e");
+      setState(
+        () => _errorMessage = "Network Error: Cannot connect to backend.\n$e",
+      );
+      _recomputeDashboardRatingsLocally();
     } finally {
       if (mounted) setState(() => _isFetching = false);
     }
   }
 
+  Future<void> _recomputeDashboardRatingsLocally() async {
+    try {
+      final driversRes = await http
+          .get(Uri.parse('${widget.backendUrl}/driver/all'))
+          .timeout(const Duration(seconds: 10));
+      if (driversRes.statusCode != 200)
+        throw Exception("Failed to load drivers");
+
+      final dynamic data = jsonDecode(driversRes.body);
+      final List rawDrivers = data is Map
+          ? (data['data'] ?? data['sample_data_payload'] ?? [])
+          : [];
+
+      if (rawDrivers.isEmpty) {
+        if (mounted) setState(() => _leaderboard = []);
+        return;
+      }
+
+      List<Map<String, dynamic>> compiledLeaderboard = [];
+
+      final futures = rawDrivers.map((drv) async {
+        if (drv is! Map) return;
+        final String driverUuid = (drv['driver_id'] ?? drv['user_id'] ?? '')
+            .toString();
+        if (driverUuid.isEmpty) return;
+
+        try {
+          final evalRes = await http
+              .get(
+                Uri.parse(
+                  '${widget.backendUrl}/api/evaluate/driver/$driverUuid',
+                ),
+              )
+              .timeout(const Duration(seconds: 5));
+
+          if (evalRes.statusCode == 200) {
+            final evalData = jsonDecode(evalRes.body);
+            final List evals =
+                evalData['data'] ?? evalData['evaluations'] ?? [];
+
+            final filteredEvals = evals.where((e) {
+              if (_selectedYear == 0) return true; // All Time
+              final dt = DateTime.tryParse(
+                (e['submit_date'] ?? e['created_at'] ?? '').toString(),
+              );
+              if (dt == null) return false;
+              if (_selectedMonth == 0)
+                return dt.year == _selectedYear; // All Months
+              return dt.year == _selectedYear && dt.month == _selectedMonth;
+            }).toList();
+
+            if (filteredEvals.isNotEmpty) {
+              double driverCumTotal = 0.0;
+              for (var ev in filteredEvals) {
+                final p = (ev['punctuality_score'] as num?)?.toDouble() ?? 5.0;
+                final s = (ev['safety_score'] as num?)?.toDouble() ?? 5.0;
+                final pr =
+                    (ev['professionalism_score'] as num?)?.toDouble() ?? 5.0;
+                driverCumTotal += (p + s + pr) / 3.0;
+              }
+
+              int count = filteredEvals.length;
+              double avgTotal = driverCumTotal / count;
+
+              compiledLeaderboard.add({
+                'driver_id': driverUuid,
+                'full_name':
+                    drv['full_name'] ?? drv['name'] ?? 'Driver $driverUuid',
+                'rating': avgTotal,
+                'review_count': count,
+                // 🔥 Ensure fallback gets the ML Classification & Status too
+                'ml_classification':
+                    drv['ml_classification'] ?? 'Pending Sweep',
+                'employment_status': drv['employment_status'] ?? 'Active',
+              });
+            }
+          }
+        } catch (_) {}
+      });
+
+      await Future.wait(futures);
+
+      if (mounted) {
+        setState(() {
+          _leaderboard = compiledLeaderboard;
+        });
+      }
+    } catch (e) {
+      debugPrint("Local fallback failed: $e");
+    }
+  }
+
   String _monthName(int month) {
     const names = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return names[month - 1];
   }
 
   List<dynamic> get _processedDrivers {
     List<dynamic> tempD = _leaderboard.where((d) {
-      return (d['full_name'] ?? '').toString().toLowerCase().contains(_searchQuery.toLowerCase());
+      return (d['full_name'] ?? '').toString().toLowerCase().contains(
+        _searchQuery.toLowerCase(),
+      );
     }).toList();
 
     tempD.sort((a, b) {
-      final int countA = (a['review_count'] as num?)?.toInt() ?? (a['eval_count'] as num?)?.toInt() ?? 0;
-      final int countB = (b['review_count'] as num?)?.toInt() ?? (b['eval_count'] as num?)?.toInt() ?? 0;
+      final int countA =
+          (a['review_count'] as num?)?.toInt() ??
+          (a['eval_count'] as num?)?.toInt() ??
+          0;
+      final int countB =
+          (b['review_count'] as num?)?.toInt() ??
+          (b['eval_count'] as num?)?.toInt() ??
+          0;
       final bool aUnrated = countA == 0;
       final bool bUnrated = countB == 0;
 
@@ -120,12 +241,16 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
       } else if (_currentSort == 'Rating (Low-High)') {
         cmp = ratingA.toStringAsFixed(1).compareTo(ratingB.toStringAsFixed(1));
       } else if (_currentSort == 'Z to A') {
-        cmp = (b['full_name'] ?? '').toString().toLowerCase().compareTo((a['full_name'] ?? '').toString().toLowerCase());
+        cmp = (b['full_name'] ?? '').toString().toLowerCase().compareTo(
+          (a['full_name'] ?? '').toString().toLowerCase(),
+        );
       } else {
-        cmp = (a['full_name'] ?? '').toString().toLowerCase().compareTo((b['full_name'] ?? '').toString().toLowerCase());
+        cmp = (a['full_name'] ?? '').toString().toLowerCase().compareTo(
+          (b['full_name'] ?? '').toString().toLowerCase(),
+        );
       }
 
-      if (cmp == 0) cmp = countB.compareTo(countA); 
+      if (cmp == 0) cmp = countB.compareTo(countA);
       if (cmp == 0) {
         final nameA = (a['full_name'] ?? '').toString().toLowerCase();
         final nameB = (b['full_name'] ?? '').toString().toLowerCase();
@@ -143,11 +268,13 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color textColor = isDark ? Colors.white : const Color(0xFF0F172A);
     final Color cardBg = isDark ? const Color(0xFF1E293B) : Colors.white;
-    final Color borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
+    final Color borderColor = isDark
+        ? Colors.grey.shade700
+        : Colors.grey.shade300;
 
     final drivers = _processedDrivers;
     final int totalPages = max(1, (drivers.length / _itemsPerPage).ceil());
-    
+
     // Ensure current page doesn't go out of bounds after filtering/refreshing
     if (_currentPage >= totalPages) {
       _currentPage = max(0, totalPages - 1);
@@ -187,10 +314,30 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                       isExpanded: true,
                       value: _currentSort,
                       dropdownColor: cardBg,
-                      icon: Icon(Icons.sort, size: 18, color: Colors.grey.shade500),
-                      style: TextStyle(fontSize: 12, color: textColor, fontWeight: FontWeight.w500),
-                      items: ['A to Z', 'Z to A', 'Rating (High-Low)', 'Rating (Low-High)']
-                          .map((value) => DropdownMenuItem(value: value, child: Text(value))).toList(),
+                      icon: Icon(
+                        Icons.sort,
+                        size: 18,
+                        color: Colors.grey.shade500,
+                      ),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: textColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      items:
+                          [
+                                'A to Z',
+                                'Z to A',
+                                'Rating (High-Low)',
+                                'Rating (Low-High)',
+                              ]
+                              .map(
+                                (value) => DropdownMenuItem(
+                                  value: value,
+                                  child: Text(value),
+                                ),
+                              )
+                              .toList(),
                       onChanged: (value) {
                         if (value != null) {
                           setState(() {
@@ -208,7 +355,13 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
               value: _selectedMonth,
               items: [
                 const DropdownMenuItem(value: 0, child: Text('All months')),
-                ...List.generate(12, (index) => DropdownMenuItem(value: index + 1, child: Text(_monthName(index + 1)))),
+                ...List.generate(
+                  12,
+                  (index) => DropdownMenuItem(
+                    value: index + 1,
+                    child: Text(_monthName(index + 1)),
+                  ),
+                ),
               ],
               onChanged: (value) {
                 if (value != null) {
@@ -224,7 +377,13 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
               value: _selectedYear,
               items: [
                 const DropdownMenuItem(value: 0, child: Text('All time')),
-                ...List.generate(7, (index) => DropdownMenuItem(value: DateTime.now().year - 3 + index, child: Text('${DateTime.now().year - 3 + index}'))),
+                ...List.generate(
+                  7,
+                  (index) => DropdownMenuItem(
+                    value: DateTime.now().year - 3 + index,
+                    child: Text('${DateTime.now().year - 3 + index}'),
+                  ),
+                ),
               ],
               onChanged: (value) {
                 if (value != null) {
@@ -252,13 +411,29 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                   style: TextStyle(color: textColor, fontSize: 13),
                   decoration: InputDecoration(
                     hintText: 'Search drivers...',
-                    hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-                    prefixIcon: Icon(Icons.search, size: 18, color: Colors.grey.shade500),
+                    hintStyle: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade500,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      size: 18,
+                      color: Colors.grey.shade500,
+                    ),
                     filled: true,
                     fillColor: cardBg,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: borderColor)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: borderColor)),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 8,
+                      horizontal: 12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: borderColor),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(color: borderColor),
+                    ),
                   ),
                 ),
               ),
@@ -275,9 +450,16 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                 tooltip: 'Sync Classifications',
                 onPressed: () {
                   widget.onSyncAction();
-                  Future.delayed(const Duration(seconds: 3), () => _fetchLeaderboard());
+                  Future.delayed(
+                    const Duration(seconds: 3),
+                    () => _fetchLeaderboard(),
+                  );
                 },
-                icon: const Icon(Icons.sync, color: Color(0xFF3B82F6), size: 20),
+                icon: const Icon(
+                  Icons.sync,
+                  color: Color(0xFF3B82F6),
+                  size: 20,
+                ),
                 padding: EdgeInsets.zero,
               ),
             ),
@@ -285,33 +467,46 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
         ),
         const SizedBox(height: 16),
         Expanded(
-          child: _isFetching 
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFF3B82F6)))
-              : _errorMessage != null 
+          child: _isFetching
+              ? const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF3B82F6)),
+                )
+              : _errorMessage != null
               ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+                        const Icon(
+                          Icons.error_outline,
+                          color: Colors.redAccent,
+                          size: 48,
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           'Data Sync Failed',
-                          style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           _errorMessage!,
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.redAccent.shade200, fontSize: 13),
+                          style: TextStyle(
+                            color: Colors.redAccent.shade200,
+                            fontSize: 13,
+                          ),
                         ),
                         const SizedBox(height: 16),
                         ElevatedButton.icon(
                           onPressed: _fetchLeaderboard,
                           icon: const Icon(Icons.refresh),
                           label: const Text('Retry'),
-                        )
+                        ),
                       ],
                     ),
                   ),
@@ -321,9 +516,16 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.group_off, size: 48, color: Colors.grey.shade500),
+                      Icon(
+                        Icons.group_off,
+                        size: 48,
+                        color: Colors.grey.shade500,
+                      ),
                       const SizedBox(height: 12),
-                      Text('No records found.', style: TextStyle(color: Colors.grey.shade500)),
+                      Text(
+                        'No records found.',
+                        style: TextStyle(color: Colors.grey.shade500),
+                      ),
                     ],
                   ),
                 )
@@ -331,17 +533,38 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                   itemCount: paginatedDrivers.length,
                   itemBuilder: (context, index) {
                     final driver = paginatedDrivers[index];
-                    final String driverId = (driver['driver_id'] ?? driver['user_id'] ?? '').toString();
-                    
-                    final double rating = (driver['rating'] as num?)?.toDouble() ?? 0.0;
-                    final int evaluationCount = (driver['review_count'] as num?)?.toInt() ?? (driver['eval_count'] as num?)?.toInt() ?? 0;
-                    final String status = driver['employment_status'] ?? 'Active';
-                    
-                    Color statusColor = status.toLowerCase() == 'active' 
-                        ? const Color(0xFF10B981) 
-                        : status.toLowerCase() == 'on leave' 
-                        ? const Color(0xFF64748B) 
+                    final String driverId =
+                        (driver['driver_id'] ?? driver['user_id'] ?? '')
+                            .toString();
+
+                    final double rating =
+                        (driver['rating'] as num?)?.toDouble() ?? 0.0;
+                    final int evaluationCount =
+                        (driver['review_count'] as num?)?.toInt() ??
+                        (driver['eval_count'] as num?)?.toInt() ??
+                        0;
+                    final String status =
+                        driver['employment_status'] ?? 'Active';
+
+                    Color statusColor = status.toLowerCase() == 'active'
+                        ? const Color(0xFF10B981)
+                        : status.toLowerCase() == 'on leave'
+                        ? const Color(0xFF64748B)
                         : const Color(0xFFF59E0B);
+
+                    final String classification =
+                        driver['ml_classification'] ?? 'Pending Sweep';
+                    Color badgeColor = const Color(0xFF64748B);
+
+                    if (classification == 'Consistent Performer') {
+                      badgeColor = const Color(0xFF10B981);
+                    } else if (classification == 'Aggressive Driving Risk' ||
+                        classification == 'Needs Review') {
+                      badgeColor = const Color(0xFFEF4444);
+                    } else if (classification == 'Tardiness Risk' ||
+                        classification == 'Unprofessional Conduct') {
+                      badgeColor = const Color(0xFFF97316);
+                    }
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
@@ -357,24 +580,35 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                           showDialog(
                             context: context,
                             builder: (ctx) => Dialog(
-                              backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              backgroundColor: isDark
+                                  ? const Color(0xFF1E293B)
+                                  : Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
                               child: Container(
                                 width: isMobile ? double.infinity : 720,
-                                height: isMobile ? MediaQuery.of(context).size.height * 0.85 : 680,
+                                height: isMobile
+                                    ? MediaQuery.of(context).size.height * 0.85
+                                    : 680,
                                 padding: const EdgeInsets.all(20),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     IconButton(
-                                      icon: Icon(Icons.close, color: isDark ? Colors.grey.shade400 : Colors.black87),
+                                      icon: Icon(
+                                        Icons.close,
+                                        color: isDark
+                                            ? Colors.grey.shade400
+                                            : Colors.black87,
+                                      ),
                                       onPressed: () => Navigator.pop(ctx),
                                     ),
                                     Expanded(
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(12),
                                         child: DriverEvaluationView(
-                                          driverUuid: driverId,
+                                          driverId: driverId,
                                           backendUrl: widget.backendUrl,
                                         ),
                                       ),
@@ -392,10 +626,15 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: isDark ? Colors.blue.withOpacity(0.15) : Colors.blue.shade50,
+                                  color: isDark
+                                      ? Colors.blue.withOpacity(0.15)
+                                      : Colors.blue.shade50,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: const Icon(Icons.person, color: Colors.blue),
+                                child: const Icon(
+                                  Icons.person,
+                                  color: Colors.blue,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -404,7 +643,11 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                                   children: [
                                     Text(
                                       driver['full_name'] ?? 'Unknown',
-                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textColor),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                        color: textColor,
+                                      ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -417,19 +660,30 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
                                             Icon(
-                                              evaluationCount == 0 ? Icons.star_border : Icons.star,
+                                              evaluationCount == 0
+                                                  ? Icons.star_border
+                                                  : Icons.star,
                                               size: 14,
                                               color: Colors.amber.shade600,
                                             ),
                                             const SizedBox(width: 4),
                                             Text(
-                                              evaluationCount == 0 ? 'New' : rating.toStringAsFixed(1),
-                                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textColor),
+                                              evaluationCount == 0
+                                                  ? 'New'
+                                                  : rating.toStringAsFixed(1),
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                                color: textColor,
+                                              ),
                                             ),
                                             if (evaluationCount > 0)
                                               Text(
                                                 ' • $evaluationCount evaluations',
-                                                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  color: Colors.grey.shade500,
+                                                ),
                                               ),
                                           ],
                                         ),
@@ -444,7 +698,10 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                                             const SizedBox(width: 4),
                                             Text(
                                               driver['license_no'] ?? 'N/A',
-                                              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey.shade500,
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -453,16 +710,49 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                                   ],
                                 ),
                               ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.analytics_outlined,
+                                    color: badgeColor,
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    classification,
+                                    style: TextStyle(
+                                      color: badgeColor,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(width: 12),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
                                   color: statusColor.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
-                                child: Text(status, style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold)),
+                                child: Text(
+                                  status,
+                                  style: TextStyle(
+                                    color: statusColor,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                               const SizedBox(width: 8),
-                              const Icon(Icons.chevron_right, color: Colors.grey),
+                              const Icon(
+                                Icons.chevron_right,
+                                color: Colors.grey,
+                              ),
                             ],
                           ),
                         ),
@@ -488,22 +778,35 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                     children: [
                       IconButton(
                         icon: Icon(Icons.chevron_left, color: textColor),
-                        onPressed: _currentPage > 0 ? () => setState(() => _currentPage--) : null,
+                        onPressed: _currentPage > 0
+                            ? () => setState(() => _currentPage--)
+                            : null,
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
+                          color: isDark
+                              ? const Color(0xFF1E293B)
+                              : const Color(0xFFEFF6FF),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           '${_currentPage + 1} / $totalPages',
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF3B82F6), fontSize: 13),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF3B82F6),
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                       IconButton(
                         icon: Icon(Icons.chevron_right, color: textColor),
-                        onPressed: _currentPage < totalPages - 1 ? () => setState(() => _currentPage++) : null,
+                        onPressed: _currentPage < totalPages - 1
+                            ? () => setState(() => _currentPage++)
+                            : null,
                       ),
                     ],
                   ),

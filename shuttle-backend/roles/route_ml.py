@@ -7,38 +7,19 @@ from datetime import datetime, timedelta
 route_ml_bp = Blueprint('route_ml', __name__)
 supabase = None  
 
-def _parse_db_time(date_str, time_val):
-    try:
-        if not time_val or not date_str: 
-            return None
-        clean_date = str(date_str).split('T')[0]
-        time_str = str(time_val)[:8] 
-        return datetime.strptime(f"{clean_date} {time_str}", "%Y-%m-%d %H:%M:%S")
-    except Exception as e:
-        return None
-
-def _parse_iso_timestamp(timestamp_str):
-    try:
-        if not timestamp_str: 
-            return None
-        clean_str = str(timestamp_str).replace('T', ' ').split('.')[0].split('+')[0].replace('Z', '')
-        return datetime.strptime(clean_str, "%Y-%m-%d %H:%M:%S")
-    except Exception as e:
-        return None
-
-# Supports both URL variants and GET/POST to avoid routing mismatches
 @route_ml_bp.route('/routes/cluster', methods=['GET', 'POST'])
 @route_ml_bp.route('/api/routes/cluster', methods=['GET', 'POST'])
-def cluster_route_delays():
+def cluster_destination_demand():
     try:
         time_filter = request.args.get('filter', 'all') 
         target_date = request.args.get('date')          
         target_month = request.args.get('month')        
         target_year = request.args.get('year', '2026')  
 
+        # 1. Fetch completed trips
         query = supabase.table('trip_schedule').select(
-            'trip_id, route_name, schedule_date, departure_time, estimated_arrival_time, actual_start_time, actual_end_time, vehicle_id, user_id, route_distance'
-        ).eq('trip_status', 'Completed').not_.is_('actual_start_time', 'null').not_.is_('actual_end_time', 'null')
+            'trip_id, route_name, schedule_date, passenger_count, vehicle_id, driver_id, departure_time'
+        )
 
         # Time range filtering
         today_str = datetime.now().strftime('%Y-%m-%d')
@@ -63,130 +44,141 @@ def cluster_route_delays():
         trips_res = query.execute()
         raw_trips = trips_res.data or []
 
-        if len(raw_trips) < 3:
+        if not raw_trips:
             return jsonify({
                 "success": True, 
                 "status": "Insufficient Data", 
-                "message": f"Found only {len(raw_trips)} completed trips for this time filter. Need at least 3 for K-Means clustering."
+                "message": "No trips were found for this timeframe. Try All Time or check that trip summaries have been saved.",
+                "total_evaluated": 0,
+                "total_destinations": 0
             }), 200
 
-        # Reference lookup maps for driver & vehicle display
+        # 2. Group by destination. This intentionally uses observed route names
+        # rather than a fixed destination list so extended trips are included.
+        route_stats = {}
+        for t in raw_trips:
+            r = str(t.get('route_name') or 'Unknown').strip()
+            if r not in route_stats:
+                route_stats[r] = {'trips': 0, 'passengers': 0, 'vehicles': set()}
+            
+            route_stats[r]['trips'] += 1
+            pax = t.get('passenger_count')
+            try:
+                route_stats[r]['passengers'] += max(0, int(pax or 0))
+            except (TypeError, ValueError):
+                pass
+            v_id = t.get('vehicle_id')
+            if v_id:
+                route_stats[r]['vehicles'].add(v_id)
+
+        # 3. Compile destination features: total passengers, trip frequency,
+        # and distinct vehicles assigned (the available fleet-density proxy).
+        features = []
+        route_names = []
+        for r, stats in route_stats.items():
+            trip_freq = stats['trips']
+            pax_vol = stats['passengers']
+            fleet_density = len(stats['vehicles'])
+            features.append([pax_vol, trip_freq, fleet_density])
+            route_names.append(r)
+
+        X = np.array(features)
+        scaler = StandardScaler()
+        X_scaled = scaler.fit_transform(X)
+
+        # 4. Execute K-Means Clustering
+        n_clusters = min(3, len(X))
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+        labels = kmeans.fit_predict(X_scaled)
+
+        cluster_means = []
+        for i in range(n_clusters):
+            mean_pax = np.mean(X[labels == i][:, 0])
+            cluster_means.append((i, mean_pax))
+
+        # Sort clusters by passenger volume (low to high) to assign logical profiles
+        cluster_means.sort(key=lambda x: x[1])
+
+        label_mapping = {}
+        if n_clusters == 1:
+            label_mapping[cluster_means[0][0]] = {
+                "name": "Single Destination Profile",
+                "desc": "Only one destination is available in this timeframe. Allocation is based on its observed passenger volume, trip frequency, and assigned vehicles.",
+                "color_code": "stable"
+            }
+        elif n_clusters == 3:
+            label_mapping[cluster_means[0][0]] = {"name": "Low Demand Destinations", "desc": "Lower passenger volume and trip activity. Review fleet allocation.", "color_code": "low"}
+            label_mapping[cluster_means[1][0]] = {"name": "Steady Demand Destinations", "desc": "Moderate passenger volume and trip activity. Maintain current allocation.", "color_code": "stable"}
+            label_mapping[cluster_means[2][0]] = {"name": "High Demand Destinations", "desc": "Higher passenger volume and trip activity. Consider more or larger vehicles.", "color_code": "high"}
+        else:
+            for i in range(n_clusters):
+                label_mapping[i] = {"name": f"Demand Profile {i+1}", "desc": "Automated demand grouping.", "color_code": "stable"}
+
+        # 5. Build JSON Output
+        cluster_summaries = []
+        for i in range(n_clusters):
+            pts = X[labels == i]
+            info = label_mapping[i]
+            cluster_summaries.append({
+                "cluster_id": i,
+                "label": info["name"],
+                "description": info["desc"],
+                "count": len(pts),
+                "avg_pax": round(float(np.mean(pts[:, 0])), 1),
+                "avg_trips": round(float(np.mean(pts[:, 1])), 1),
+                "avg_fleet": round(float(np.mean(pts[:, 2])), 1)
+            })
+
+        route_to_cluster = {}
+        for idx, r in enumerate(route_names):
+            route_to_cluster[r] = int(labels[idx])
+
         try:
-            drivers_res = supabase.table('driver_profile').select('user_id, full_name').execute()
+            drivers_res = supabase.table('driver_profile').select('driver_id, full_name').execute()
             vehicles_res = supabase.table('vehicle').select('vehicle_id, plate_number').execute()
-            d_map = {d['user_id']: d['full_name'] for d in (drivers_res.data or [])}
+            d_map = {d['driver_id']: d['full_name'] for d in (drivers_res.data or [])}
             v_map = {v['vehicle_id']: v['plate_number'] for v in (vehicles_res.data or [])}
         except Exception:
             d_map = {}
             v_map = {}
 
-        features = []
         valid_trips = []
-
-        # Feature Engineering: identical calculation as original working file
         for t in raw_trips:
-            date_str = t.get('schedule_date')
-            sched_dep = _parse_db_time(date_str, t.get('departure_time'))
-            sched_arr = _parse_db_time(date_str, t.get('estimated_arrival_time'))
-            act_dep = _parse_iso_timestamp(t.get('actual_start_time'))
-            act_arr = _parse_iso_timestamp(t.get('actual_end_time'))
+            r_name = str(t.get('route_name') or 'Unknown').strip()
+            c_id = route_to_cluster.get(r_name, 0)
+            c_info = label_mapping.get(c_id, {})
 
-            if not all([sched_dep, sched_arr, act_dep, act_arr]):
-                continue
-
-            dep_delay = (act_dep - sched_dep).total_seconds() / 60.0
-            arr_delay = (act_arr - sched_arr).total_seconds() / 60.0
-            trip_duration = (act_arr - act_dep).total_seconds() / 60.0
-
-            # Matches original logic to allow anomaly clustering
-            if trip_duration <= 0: 
-                continue
-
-            features.append([dep_delay, arr_delay, trip_duration])
-            
-            t['dep_delay'] = round(dep_delay, 1)
-            t['arr_delay'] = round(arr_delay, 1)
-            t['duration'] = round(trip_duration, 1)
-            t['driver_name'] = d_map.get(t.get('user_id'), 'Assigned Driver')
+            t['driver_name'] = d_map.get(t.get('driver_id'), 'Assigned Driver')
             t['plate_number'] = v_map.get(t.get('vehicle_id'), 'Assigned Shuttle')
+            t['cluster_id'] = c_id
+            t['cluster_label'] = c_info.get("name", "Cluster")
             valid_trips.append(t)
 
-        if len(features) < 3:
-            return jsonify({
-                "success": True, 
-                "status": "Insufficient Data", 
-                "message": "Valid timestamp records failed sanity validation."
-            }), 200
-
-        X = np.array(features)
-        scaler = StandardScaler()
-        X_scaled = scaler.fit_transform(X)
-        
-        n_clusters = min(3, len(X))
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-        labels = kmeans.fit_predict(X_scaled)
-
-        cluster_summaries = []
-        label_mapping = {}
-
-        for i in range(n_clusters):
-            cluster_pts = X[labels == i]
-            avg_dep = float(np.mean(cluster_pts[:, 0]))
-            avg_arr = float(np.mean(cluster_pts[:, 1]))
-            avg_dur = float(np.mean(cluster_pts[:, 2]))
-
-            # Categorization logic
-            if avg_dep > 120 or avg_arr < -120 or avg_arr > 120:
-                c_name = "Needs Review"
-                desc = "Extreme time variance detected. Likely a manual data entry or AM/PM error."
-            elif avg_arr > 25 and avg_dep <= 15:
-                c_name = "Transit/Traffic Delay Risk"
-                desc = "Trips leave on time but hit severe road delays."
-            elif avg_dep > 15:
-                c_name = "Departure Bottleneck Risk"
-                desc = "Trips are consistently leaving the garage late."
-            else:
-                c_name = "Optimal Baseline"
-                desc = "Trips operating within acceptable schedule variance."
-
-            label_mapping[i] = c_name
-
-            cluster_summaries.append({
-                "cluster_id": i,
-                "label": c_name,
-                "description": desc,
-                "count": len(cluster_pts),
-                "avg_departure_delay_mins": round(avg_dep, 1),
-                "avg_arrival_delay_mins": round(avg_arr, 1),
-                "avg_duration_mins": round(avg_dur, 1)
-            })
-
-        for idx, t in enumerate(valid_trips):
-            c_id = int(labels[idx])
-            t['cluster_id'] = c_id
-            t['cluster_label'] = label_mapping.get(c_id, "Cluster")
-
-        # Actionable insights (filtered for realistic delays)
-        route_stats = {}
-        for t in valid_trips:
-            r_name = t['route_name']
-            if r_name not in route_stats:
-                route_stats[r_name] = []
-            route_stats[r_name].append(t['arr_delay'])
-
         recommendations = []
-        for r_name, delays in route_stats.items():
-            avg_d = sum(delays) / len(delays)
-            if 15 < avg_d <= 120:
+        for r_name, stats in route_stats.items():
+            c_id = route_to_cluster.get(r_name)
+            c_info = label_mapping.get(c_id, {})
+            if c_info.get("color_code") == "high":
                 recommendations.append({
                     "route": r_name,
-                    "insight": f"Averages {round(avg_d)} mins late.",
-                    "action": f"Adjust scheduled arrival time forward by {round(avg_d / 5) * 5} minutes to reflect actual traffic conditions."
+                    "insight": f"High demand detected: {stats['passengers']} pax across {stats['trips']} trips.",
+                    "action": "Increase vehicle allocation or dispatch higher capacity shuttles."
+                })
+            elif c_info.get("color_code") == "low":
+                recommendations.append({
+                    "route": r_name,
+                    "insight": f"Low demand mapped: Only {stats['passengers']} pax total.",
+                    "action": "Consider merging schedules or deploying smaller vehicles to optimize fuel."
                 })
 
         return jsonify({
             "success": True,
             "status": "Clustered",
+            "model": "K-Means Destination Demand Profiling",
+            "features": ["passenger_volume", "trip_frequency", "assigned_vehicle_count"],
+            "includes_extended_trips": True,
+            "destinations": route_names,
+            "total_destinations": len(route_stats),
             "total_evaluated": len(valid_trips),
             "clusters": cluster_summaries,
             "recommendations": recommendations,

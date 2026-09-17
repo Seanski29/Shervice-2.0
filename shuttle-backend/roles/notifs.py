@@ -8,6 +8,12 @@ from supabase import create_client
 notifs_bp = Blueprint('notifs', __name__)
 supabase = None
 
+def _is_schedule_blackout_notification(notification):
+    # Older alerts can still exist after the blackout feature is retired.
+    title = ' '.join(str(notification.get('title') or '').lower().replace('_', ' ').replace('-', ' ').split())
+    source = ' '.join(str(notification.get('source_tag') or '').lower().replace('_', ' ').replace('-', ' ').split())
+    return 'schedule blackout' in title or source in ('blackout', 'schedule blackout')
+
 def _create_supabase_client():
     load_dotenv()
     url = os.getenv('SUPABASE_URL')
@@ -61,7 +67,10 @@ def get_notifications():
             .execute()
         )
 
-        raw_notifs = response.data or []
+        raw_notifs = [
+            notification for notification in (response.data or [])
+            if not _is_schedule_blackout_notification(notification)
+        ]
         filtered_notifications = []
 
         if role == 'admin':
@@ -143,7 +152,10 @@ def mark_all_as_read():
             .eq('is_read', False)
             .execute()
         )
-        raw_notifs = response.data or []
+        raw_notifs = [
+            notification for notification in (response.data or [])
+            if not _is_schedule_blackout_notification(notification)
+        ]
         ids_to_update = []
 
         if role == 'admin':
@@ -217,6 +229,8 @@ def trigger_notification(title, message, target_user_id=None, target_role=None, 
     """
     Call this function from anywhere in your backend to generate a notification.
     """
+    if _is_schedule_blackout_notification({'title': title, 'source_tag': source_tag}):
+        return True
     try:
         # ✅ Prioritize the injected database client to guarantee connection
         supabase_client = db_client or supabase or _create_supabase_client()

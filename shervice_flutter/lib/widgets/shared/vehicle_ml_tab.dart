@@ -523,6 +523,7 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
 
   Future<void> _runDiagnostics() async {
     try {
+      // 🔥 FIX: Reverted to /vehicles/predict/ because backendUrl already includes /api
       final res = await http
           .get(
             Uri.parse(
@@ -739,9 +740,9 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
                   isDark,
                 ),
                 _buildStatCard(
-                  'Odometer',
-                  '${telemetry['total_mileage_km']} km',
-                  Icons.speed,
+                  'Total Trips',
+                  '${telemetry['total_trips']} trips',
+                  Icons.route,
                   const Color(0xFF3B82F6),
                   cardWidth,
                   isDark,
