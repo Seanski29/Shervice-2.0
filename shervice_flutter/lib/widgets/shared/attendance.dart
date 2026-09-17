@@ -10,19 +10,16 @@ import '../../constant.dart';
 import '../../utils/file_download.dart';
 import 'universal_pagination.dart';
 
-class SharedReportsManager extends StatefulWidget {
+class Attendance extends StatefulWidget {
   final String userRole;
 
-  const SharedReportsManager({super.key, required this.userRole});
+  const Attendance({super.key, required this.userRole});
 
   @override
-  State<SharedReportsManager> createState() => _SharedReportsManagerState();
+  State<Attendance> createState() => _AttendanceState();
 }
 
-class _SharedReportsManagerState extends State<SharedReportsManager> {
-  final List<String> _reportTypes = ['Trips', 'Maintenance', 'Timecard'];
-
-  String _selectedReportType = 'Timecard';
+class _AttendanceState extends State<Attendance> {
   bool _isImporting = false;
   bool _isLoadingSystemData = false;
   String _sourceFileName = 'No file selected';
@@ -38,7 +35,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
   String _selectedRange = 'All Time';
   DateTimeRange? _customDateRange;
 
-  final List<String> _timecardColumns = [
+  final List<String> _attendanceColumns = [
     'employee',
     'pay_period',
     'day',
@@ -50,40 +47,13 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     'note',
   ];
 
-  final Map<String, List<String>> _reportColumns = const {
-    'Trips': [
-      'client_name',
-      'company_id',
-      'departure_time',
-      'estimated_arrival_time',
-      'actual_start_time',
-      'actual_end_time',
-      'trip_id',
-      'route_name',
-      'schedule_date',
-      'trip_status',
-      'driver_name',
-      'plate_number',
-    ],
-    'Maintenance': [
-      'vehicle_id',
-      'plate_number',
-      'target_date',
-      'incident_date',
-      'repair_date',
-      'description',
-      'is_resolved',
-      'status',
-    ],
-  };
-
   List<String> _columns = [];
   List<Map<String, String>> _rows = [];
 
   @override
   void initState() {
     super.initState();
-    _loadCurrentReportData();
+    _loadAttendanceData();
   }
 
   @override
@@ -91,8 +61,6 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     _searchController.dispose();
     super.dispose();
   }
-
-  bool get _canImportCurrentReport => _selectedReportType == 'Timecard';
 
   // ===========================================================================
   // PIPELINE: FILTER, SEARCH & SORT
@@ -184,18 +152,14 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
   }
 
   String _extractDateFromRow(Map<String, String> row) {
-    if (_selectedReportType == 'Timecard') return row['date'] ?? '';
-    if (_selectedReportType == 'Maintenance') return row['incident_date'] ?? '';
-    if (_selectedReportType == 'Trips')
-      return row['schedule_date'] ?? row['schedule'] ?? '';
-    return '';
+    return row['date'] ?? '';
   }
 
   // ===========================================================================
   // DATA LOADING
   // ===========================================================================
 
-  Future<void> _loadCurrentReportData() async {
+  Future<void> _loadAttendanceData() async {
     setState(() {
       _isLoadingSystemData = true;
       _currentPage = 0;
@@ -204,21 +168,11 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     });
 
     try {
-      http.Response response;
-
-      if (_selectedReportType == 'Trips') {
-        response = await http.get(Uri.parse('$backendUrl/trips'));
-      } else if (_selectedReportType == 'Maintenance') {
-        response = await http.get(
-          Uri.parse('$backendUrl/vehicles/maintenance'),
-        );
-      } else {
-        response = await http.get(
-          Uri.parse('$backendUrl/${widget.userRole}/timecards'),
-        );
-        if (response.statusCode != 200) {
-          response = await http.get(Uri.parse('$backendUrl/admin/timecards'));
-        }
+      var response = await http.get(
+        Uri.parse('$backendUrl/${widget.userRole}/attendance'),
+      );
+      if (response.statusCode != 200) {
+        response = await http.get(Uri.parse('$backendUrl/admin/attendance'));
       }
 
       if (response.statusCode != 200) {
@@ -227,28 +181,15 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
       }
 
       final decoded = jsonDecode(response.body);
-      final rawList = _selectedReportType == 'Trips'
-          ? ((decoded is Map ? decoded['trips'] : decoded) ?? [])
-          : _selectedReportType == 'Maintenance'
-          ? ((decoded is Map ? decoded['data'] : decoded) ?? [])
-          : ((decoded is Map
-                    ? decoded['data'] ?? decoded['timecards']
-                    : decoded) ??
-                []);
-
-      final normalized = _normalizeSystemRows(rawList);
-
-      final columns = _selectedReportType == 'Timecard'
-          ? _timecardColumns
-          : (_reportColumns[_selectedReportType] ??
-                (normalized.isNotEmpty
-                    ? _buildColumns(normalized.first.keys.toList())
-                    : const ['status']));
+      final rawList =
+          (decoded is Map ? decoded['data'] ?? decoded['attendance'] : decoded) ??
+          [];
+      final normalized = _normalizeAttendanceRows(rawList);
 
       if (!mounted) return;
       setState(() {
-        _sourceFileName = 'System $_selectedReportType records';
-        _columns = columns;
+        _sourceFileName = 'System attendance records';
+        _columns = _attendanceColumns;
         _rows = normalized;
       });
     } catch (error) {
@@ -262,97 +203,17 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     if (!mounted) return;
     setState(() {
       _sourceFileName = 'System data unavailable';
-      _columns = _selectedReportType == 'Timecard'
-          ? _timecardColumns
-          : (_reportColumns[_selectedReportType] ?? const ['status']);
+      _columns = _attendanceColumns;
       _rows = [];
     });
   }
 
-  List<Map<String, String>> _normalizeSystemRows(List<dynamic> rawList) {
-    final normalized = <Map<String, String>>[];
-
-    for (final item in rawList) {
-      if (item is! Map) continue;
-
-      final flat = <String, String>{};
-      final map = item as Map<String, dynamic>;
-
-      if (_selectedReportType == 'Timecard') {
-        return _normalizeTimecardRows(rawList);
-      }
-
-      for (final entry in map.entries) {
-        final key = entry.key.toString();
-        final value = entry.value;
-
-        if (key == 'user_account' && value is Map) {
-          final userName = value['full_name'] ?? value['username'] ?? '';
-          flat['driver_name'] = _normalizeCellValue(userName);
-          continue;
-        }
-
-        if (key == 'vehicle' && value is Map) {
-          final plate = value['plate_number'] ?? '';
-          final vehicleType = value['bus_type'] ?? '';
-          flat['plate_number'] = _normalizeCellValue(plate);
-          flat['bus_type'] = _normalizeCellValue(vehicleType);
-          continue;
-        }
-
-        if (key == 'oic_profile' && value is Map) {
-          final company = value['company_name'] ?? '';
-          flat['company_name'] = _normalizeCellValue(company);
-          continue;
-        }
-
-        if (key == 'client_company' && value is Map) {
-          flat['client_name'] = _normalizeCellValue(value['company_name']);
-          continue;
-        }
-
-        if (key == 'client_company') {
-          flat['client_name'] = _normalizeCellValue(value);
-          continue;
-        }
-
-        flat[key] = _normalizeCellValue(value);
-      }
-      if (_selectedReportType == 'Trips') {
-        flat['client_name'] =
-            flat['client_name'] ??
-            flat['company_name'] ??
-            flat['client'] ??
-            'Unassigned Client';
-        flat['company_id'] = flat['company_id'] ?? 'N/A';
-        flat['departure_time'] = flat['departure_time'] ?? '--:--';
-        flat['estimated_arrival_time'] =
-            flat['estimated_arrival_time'] ?? '--:--';
-        flat['actual_start_time'] = flat['actual_start_time'] ?? '--:--';
-        flat['actual_end_time'] = flat['actual_end_time'] ?? '--:--';
-        flat['trip_id'] = flat['trip_id'] ?? 'N/A';
-        flat['status'] = _normalizeCellValue(
-          flat['trip_status'] ?? flat['status'] ?? 'Scheduled',
-        );
-      } else if (_selectedReportType == 'Maintenance') {
-        flat['status'] = _normalizeCellValue(
-          flat['status'] ??
-              (flat['is_resolved']?.toLowerCase() == 'true'
-                  ? 'Resolved'
-                  : 'Needs Attention'),
-        );
-      }
-      if (flat.isNotEmpty) normalized.add(flat);
-    }
-    return normalized;
-  }
-
-  Widget _buildReportTitle(bool isDark) {
+  Widget _buildAttendanceTitle(bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Import & Export',
+          'Attendance',
           style: TextStyle(
             fontSize: 26,
             fontWeight: FontWeight.w800,
@@ -361,7 +222,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
         ),
         const SizedBox(height: 6),
         Text(
-          'View system reports and manage timecards.',
+          'Import, view, and export attendance records.',
           style: TextStyle(
             fontSize: 14,
             color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
@@ -375,9 +236,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
 
   Widget _buildImportButton() {
     return FilledButton.icon(
-      onPressed: _isImporting || !_canImportCurrentReport
-          ? null
-          : _pickExcelFile,
+      onPressed: _isImporting ? null : _pickExcelFile,
       icon: _isImporting
           ? const SizedBox(
               width: 18,
@@ -388,9 +247,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
       label: Text(
         _isImporting
             ? 'Importing...'
-            : _canImportCurrentReport
-            ? 'Import Excel'
-            : 'Import Locked',
+            : 'Import Excel',
       ),
     );
   }
@@ -399,7 +256,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     return OutlinedButton.icon(
       onPressed: _showExportDialog,
       icon: const Icon(Icons.download_outlined),
-      label: const Text('Export Report'),
+      label: const Text('Export'),
     );
   }
 
@@ -454,9 +311,12 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
         return;
       }
 
+      final savedCount = await _saveImportedAttendance(parsedRows, file.name);
+      if (!mounted) return;
+
       setState(() {
         _sourceFileName = file.name;
-        _columns = _timecardColumns;
+        _columns = _attendanceColumns;
         _rows = parsedRows;
         _currentPage = 0;
         _selectedRange = 'All Time';
@@ -466,10 +326,12 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Imported ${parsedRows.length} biometric rows from ${file.name}',
+            'Imported and saved $savedCount attendance rows from ${file.name}',
           ),
         ),
       );
+
+      await _loadAttendanceData();
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -480,13 +342,44 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     }
   }
 
+  Future<int> _saveImportedAttendance(
+    List<Map<String, String>> rows,
+    String fileName,
+  ) async {
+    final endpoints = [
+      '/${widget.userRole}/attendance/import',
+      '/admin/attendance/import',
+    ];
+
+    Object? lastError;
+    for (final endpoint in endpoints) {
+      try {
+        final response = await http.post(
+          Uri.parse('$backendUrl$endpoint'),
+          headers: const {'Content-Type': 'application/json'},
+          body: jsonEncode({'source_file': fileName, 'rows': rows}),
+        );
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          final decoded = jsonDecode(response.body);
+          return int.tryParse('${decoded['saved_count'] ?? rows.length}') ??
+              rows.length;
+        }
+
+        lastError = response.body;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw Exception('Attendance import was not saved: $lastError');
+  }
+
   Future<List<List<dynamic>>> _convertLegacyXlsDirectly(
     Uint8List fileBytes,
     String fileName,
   ) async {
     final endpoints = [
-      '/${widget.userRole}/timecards/upload-legacy-xls',
-      '/admin/timecards/upload-legacy-xls',
       '/${widget.userRole}/attendance/upload-legacy-xls',
       '/admin/attendance/upload-legacy-xls',
     ];
@@ -521,21 +414,6 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     return [];
   }
 
-  List<String> _buildColumns(List<String> keys) {
-    final seen = <String>{};
-    final unique = <String>[];
-    for (final key in keys) {
-      final cleaned = key.trim();
-      if (cleaned.isEmpty) continue;
-      final normalized = seen.contains(cleaned)
-          ? '${cleaned}_${seen.length}'
-          : cleaned;
-      seen.add(cleaned);
-      unique.add(normalized);
-    }
-    return unique.isEmpty ? ['No columns detected'] : unique;
-  }
-
   // ===========================================================================
   // EXPORT LOGIC
   // ===========================================================================
@@ -553,7 +431,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Export ${_selectedReportType}'),
+          title: const Text('Export Attendance'),
           content: Text(
             'You are about to export ${activeRows.length} displayed records.\n\nPlease select your preferred file format.',
             style: const TextStyle(fontSize: 15),
@@ -587,9 +465,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
 
   Future<void> _executeExport(String format) async {
     final filteredRows = _processedRows;
-    final exportColumns = _selectedReportType == 'Timecard'
-        ? _timecardColumns
-        : (_reportColumns[_selectedReportType] ?? _columns);
+    final exportColumns = _attendanceColumns;
 
     String baseName;
     if (_sourceFileName != 'No file selected' &&
@@ -599,7 +475,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
       String suffix = _selectedRange == 'All Time'
           ? 'all_time'
           : _selectedRange.toLowerCase().replaceAll(' ', '_');
-      baseName = '${_selectedReportType.toLowerCase()}_report_$suffix';
+      baseName = 'attendance_$suffix';
     }
 
     final fileName = '$baseName.${format.toLowerCase()}';
@@ -612,7 +488,6 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
                       {for (final column in exportColumns) column: ''},
                     ]
                   : filteredRows,
-              exportColumns,
             )
           : utf8.encode(
               <List<String>>[
@@ -644,7 +519,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to export report: $error')),
+        SnackBar(content: Text('Unable to export attendance: $error')),
       );
     }
   }
@@ -692,7 +567,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _buildReportTitle(isDark),
+                        _buildAttendanceTitle(isDark),
                         const SizedBox(height: 12),
                         Wrap(
                           spacing: 8,
@@ -707,7 +582,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
                   : Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Expanded(child: _buildReportTitle(isDark)),
+                        Expanded(child: _buildAttendanceTitle(isDark)),
                         const SizedBox(width: 16),
                         _buildImportButton(),
                         const SizedBox(width: 12),
@@ -769,48 +644,13 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
               const SizedBox(height: 20),
 
               // ==========================================
-              // CONTROLS ROW (Chips, Search, Filter, Sort)
+              // CONTROLS ROW (Search, Filter, Sort)
               // ==========================================
               Flex(
                 direction: isMobile ? Axis.vertical : Axis.horizontal,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Flexible(
-                    fit: isMobile ? FlexFit.loose : FlexFit.tight,
-                    child: Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: _reportTypes.map((type) {
-                        final isSelected = _selectedReportType == type;
-                        return ChoiceChip(
-                          label: Text(type),
-                          selected: isSelected,
-                          avatar: Icon(
-                            type == 'Trips'
-                                ? Icons.route_outlined
-                                : type == 'Maintenance'
-                                ? Icons.build_outlined
-                                : Icons.schedule_outlined,
-                            size: 18,
-                          ),
-                          onSelected: (_) async {
-                            setState(() => _selectedReportType = type);
-                            await _loadCurrentReportData();
-                          },
-                          selectedColor: Colors.blue.shade100,
-                          backgroundColor: isDark
-                              ? const Color(0xFF1E293B)
-                              : Colors.white,
-                          labelStyle: TextStyle(
-                            color: isSelected
-                                ? Colors.blue.shade900
-                                : (isDark ? Colors.white : Colors.black87),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
+                  if (!isMobile) const Spacer(),
                   if (_columns.isNotEmpty && _rows.isNotEmpty) ...[
                     // Search Bar
                     SizedBox(
@@ -865,7 +705,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: isMobile ? 0 : 8, height: isMobile ? 8 : 0),
                     // Date Filter Dropdown
                     Container(
                       height: 42,
@@ -958,7 +798,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: isMobile ? 0 : 8, height: isMobile ? 8 : 0),
                     // Date Sort Asc/Desc Toggle
                     Container(
                       height: 42,
@@ -1018,7 +858,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
                     ? const Center(child: CircularProgressIndicator())
                     : activeData.isEmpty
                     ? const Center(
-                        child: Text('No report data matches current filters'),
+                        child: Text('No attendance data matches current filters'),
                       )
                     : Container(
                         decoration: BoxDecoration(
@@ -1040,80 +880,64 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
                                 borderRadius: const BorderRadius.vertical(
                                   top: Radius.circular(17),
                                 ),
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: SingleChildScrollView(
-                                    scrollDirection: Axis.vertical,
-                                    child: DataTable(
-                                      headingRowColor: WidgetStatePropertyAll(
-                                        isDark
-                                            ? const Color(0xFF1E293B)
-                                            : const Color(0xFFF8FAFC),
-                                      ),
-                                      columnSpacing: 24,
-                                      dataRowMinHeight: 52,
-                                      dataRowMaxHeight: 90,
-                                      columns: tableColumns,
-                                      rows: displayRows.map((row) {
-                                        return DataRow(
-                                          cells: _columns.map((col) {
-                                            final displayValue =
-                                                _formatDisplayValue(
-                                                  col,
-                                                  row[col] ?? '',
-                                                );
-                                            final isStatus =
-                                                col == 'status' ||
-                                                col == 'trip_status';
-                                            final statusColor = _statusColor(
-                                              displayValue,
-                                              isDark,
-                                            );
-                                            return DataCell(
-                                              Container(
-                                                padding: isStatus
-                                                    ? const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4,
-                                                      )
-                                                    : EdgeInsets.zero,
-                                                decoration: isStatus
-                                                    ? BoxDecoration(
-                                                        color: statusColor
-                                                            .withOpacity(0.12),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              6,
-                                                            ),
-                                                      )
-                                                    : null,
-                                                child: ConstrainedBox(
-                                                  constraints:
-                                                      const BoxConstraints(
-                                                        minWidth: 80,
-                                                        maxWidth: 200,
-                                                      ),
-                                                  child: Text(
-                                                    displayValue,
-                                                    style: isStatus
-                                                        ? TextStyle(
-                                                            color: statusColor,
-                                                            fontWeight:
-                                                                FontWeight.w700,
-                                                          )
-                                                        : null,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    maxLines: 2,
-                                                  ),
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final tableWidth =
+                                        constraints.maxWidth < 1100
+                                        ? 1100.0
+                                        : constraints.maxWidth;
+
+                                    return SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: ConstrainedBox(
+                                        constraints: BoxConstraints(
+                                          minWidth: tableWidth,
+                                        ),
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.vertical,
+                                          child: DataTable(
+                                            headingRowColor:
+                                                WidgetStatePropertyAll(
+                                                  isDark
+                                                      ? const Color(0xFF1E293B)
+                                                      : const Color(0xFFF8FAFC),
                                                 ),
-                                              ),
-                                            );
-                                          }).toList(),
-                                        );
-                                      }).toList(),
+                                            columnSpacing: 24,
+                                            horizontalMargin: 30,
+                                            dataRowMinHeight: 52,
+                                            dataRowMaxHeight: 90,
+                                            columns: tableColumns,
+                                            rows: displayRows.map((row) {
+                                              return DataRow(
+                                                cells: _columns.map((col) {
+                                                  final displayValue =
+                                                      _formatDisplayValue(
+                                                        col,
+                                                        row[col] ?? '',
+                                                      );
+                                                  return DataCell(
+                                                    ConstrainedBox(
+                                                      constraints:
+                                                          const BoxConstraints(
+                                                            minWidth: 80,
+                                                            maxWidth: 220,
+                                                          ),
+                                                      child: Text(
+                                                        displayValue,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                        maxLines: 2,
+                                                      ),
+                                                    ),
+                                                  );
+                                                }).toList(),
+                                              );
+                                            }).toList(),
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                  },
                                 ),
                               ),
                             ),
@@ -1349,25 +1173,6 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
         .join(' ');
   }
 
-  Color _statusColor(String status, bool isDark) {
-    final normalized = status.toLowerCase();
-    if (normalized.contains('completed') ||
-        normalized.contains('resolved') ||
-        normalized.contains('scheduled')) {
-      return const Color(0xFF10B981);
-    }
-    if (normalized.contains('rejected') ||
-        normalized.contains('expired') ||
-        normalized.contains('attention') ||
-        normalized.contains('maintenance')) {
-      return const Color(0xFFEF4444);
-    }
-    if (normalized.contains('ongoing') || normalized.contains('progress')) {
-      return const Color(0xFF3B82F6);
-    }
-    return isDark ? Colors.grey.shade300 : const Color(0xFF64748B);
-  }
-
   String _normalizeCellValue(dynamic value) {
     if (value == null) return '';
     if (value is DateTime) return value.toIso8601String();
@@ -1415,7 +1220,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     return value;
   }
 
-  List<Map<String, String>> _normalizeTimecardRows(List<dynamic> rawList) {
+  List<Map<String, String>> _normalizeAttendanceRows(List<dynamic> rawList) {
     final normalized = <Map<String, String>>[];
     for (final item in rawList) {
       if (item is! Map) continue;
@@ -1579,29 +1384,178 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     return parsedRows;
   }
 
-  Uint8List _convertRowsToXlsx(
-    List<Map<String, String>> rows,
-    List<String> columns,
-  ) {
+  Uint8List _convertRowsToXlsx(List<Map<String, String>> rows) {
     final workbook = excel.Excel.createExcel();
     final sheet = workbook['Sheet1'];
     if (sheet == null) return Uint8List(0);
 
-    final headerCells = columns
-        .map((c) => excel.TextCellValue(_formatTableHeader(c)))
-        .toList();
-    sheet.insertRowIterables(headerCells, 0);
-
-    for (int i = 0; i < rows.length; i++) {
-      final values = columns.map((column) {
-        final rawValue = rows[i][column] ?? '';
-        final displayValue = _formatDisplayValue(column, rawValue);
-        return excel.TextCellValue(displayValue);
-      }).toList();
-      sheet.insertRowIterables(values, i + 1);
+    // ==========================================
+    // ATTENDANCE EXPORT (Grouped Format)
+    // ==========================================
+    
+    // 1. Group rows by employee
+    final Map<String, List<Map<String, String>>> groupedRows = {};
+    for (var row in rows) {
+      final employee = row['employee'] ?? 'Unknown Employee';
+      groupedRows.putIfAbsent(employee, () => []).add(row);
     }
 
-    // CHANGED: Use encode() instead of save() to prevent the double-download on Web
+    int currentRow = 0;
+
+    // 2. Define strict cell styles mapping to the image theme
+    final excel.CellStyle titleStyle = excel.CellStyle(
+      backgroundColorHex: excel.ExcelColor.fromHexString('#FFFF00'), // Solid Yellow
+      bold: true,
+      horizontalAlign: excel.HorizontalAlign.Center,
+      verticalAlign: excel.VerticalAlign.Center,
+    );
+
+    final excel.CellStyle headerStyle = excel.CellStyle(
+      backgroundColorHex: excel.ExcelColor.fromHexString('#D9D9D9'), // Light Gray
+      bold: true,
+      horizontalAlign: excel.HorizontalAlign.Center,
+      verticalAlign: excel.VerticalAlign.Center,
+    );
+
+    final excel.CellStyle normalDataStyle = excel.CellStyle(
+      bold: true, // Data is bold in the provided format
+      horizontalAlign: excel.HorizontalAlign.Center,
+      verticalAlign: excel.VerticalAlign.Center,
+    );
+
+    final excel.CellStyle redTextStyle = excel.CellStyle(
+      fontColorHex: excel.ExcelColor.fromHexString('#FF0000'), // Red text
+      bold: true,
+      horizontalAlign: excel.HorizontalAlign.Center,
+      verticalAlign: excel.VerticalAlign.Center,
+    );
+
+    final excel.CellStyle wholeDayStyle = excel.CellStyle(
+      backgroundColorHex: excel.ExcelColor.fromHexString('#FFFF00'), // Yellow background
+      fontColorHex: excel.ExcelColor.fromHexString('#FF0000'), // Red text
+      bold: true,
+      horizontalAlign: excel.HorizontalAlign.Center,
+      verticalAlign: excel.VerticalAlign.Center,
+    );
+
+    for (var entry in groupedRows.entries) {
+      final employeeName = entry.key.toUpperCase();
+      final employeeData = entry.value;
+
+      // Row 1: Employee Title
+      sheet.merge(
+        excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow),
+        excel.CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: currentRow),
+      );
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow))
+        ..value = excel.TextCellValue(employeeName)
+        ..cellStyle = titleStyle;
+      currentRow++;
+
+      // Row 2: Shift Headers (Morning, Afternoon, Overtime)
+      sheet.merge(
+        excel.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: currentRow),
+        excel.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: currentRow),
+      );
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: currentRow))
+        ..value = excel.TextCellValue('MORNING')
+        ..cellStyle = headerStyle;
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: currentRow)).cellStyle = headerStyle;
+
+      sheet.merge(
+        excel.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: currentRow),
+        excel.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: currentRow),
+      );
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: currentRow))
+        ..value = excel.TextCellValue('AFTERNOON')
+        ..cellStyle = headerStyle;
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: currentRow)).cellStyle = headerStyle;
+
+      sheet.merge(
+        excel.CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: currentRow),
+        excel.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: currentRow),
+      );
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: currentRow))
+        ..value = excel.TextCellValue('OVERTIME')
+        ..cellStyle = headerStyle;
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: currentRow)).cellStyle = headerStyle;
+
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: currentRow))
+        ..value = excel.TextCellValue('TOTAL MINUTES LATE')
+        ..cellStyle = headerStyle;
+        
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow)).cellStyle = headerStyle;
+      currentRow++;
+
+      // Row 3: IN/OUT Headers
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow))
+        ..value = excel.TextCellValue('DATE')
+        ..cellStyle = headerStyle;
+
+      for (int c = 1; c <= 6; c++) {
+        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: currentRow))
+          ..value = excel.TextCellValue(c % 2 != 0 ? 'IN' : 'OUT')
+          ..cellStyle = headerStyle;
+      }
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: currentRow)).cellStyle = headerStyle;
+      currentRow++;
+
+      // Data Rows
+      for (var row in employeeData) {
+        String dateVal = row['date'] ?? '';
+        String dayVal = row['day'] ?? '';
+        String shortDate = dateVal;
+        
+        try {
+          final parsedDate = DateTime.parse(dateVal.split('T')[0]);
+          shortDate = '${parsedDate.month}/${parsedDate.day}';
+        } catch (_) {}
+        
+        String displayDate = dayVal != 'NaN' && dayVal.isNotEmpty 
+            ? '$shortDate ($dayVal)' 
+            : shortDate;
+
+        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow))
+          ..value = excel.TextCellValue(displayDate)
+          ..cellStyle = normalDataStyle;
+
+        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: currentRow))
+          ..value = excel.TextCellValue(_formatDisplayValue('in_time', row['in_time'] ?? ''))
+          ..cellStyle = normalDataStyle;
+        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: currentRow))
+          ..value = excel.TextCellValue(_formatDisplayValue('out_time', row['out_time'] ?? ''))
+          ..cellStyle = normalDataStyle;
+
+        // Leave Afternoon/Overtime blank but styled
+        for (int c = 3; c <= 6; c++) {
+          sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: currentRow)).cellStyle = normalDataStyle;
+        }
+        
+        String note = row['note'] ?? '';
+        var noteCell = sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: currentRow));
+        noteCell.value = excel.TextCellValue(note);
+        noteCell.cellStyle = normalDataStyle;
+
+        // Apply conditional formatting for absences and lateness
+        final noteLower = note.toLowerCase();
+        if (noteLower.contains('whole day') || noteLower.contains('absent')) {
+          for (int c = 0; c <= 7; c++) {
+             sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: currentRow))
+               .cellStyle = wholeDayStyle;
+          }
+        } else if (noteLower.contains('half day') || noteLower.contains('late') || noteLower.contains('miss')) {
+          noteCell.cellStyle = redTextStyle;
+        }
+
+        currentRow++;
+      }
+      currentRow++; // Spacer row before next employee
+    }
+
+    sheet.setColumnWidth(0, 15.0);
+    for(int i = 1; i <= 6; i++) sheet.setColumnWidth(i, 10.0);
+    sheet.setColumnWidth(7, 24.0);
+
     return Uint8List.fromList(workbook.encode() ?? []);
   }
 }
