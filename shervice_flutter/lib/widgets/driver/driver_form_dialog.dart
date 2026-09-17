@@ -30,7 +30,6 @@ class _DriverFormDialogState extends State<DriverFormDialog> {
   late TextEditingController _licenseController;
   late TextEditingController _emailController;
   late TextEditingController _birthdayController;
-  final _passwordController = TextEditingController();
 
   String _currentStatus = 'Active';
 
@@ -144,31 +143,11 @@ class _DriverFormDialogState extends State<DriverFormDialog> {
             )
             .timeout(const Duration(seconds: 10));
 
-        if (_passwordController.text.isNotEmpty) {
-          final passResponse = await http
-              .post(
-                Uri.parse('${widget.backendUrl}/auth/update-password'),
-                headers: {'Content-Type': 'application/json'},
-                body: jsonEncode({
-                  'user_id': widget.driver!.userId,
-                  'new_password': _passwordController.text,
-                }),
-              )
-              .timeout(const Duration(seconds: 10));
-
-          final passData = jsonDecode(passResponse.body);
-          if (passResponse.statusCode != 200 || passData['success'] != true) {
-            throw Exception(
-              passData['message'] ?? "Failed to override driver password.",
-            );
-          }
-        }
       } else {
         final DateTime now = DateTime.now();
         final String formattedHired =
             "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
 
-        payload['password'] = _passwordController.text;
         payload['license_expiry'] = '2031-12-31';
         payload['date_hired'] = formattedHired;
 
@@ -320,7 +299,7 @@ class _DriverFormDialogState extends State<DriverFormDialog> {
                         style: TextStyle(color: inputTextColor),
                         decoration: _fieldStyle(
                           context: context,
-                          label: 'Account Email',
+                          label: 'Email Address',
                           icon: Icons.email,
                         ),
                         validator: (v) =>
@@ -364,30 +343,6 @@ class _DriverFormDialogState extends State<DriverFormDialog> {
                         onTap: !_isWritingUnlocked
                             ? null
                             : () => _selectDate(_birthdayController),
-                      ),
-                      const SizedBox(height: 14),
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        readOnly: !_isWritingUnlocked,
-                        style: TextStyle(color: inputTextColor),
-                        decoration: _fieldStyle(
-                          context: context,
-                          label: isEdit
-                              ? 'Reset Password (Leave empty to keep current)'
-                              : 'Account Password',
-                          icon: Icons.lock_reset,
-                        ),
-                        validator: (v) {
-                          if (!isEdit && (v == null || v.length < 6))
-                            return 'Password must be >= 6 chars';
-                          if (isEdit &&
-                              v != null &&
-                              v.isNotEmpty &&
-                              v.length < 6)
-                            return 'Password must be >= 6 chars';
-                          return null;
-                        },
                       ),
                       const SizedBox(height: 14),
                       if (isEdit) ...[

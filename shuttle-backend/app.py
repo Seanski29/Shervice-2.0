@@ -8,7 +8,6 @@ from supabase import create_client, Client
 import roles.auth as auth_module
 import roles.notifs as notifs_module  #new
 import roles.admin as admin_module
-import roles.oic as oic_module
 import roles.drivers as drivers_module
 import roles.staff as staff_module
 import roles.passenger as passenger_module
@@ -18,12 +17,10 @@ import roles.predictive_ml as predictive_ml
 import roles.driver_ml as driver_ml_module
 import roles.route_ml as route_ml_module
 
-from gemeni import ai_bp  # Kept the import here cleanly
-
 class TransportBackendApp:
     def __init__(self):
         # 1. Initialize safe environment profile keys
-        load_dotenv()
+        load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
         self.app = Flask(__name__)
         
         CORS(self.app, resources={
@@ -36,10 +33,10 @@ class TransportBackendApp:
         
         # 3. Setup core unified database engine connection parameters
         self.supabase_url = os.getenv("SUPABASE_URL")
-        self.supabase_key = os.getenv("SUPABASE_KEY")
+        self.supabase_key = os.getenv("SUPABASE_ANON_KEY") or os.getenv("SUPABASE_KEY")
         
         if not self.supabase_url or not self.supabase_key:
-            raise ValueError("Missing critical configuration parameters inside your backend .env file!")
+            raise ValueError("Missing SUPABASE_URL or SUPABASE_ANON_KEY inside your backend .env file!")
             
         self.supabase: Client = create_client(self.supabase_url, self.supabase_key)
         
@@ -61,7 +58,6 @@ class TransportBackendApp:
         auth_module.supabase = self.supabase
         notifs_module.supabase = self.supabase #new
         admin_module.supabase = self.supabase
-        oic_module.supabase = self.supabase
         drivers_module.supabase = self.supabase
         staff_module.supabase = self.supabase
         passenger_module.supabase = self.supabase
@@ -74,7 +70,6 @@ class TransportBackendApp:
         self.app.register_blueprint(auth_module.auth_bp)
         self.app.register_blueprint(notifs_module.notifs_bp) #new
         self.app.register_blueprint(admin_module.admin_bp)
-        self.app.register_blueprint(oic_module.oic_bp)
         self.app.register_blueprint(drivers_module.drivers_bp)
         self.app.register_blueprint(staff_module.staff_bp)
         self.app.register_blueprint(passenger_module.passenger_bp)
@@ -83,9 +78,6 @@ class TransportBackendApp:
         self.app.register_blueprint(predictive_ml.predictive_bp)
         self.app.register_blueprint(driver_ml_module.driver_ml_bp)
         self.app.register_blueprint(route_ml_module.route_ml_bp)
-        # REGISTER THE AI BLUEPRINT HERE CORRECTLY
-        self.app.register_blueprint(ai_bp)
-
     def run(self):
         # Force alignment to explicit loopback addresses
         # Disable the auto-reloader and debug mode for stability during testing

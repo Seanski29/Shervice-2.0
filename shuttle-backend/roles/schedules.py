@@ -76,7 +76,7 @@ def create_trip_request():
         )
         
         if not oic_lookup.data:
-            return jsonify({"success": False, "message": "OIC Profile not found."}), 404
+            return jsonify({"success": False, "message": "Client profile not found."}), 404
             
         oic_int_id = oic_lookup.data[0].get('oic_id')
         company_name = oic_lookup.data[0].get('company_name')
@@ -350,6 +350,220 @@ def get_staff_assigned_trips(staff_uuid):
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
+
+@schedules_bp.route('/api/schedules/staff-summary/<string:staff_uuid>', methods=['GET'])
+def get_staff_trip_summary(staff_uuid):
+    try:
+        trips = (
+            supabase.table('trip_schedule')
+            .select('*')
+            .eq('staff_id', staff_uuid)
+            .order('schedule_date', desc=False)
+            .execute()
+        )
+        vehicles = supabase.table('vehicle').select('vehicle_id, plate_number, bus_type').execute()
+        drivers = supabase.table('driver_profile').select('user_id, full_name').execute()
+        oics = supabase.table('oic_profile').select('oic_id, company_name').execute()
+
+        v_map = {v['vehicle_id']: v for v in (vehicles.data or [])}
+        d_map = {d['user_id']: d['full_name'] for d in (drivers.data or [])}
+        o_map = {o['oic_id']: o['company_name'] for o in (oics.data or [])}
+
+        excluded_statuses = ('ongoing', 'expired', 'rejected')
+        formatted_trips = []
+        for trip in trips.data or []:
+            status = str(trip.get('trip_status') or '').strip().lower()
+            if any(blocked in status for blocked in excluded_statuses):
+                continue
+
+            vehicle = v_map.get(trip.get('vehicle_id'), {})
+            schedule_date = trip.get('schedule_date')
+            working_day = trip.get('working_day')
+            if not working_day and schedule_date:
+                try:
+                    working_day = datetime.strptime(str(schedule_date)[:10], '%Y-%m-%d').strftime('%A').upper()
+                except Exception:
+                    working_day = None
+
+            seating_capacity = trip.get('seating_capacity')
+            passenger_count = trip.get('passenger_count')
+            utilization_rate = trip.get('utilization_rate')
+            if utilization_rate is None and seating_capacity:
+                try:
+                    utilization_rate = float(passenger_count or 0) / float(seating_capacity)
+                except Exception:
+                    utilization_rate = None
+
+            formatted_trips.append({
+                **trip,
+                'date': schedule_date,
+                'working_day': working_day,
+                'bus_type': trip.get('bus_type') or vehicle.get('bus_type'),
+                'classification': trip.get('classification'),
+                'plate_number': vehicle.get('plate_number', 'Unassigned'),
+                'seating_capacity': seating_capacity,
+                'ticket_no': trip.get('ticket_no'),
+                'driver_name': d_map.get(trip.get('user_id'), 'Unassigned'),
+                'client_company': o_map.get(trip.get('oic_id'), 'Unknown Client'),
+                'utilization_rate': utilization_rate,
+                'remarks': trip.get('remarks'),
+            })
+
+        return jsonify({"success": True, "data": formatted_trips}), 200
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@schedules_bp.route('/api/schedules/staff-summary', methods=['POST'])
+def create_staff_trip_summary():
+    try:
+        data = request.get_json() or {}
+        staff_id = data.get('staff_id')
+        rows = data.get('rows')
+        if not isinstance(rows, list) or not rows:
+            rows = [data]
+
+        if not staff_id:
+            return jsonify({"success": False, "message": "Staff is required."}), 400
+
+        def to_int(value):
+            if value in (None, ''):
+                return None
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return None
+
+        def to_float(value):
+            if value in (None, ''):
+                return None
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+
+        summary_id = str(data.get('summary_id') or '').strip()
+        if not summary_id:
+            summary_id = f"SUM-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+
+        payloads = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            schedule_date = row.get('schedule_date') or row.get('date') or data.get('schedule_date') or data.get('date')
+            if not schedule_date:
+                continue
+
+            passenger_count = to_int(row.get('passenger_count')) or 0
+            seating_capacity = to_int(row.get('seating_capacity'))
+            utilization_rate = to_float(row.get('utilization_rate'))
+            if utilization_rate is None and seating_capacity:
+                utilization_rate = passenger_count / seating_capacity
+
+            payloads.append({
+                "summary_id": summary_id,
+                "staff_id": staff_id,
+                "schedule_date": schedule_date,
+                "working_day": row.get('working_day'),
+                "bus_type": row.get('bus_type'),
+                "classification": row.get('classification'),
+                "vehicle_id": to_int(row.get('vehicle_id')),
+                "seating_capacity": seating_capacity,
+                "ticket_no": str(row.get('ticket_no') or '').strip() or None,
+                "user_id": row.get('driver_uuid') or row.get('user_id') or None,
+                "route_name": str(row.get('route_name') or row.get('route') or 'Unspecified Route').strip(),
+                "route_distance": to_float(row.get('route_distance')) or 0,
+                "passenger_count": passenger_count,
+                "departure_time": row.get('departure_time'),
+                "estimated_arrival_time": row.get('estimated_arrival_time') or row.get('arrival_time'),
+                "utilization_rate": utilization_rate,
+                "remarks": row.get('remarks'),
+                "trip_status": row.get('trip_status') or data.get('trip_status') or "Completed",
+            })
+
+        if not payloads:
+            return jsonify({"success": False, "message": "At least one trip summary row with a date is required."}), 400
+
+        response = supabase.table('trip_schedule').insert(payloads).execute()
+        return jsonify({
+            "success": True,
+            "message": "Trip summary added.",
+            "summary_id": summary_id,
+            "data": response.data or []
+        }), 201
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
+@schedules_bp.route('/api/schedules/staff-summary/<int:trip_id>', methods=['PUT'])
+def update_staff_trip_summary(trip_id):
+    try:
+        data = request.get_json() or {}
+
+        def to_int(value):
+            if value in (None, ''):
+                return None
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return None
+
+        def to_float(value):
+            if value in (None, ''):
+                return None
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+
+        passenger_count = to_int(data.get('passenger_count'))
+        seating_capacity = to_int(data.get('seating_capacity'))
+        utilization_rate = to_float(data.get('utilization_rate'))
+        if utilization_rate is None and passenger_count is not None and seating_capacity:
+            utilization_rate = passenger_count / seating_capacity
+
+        update_payload = {}
+        text_fields = [
+            'summary_id',
+            'schedule_date',
+            'working_day',
+            'bus_type',
+            'classification',
+            'ticket_no',
+            'route_name',
+            'departure_time',
+            'estimated_arrival_time',
+            'remarks',
+        ]
+        for field in text_fields:
+            if field in data:
+                update_payload[field] = str(data.get(field) or '').strip() or None
+
+        if 'vehicle_id' in data:
+            update_payload['vehicle_id'] = to_int(data.get('vehicle_id'))
+        if 'driver_uuid' in data or 'user_id' in data:
+            update_payload['user_id'] = data.get('driver_uuid') or data.get('user_id') or None
+        if 'seating_capacity' in data:
+            update_payload['seating_capacity'] = seating_capacity
+        if 'passenger_count' in data:
+            update_payload['passenger_count'] = passenger_count or 0
+        if utilization_rate is not None:
+            update_payload['utilization_rate'] = utilization_rate
+
+        if not update_payload:
+            return jsonify({"success": False, "message": "No trip summary fields to update."}), 400
+
+        response = (
+            supabase.table('trip_schedule')
+            .update(update_payload)
+            .eq('trip_id', trip_id)
+            .execute()
+        )
+        return jsonify({"success": True, "message": "Trip summary updated.", "data": response.data or []}), 200
+    except Exception as e:
+        return jsonify({"success": False, "message": str(e)}), 500
+
+
 @schedules_bp.route('/api/schedules/update-request', methods=['PUT'])
 def update_trip_request():
     try:
@@ -394,7 +608,7 @@ def update_trip_request():
         if staff_id:
             _create_notification({
                 "title": "Trip Request Resubmitted",
-                "message": f"An OIC updated {route_name}. Please review and assign assets.",
+                "message": f"A client updated {route_name}. Please review and assign assets.",
                 "target_user_id": staff_id,
                 "target_role": "staff",
                 "related_trip_id": trip_id
@@ -405,7 +619,7 @@ def update_trip_request():
                 for staff in staff_members.data:
                     _create_notification({
                         "title": "Trip Request Resubmitted",
-                        "message": f"An OIC updated {route_name}. Please review and assign assets.",
+                        "message": f"A client updated {route_name}. Please review and assign assets.",
                         "target_user_id": staff.get('user_id'),
                         "target_role": "staff",
                         "related_trip_id": trip_id
@@ -442,7 +656,6 @@ def reject_trip_request():
                     "title": "Trip Request Rejected",
                     "message": f"Your request for {route_name} was rejected: {rejection_reason}. Please edit and resubmit.",
                     "target_user_id": oic_profile.data[0].get('user_id'),
-                    "target_role": "oic",
                     "target_company": oic_profile.data[0].get('company_name'),
                     "related_trip_id": trip_id
                 })
@@ -516,7 +729,6 @@ def assign_trip_assets():
                     "title": "Trip Assigned",
                     "message": f"Assets have been assigned for your {route_name} trip on {schedule_date}.",
                     "target_user_id": oic_user_id,
-                    "target_role": "oic",
                     "target_company": company_name,
                     "related_trip_id": trip_id,
                 })
@@ -526,7 +738,6 @@ def assign_trip_assets():
                     "title": "New Dispatch Assignment",
                     "message": f"You have been assigned to drive to {route_name} on {schedule_date}.",
                     "target_user_id": driver_uuid,
-                    "target_role": "driver",
                     "target_company": company_name,
                     "related_trip_id": trip_id,
                 })

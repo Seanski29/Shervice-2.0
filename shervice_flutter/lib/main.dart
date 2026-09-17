@@ -8,8 +8,6 @@ import 'theme/theme_manager.dart';
 
 // Import layouts and login
 import 'layouts/admin/admin_layout.dart';
-import 'layouts/driver/driver_layout.dart';
-import 'layouts/oic/oic_layout.dart';
 import 'layouts/staff/staff_layout.dart';
 import 'login/login.dart';
 
@@ -76,22 +74,10 @@ class _SherviceAppState extends State<SherviceApp> {
 
         if (role == 'admin') {
           return AdminLayout(adminId: userId, adminName: userName);
-        } else if (role == 'oic') {
-          return OicLayout(
-            oicId: userId,
-            oicName: userName,
-            companyName: company,
-          );
         } else if (role == 'staff') {
           return StaffLayout(
             staffId: userId,
             staffName: userName,
-            companyName: company,
-          );
-        } else if (role == 'driver') {
-          return DriverLayout(
-            driverId: userId,
-            driverName: userName,
             companyName: company,
           );
         }
@@ -102,11 +88,11 @@ class _SherviceAppState extends State<SherviceApp> {
         return const AdminLayout(
           adminId: '00000000-0000-0000-0000-000000000000',
         );
-      } else if (testRole == 'driver') {
-        return const DriverLayout(
-          driverId: '00000000-0000-0000-0000-000000000000',
-          driverName: 'System Driver',
-          companyName: 'Test Company',
+      } else if (testRole == 'staff') {
+        return const StaffLayout(
+          staffId: '00000000-0000-0000-0000-000000000000',
+          staffName: 'System Staff',
+          companyName: 'GT LANTIN',
         );
       }
 

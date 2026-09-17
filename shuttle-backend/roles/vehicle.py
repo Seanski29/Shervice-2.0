@@ -177,7 +177,7 @@ def add_maintenance_log():
         )
 
         # ✅ Trigger the notification across all requested roles
-        roles_to_notify = ["admin", "staff", "oic"]
+        roles_to_notify = ["admin", "staff"]
         for target_role in roles_to_notify:
             trigger_notification(
                 title="New Maintenance Log",
@@ -231,7 +231,7 @@ def update_maintenance_log():
             f"Time Completed: {repair_time}"
         )
 
-        roles_to_notify = ["admin", "staff", "oic"]
+        roles_to_notify = ["admin", "staff"]
         for target_role in roles_to_notify:
             trigger_notification(
                 title="Vehicle Repaired",

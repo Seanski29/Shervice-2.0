@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../screens/staff/staff_dashboard.dart';
 import '../../screens/staff/staff_vehicle.dart';
-import '../../screens/staff/staff_schedules.dart';
 import '../../screens/staff/staff_trips.dart';
 import '../../screens/staff/staff_drivers.dart';
 import '../../screens/staff/staff_reports_manager.dart';
@@ -45,7 +44,6 @@ class _StaffLayoutDesktopState extends State<StaffLayoutDesktop> {
         staffName: widget.staffName,
         companyName: widget.companyName,
       ),
-      StaffSchedules(staffId: widget.staffId),
       StaffTrips(staffId: widget.staffId),
       StaffVehicle(staffId: widget.staffId),
       const StaffDrivers(),
@@ -174,25 +172,20 @@ class _StaffLayoutDesktopState extends State<StaffLayoutDesktop> {
               padding: EdgeInsets.zero,
               children: [
                 _buildNavItem(0, 'Dashboard', Icons.dashboard),
+                _buildNavItem(1, 'Trip Summary', Icons.assignment_turned_in),
                 _buildNavItem(
-                  1,
-                  'Trip Assignment',
-                  Icons.calendar_month_outlined,
-                ),
-                _buildNavItem(2, 'Trip History', Icons.assignment_turned_in),
-                _buildNavItem(
-                  3,
+                  2,
                   'Vehicle Management',
                   Icons.directions_car_outlined,
                 ),
-                _buildNavItem(4, 'Driver Records', Icons.people_outline),
+                _buildNavItem(3, 'Driver Records', Icons.people_outline),
                 _buildNavItem(
-                  5,
+                  4,
                   'Import & Export',
                   Icons.import_export_outlined,
                 ),
-                _buildNavItem(6, 'Analytics', Icons.analytics),
-                _buildNavItem(7, 'Settings', Icons.settings_outlined),
+                _buildNavItem(5, 'Analytics', Icons.analytics),
+                _buildNavItem(6, 'Settings', Icons.settings_outlined),
               ],
             ),
           ),

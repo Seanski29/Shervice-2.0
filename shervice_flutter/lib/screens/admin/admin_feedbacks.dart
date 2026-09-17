@@ -280,7 +280,7 @@ class AdminFeedbacks extends StatelessWidget {
             child: Divider(height: 1)
           ),
           Text(
-            'Recent OIC Comment ($date):', 
+            'Recent Client Comment ($date):', 
             style: TextStyle(
               fontSize: 12, 
               fontWeight: FontWeight.bold, 
