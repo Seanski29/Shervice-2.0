@@ -94,8 +94,6 @@ def parse_legacy_xls_bytes(file_bytes: bytes) -> Dict[str, Any]:
     except Exception as exc:
         return {"success": False, "error": f"Unable to convert legacy .xls file: {exc}"}
 
-<<<<<<< HEAD
-=======
 
 def _clean_attendance_value(value: Any) -> str:
     normalized = _normalize_xls_cell(value).strip()
@@ -180,7 +178,6 @@ def _save_attendance_rows(rows: List[Dict[str, Any]], source_file: str) -> List[
     return result.data or []
 
 
->>>>>>> 1dcbca3b34875e4eeb3cb1ae8026492ffb68ff18
 @admin_bp.route('/api/test-db', methods=['GET'])
 @admin_bp.route('/driver/all', methods=['GET'])
 def diagnostic_database_check():
@@ -316,8 +313,6 @@ def upload_legacy_xls_attendance():
     except Exception as exc:
         return jsonify({"success": False, "error": f"Unable to convert legacy .xls file: {exc}"}), 500
 
-<<<<<<< HEAD
-=======
 
 @admin_bp.route('/api/admin/attendance', methods=['GET'])
 @admin_bp.route('/api/staff/attendance', methods=['GET'])
@@ -363,7 +358,6 @@ def import_attendance_records():
         return jsonify({"success": False, "error": f"Unable to save attendance import: {exc}"}), 500
 
 
->>>>>>> 1dcbca3b34875e4eeb3cb1ae8026492ffb68ff18
 @admin_bp.route('/api/dashboard/metrics', methods=['GET'])
 def get_dashboard_metrics():
     try:
