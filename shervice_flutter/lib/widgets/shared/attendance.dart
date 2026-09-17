@@ -880,80 +880,64 @@ class _AttendanceState extends State<Attendance> {
                                 borderRadius: const BorderRadius.vertical(
                                   top: Radius.circular(17),
                                 ),
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: SingleChildScrollView(
-                                    scrollDirection: Axis.vertical,
-                                    child: DataTable(
-                                      headingRowColor: WidgetStatePropertyAll(
-                                        isDark
-                                            ? const Color(0xFF1E293B)
-                                            : const Color(0xFFF8FAFC),
-                                      ),
-                                      columnSpacing: 24,
-                                      dataRowMinHeight: 52,
-                                      dataRowMaxHeight: 90,
-                                      columns: tableColumns,
-                                      rows: displayRows.map((row) {
-                                        return DataRow(
-                                          cells: _columns.map((col) {
-                                            final displayValue =
-                                                _formatDisplayValue(
-                                                  col,
-                                                  row[col] ?? '',
-                                                );
-                                            final isStatus =
-                                                col == 'status' ||
-                                                col == 'trip_status';
-                                            final statusColor = _statusColor(
-                                              displayValue,
-                                              isDark,
-                                            );
-                                            return DataCell(
-                                              Container(
-                                                padding: isStatus
-                                                    ? const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4,
-                                                      )
-                                                    : EdgeInsets.zero,
-                                                decoration: isStatus
-                                                    ? BoxDecoration(
-                                                        color: statusColor
-                                                            .withOpacity(0.12),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              6,
-                                                            ),
-                                                      )
-                                                    : null,
-                                                child: ConstrainedBox(
-                                                  constraints:
-                                                      const BoxConstraints(
-                                                        minWidth: 80,
-                                                        maxWidth: 200,
-                                                      ),
-                                                  child: Text(
-                                                    displayValue,
-                                                    style: isStatus
-                                                        ? TextStyle(
-                                                            color: statusColor,
-                                                            fontWeight:
-                                                                FontWeight.w700,
-                                                          )
-                                                        : null,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    maxLines: 2,
-                                                  ),
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final tableWidth =
+                                        constraints.maxWidth < 1100
+                                        ? 1100.0
+                                        : constraints.maxWidth;
+
+                                    return SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: ConstrainedBox(
+                                        constraints: BoxConstraints(
+                                          minWidth: tableWidth,
+                                        ),
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.vertical,
+                                          child: DataTable(
+                                            headingRowColor:
+                                                WidgetStatePropertyAll(
+                                                  isDark
+                                                      ? const Color(0xFF1E293B)
+                                                      : const Color(0xFFF8FAFC),
                                                 ),
-                                              ),
-                                            );
-                                          }).toList(),
-                                        );
-                                      }).toList(),
+                                            columnSpacing: 24,
+                                            horizontalMargin: 30,
+                                            dataRowMinHeight: 52,
+                                            dataRowMaxHeight: 90,
+                                            columns: tableColumns,
+                                            rows: displayRows.map((row) {
+                                              return DataRow(
+                                                cells: _columns.map((col) {
+                                                  final displayValue =
+                                                      _formatDisplayValue(
+                                                        col,
+                                                        row[col] ?? '',
+                                                      );
+                                                  return DataCell(
+                                                    ConstrainedBox(
+                                                      constraints:
+                                                          const BoxConstraints(
+                                                            minWidth: 80,
+                                                            maxWidth: 220,
+                                                          ),
+                                                      child: Text(
+                                                        displayValue,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                        maxLines: 2,
+                                                      ),
+                                                    ),
+                                                  );
+                                                }).toList(),
+                                              );
+                                            }).toList(),
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                  },
                                 ),
                               ),
                             ),
@@ -1187,25 +1171,6 @@ class _AttendanceState extends State<Attendance> {
           return lowerWord[0].toUpperCase() + lowerWord.substring(1);
         })
         .join(' ');
-  }
-
-  Color _statusColor(String status, bool isDark) {
-    final normalized = status.toLowerCase();
-    if (normalized.contains('completed') ||
-        normalized.contains('resolved') ||
-        normalized.contains('scheduled')) {
-      return const Color(0xFF10B981);
-    }
-    if (normalized.contains('rejected') ||
-        normalized.contains('expired') ||
-        normalized.contains('attention') ||
-        normalized.contains('maintenance')) {
-      return const Color(0xFFEF4444);
-    }
-    if (normalized.contains('ongoing') || normalized.contains('progress')) {
-      return const Color(0xFF3B82F6);
-    }
-    return isDark ? Colors.grey.shade300 : const Color(0xFF64748B);
   }
 
   String _normalizeCellValue(dynamic value) {
