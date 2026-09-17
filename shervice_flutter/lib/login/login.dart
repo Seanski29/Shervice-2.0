@@ -8,8 +8,6 @@ import '../constant.dart';
 import '../session_manager.dart';
 
 import '../layouts/admin/admin_layout.dart';
-import '../layouts/driver/driver_layout.dart';
-import '../layouts/oic/oic_layout.dart';
 import '../layouts/staff/staff_layout.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -114,32 +112,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             );
           }
-        } else if (role == 'oic') {
-          final String realUserId =
-              (userData['user_id'] ?? userData['id'] ?? '').toString();
-          final String oicDisplayName =
-              (userData['name'] ?? userData['full_name'] ?? 'OIC').toString();
-          final String oicCompany = (userData['company'] ?? 'Internal')
-              .toString();
-
-          await SessionManager.saveUserSession(
-            'oic',
-            realUserId,
-            oicDisplayName,
-            oicCompany,
-          );
-
-          if (mounted) {
-            navigator.pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => OicLayout(
-                  oicId: realUserId,
-                  oicName: oicDisplayName,
-                  companyName: oicCompany,
-                ),
-              ),
-            );
-          }
         } else if (role == 'staff') {
           final String realUserId =
               (userData['user_id'] ?? userData['id'] ?? '').toString();
@@ -167,36 +139,9 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             );
           }
-        } else if (role == 'driver') {
-          final String realUserId =
-              (userData['user_id'] ?? userData['id'] ?? '').toString();
-          final String driverDisplayName =
-              (userData['name'] ?? userData['full_name'] ?? 'Driver')
-                  .toString();
-          final String driverCompany = (userData['company'] ?? 'Internal')
-              .toString();
-
-          await SessionManager.saveUserSession(
-            'driver',
-            realUserId,
-            driverDisplayName,
-            driverCompany,
-          );
-
-          if (mounted) {
-            navigator.pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => DriverLayout(
-                  driverId: realUserId,
-                  driverName: driverDisplayName,
-                  companyName: driverCompany,
-                ),
-              ),
-            );
-          }
         } else {
           _showSnackBar(
-            'Unrecognized user role assigned.',
+            'Only admin and staff accounts can access this portal.',
             Colors.red.shade600,
           );
         }

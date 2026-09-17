@@ -845,7 +845,7 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
       } else {
         response = await http
             .post(
-              Uri.parse('$backendUrl/auth/register-staff-oic'),
+              Uri.parse('$backendUrl/auth/register-staff'),
               headers: {'Content-Type': 'application/json'},
               body: jsonEncode({
                 'email': _emailController.text.trim(),
@@ -1047,7 +1047,7 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
                             ? null
                             : (value) => setState(() => _selectedRole = value),
                         dropdownColor: Theme.of(context).cardColor,
-                        items: ['Dispatch Staff', 'Officer-in-Charge']
+                        items: ['Administrator', 'Dispatch Staff']
                             .map(
                               (e) => DropdownMenuItem(value: e, child: Text(e)),
                             )

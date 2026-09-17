@@ -47,3 +47,7 @@ app.*.map.json
 .vercel
 .env*
 **
+!lib/
+!lib/screens/
+!lib/screens/staff/
+!lib/screens/staff/trip_summary_editor_page.dart

@@ -24,7 +24,10 @@ supabase = None
 
 def get_admin_client():
     """Helper to create a dedicated Admin Client for secure Auth modifications"""
-    return create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+    admin_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    if not admin_key:
+        raise RuntimeError("Missing SUPABASE_SERVICE_ROLE_KEY for admin auth operations.")
+    return create_client(os.getenv("SUPABASE_URL"), admin_key)
 
 
 def _normalize_xls_cell(value: Any) -> Any:
@@ -640,9 +643,7 @@ def update_system_user(user_id):
         data = request.get_json() or {}
         new_email = data.get("email", "").strip().lower()
         raw_role = data.get("role")
-        company_name = data.get("company_name")
-
-        role_map = {'Administrator': 'admin', 'Dispatch Staff': 'staff', 'Officer-in-Charge': 'oic'}
+        role_map = {'Administrator': 'admin', 'Dispatch Staff': 'staff'}
         normalized_role = role_map.get(raw_role, 'staff')
 
         if new_email:
@@ -661,13 +662,7 @@ def update_system_user(user_id):
             "role": normalized_role
         }).eq("user_id", user_id).execute()
 
-        if normalized_role == 'oic':
-            supabase.table("oic_profile").upsert({
-                "user_id": user_id,
-                "company_name": company_name
-            }).execute()
-        else:
-            supabase.table("oic_profile").delete().eq("user_id", user_id).execute()
+        supabase.table("oic_profile").delete().eq("user_id", user_id).execute()
 
         return jsonify({"success": True, "message": "User profiles synchronized successfully."}), 200
     except Exception as e:
@@ -743,7 +738,7 @@ def delete_client_company(company_id):
         if oic_check.data and len(oic_check.data) > 0:
             return jsonify({
                 "success": False, 
-                "message": f"Cannot delete '{comp_name}' because active Officer-in-Charge profiles are assigned to it."
+                "message": f"Cannot delete '{comp_name}' because active client profiles are assigned to it."
             }), 400
 
         supabase.table('client_company').delete().eq('company_id', company_id).execute()

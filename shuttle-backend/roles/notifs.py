@@ -11,9 +11,9 @@ supabase = None
 def _create_supabase_client():
     load_dotenv()
     url = os.getenv('SUPABASE_URL')
-    key = os.getenv('SUPABASE_KEY')
+    key = os.getenv('SUPABASE_ANON_KEY') or os.getenv('SUPABASE_KEY')
     if not url or not key:
-        raise RuntimeError('Missing SUPABASE_URL or SUPABASE_KEY environment variables.')
+        raise RuntimeError('Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables.')
     return create_client(url, key)
 
 def _execute_supabase(action, retries=3, backoff=0.25):
@@ -67,12 +67,6 @@ def get_notifications():
         if role == 'admin':
             filtered_notifications = raw_notifs
             
-        elif role == 'driver':
-            for notification in raw_notifs:
-                target_user_id = notification.get('target_user_id')
-                if str(target_user_id) == str(user_id):
-                    filtered_notifications.append(notification)
-                    
         else:
             for notification in raw_notifs:
                 target_user_id = notification.get('target_user_id')
@@ -154,10 +148,6 @@ def mark_all_as_read():
 
         if role == 'admin':
             ids_to_update = [n['notification_id'] for n in raw_notifs]
-        elif role == 'driver':
-            for n in raw_notifs:
-                if str(n.get('target_user_id')) == str(user_id):
-                    ids_to_update.append(n['notification_id'])
         else:
             company = (data.get('company') or '').strip()
             if company.lower() in ('internal', 'gt lantin internal', 'unknown'):
