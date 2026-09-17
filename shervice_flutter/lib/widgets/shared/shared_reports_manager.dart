@@ -1587,21 +1587,193 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     final sheet = workbook['Sheet1'];
     if (sheet == null) return Uint8List(0);
 
-    final headerCells = columns
-        .map((c) => excel.TextCellValue(_formatTableHeader(c)))
-        .toList();
-    sheet.insertRowIterables(headerCells, 0);
+    // ==========================================
+    // STANDARD EXPORT (Trips, Maintenance)
+    // ==========================================
+    if (_selectedReportType != 'Timecard') {
+      final headerCells = columns
+          .map((c) => excel.TextCellValue(_formatTableHeader(c)))
+          .toList();
+      sheet.insertRowIterables(headerCells, 0);
 
-    for (int i = 0; i < rows.length; i++) {
-      final values = columns.map((column) {
-        final rawValue = rows[i][column] ?? '';
-        final displayValue = _formatDisplayValue(column, rawValue);
-        return excel.TextCellValue(displayValue);
-      }).toList();
-      sheet.insertRowIterables(values, i + 1);
+      for (int i = 0; i < rows.length; i++) {
+        final values = columns.map((column) {
+          final rawValue = rows[i][column] ?? '';
+          final displayValue = _formatDisplayValue(column, rawValue);
+          return excel.TextCellValue(displayValue);
+        }).toList();
+        sheet.insertRowIterables(values, i + 1);
+      }
+      return Uint8List.fromList(workbook.encode() ?? []);
     }
 
-    // CHANGED: Use encode() instead of save() to prevent the double-download on Web
+    // ==========================================
+    // TIMECARD EXPORT (Grouped Format)
+    // ==========================================
+    
+    // 1. Group rows by employee
+    final Map<String, List<Map<String, String>>> groupedRows = {};
+    for (var row in rows) {
+      final employee = row['employee'] ?? 'Unknown Employee';
+      groupedRows.putIfAbsent(employee, () => []).add(row);
+    }
+
+    int currentRow = 0;
+
+    // 2. Define strict cell styles mapping to the image theme
+    final excel.CellStyle titleStyle = excel.CellStyle(
+      backgroundColorHex: excel.ExcelColor.fromHexString('#FFFF00'), // Solid Yellow
+      bold: true,
+      horizontalAlign: excel.HorizontalAlign.Center,
+      verticalAlign: excel.VerticalAlign.Center,
+    );
+
+    final excel.CellStyle headerStyle = excel.CellStyle(
+      backgroundColorHex: excel.ExcelColor.fromHexString('#D9D9D9'), // Light Gray
+      bold: true,
+      horizontalAlign: excel.HorizontalAlign.Center,
+      verticalAlign: excel.VerticalAlign.Center,
+    );
+
+    final excel.CellStyle normalDataStyle = excel.CellStyle(
+      bold: true, // Data is bold in the provided format
+      horizontalAlign: excel.HorizontalAlign.Center,
+      verticalAlign: excel.VerticalAlign.Center,
+    );
+
+    final excel.CellStyle redTextStyle = excel.CellStyle(
+      fontColorHex: excel.ExcelColor.fromHexString('#FF0000'), // Red text
+      bold: true,
+      horizontalAlign: excel.HorizontalAlign.Center,
+      verticalAlign: excel.VerticalAlign.Center,
+    );
+
+    final excel.CellStyle wholeDayStyle = excel.CellStyle(
+      backgroundColorHex: excel.ExcelColor.fromHexString('#FFFF00'), // Yellow background
+      fontColorHex: excel.ExcelColor.fromHexString('#FF0000'), // Red text
+      bold: true,
+      horizontalAlign: excel.HorizontalAlign.Center,
+      verticalAlign: excel.VerticalAlign.Center,
+    );
+
+    for (var entry in groupedRows.entries) {
+      final employeeName = entry.key.toUpperCase();
+      final employeeData = entry.value;
+
+      // Row 1: Employee Title
+      sheet.merge(
+        excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow),
+        excel.CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: currentRow),
+      );
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow))
+        ..value = excel.TextCellValue(employeeName)
+        ..cellStyle = titleStyle;
+      currentRow++;
+
+      // Row 2: Shift Headers (Morning, Afternoon, Overtime)
+      sheet.merge(
+        excel.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: currentRow),
+        excel.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: currentRow),
+      );
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: currentRow))
+        ..value = excel.TextCellValue('MORNING')
+        ..cellStyle = headerStyle;
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: currentRow)).cellStyle = headerStyle;
+
+      sheet.merge(
+        excel.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: currentRow),
+        excel.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: currentRow),
+      );
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: currentRow))
+        ..value = excel.TextCellValue('AFTERNOON')
+        ..cellStyle = headerStyle;
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: currentRow)).cellStyle = headerStyle;
+
+      sheet.merge(
+        excel.CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: currentRow),
+        excel.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: currentRow),
+      );
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: currentRow))
+        ..value = excel.TextCellValue('OVERTIME')
+        ..cellStyle = headerStyle;
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: currentRow)).cellStyle = headerStyle;
+
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: currentRow))
+        ..value = excel.TextCellValue('TOTAL MINUTES LATE')
+        ..cellStyle = headerStyle;
+        
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow)).cellStyle = headerStyle;
+      currentRow++;
+
+      // Row 3: IN/OUT Headers
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow))
+        ..value = excel.TextCellValue('DATE')
+        ..cellStyle = headerStyle;
+
+      for (int c = 1; c <= 6; c++) {
+        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: currentRow))
+          ..value = excel.TextCellValue(c % 2 != 0 ? 'IN' : 'OUT')
+          ..cellStyle = headerStyle;
+      }
+      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: currentRow)).cellStyle = headerStyle;
+      currentRow++;
+
+      // Data Rows
+      for (var row in employeeData) {
+        String dateVal = row['date'] ?? '';
+        String dayVal = row['day'] ?? '';
+        String shortDate = dateVal;
+        
+        try {
+          final parsedDate = DateTime.parse(dateVal.split('T')[0]);
+          shortDate = '${parsedDate.month}/${parsedDate.day}';
+        } catch (_) {}
+        
+        String displayDate = dayVal != 'NaN' && dayVal.isNotEmpty 
+            ? '$shortDate ($dayVal)' 
+            : shortDate;
+
+        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow))
+          ..value = excel.TextCellValue(displayDate)
+          ..cellStyle = normalDataStyle;
+
+        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: currentRow))
+          ..value = excel.TextCellValue(_formatDisplayValue('in_time', row['in_time'] ?? ''))
+          ..cellStyle = normalDataStyle;
+        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: currentRow))
+          ..value = excel.TextCellValue(_formatDisplayValue('out_time', row['out_time'] ?? ''))
+          ..cellStyle = normalDataStyle;
+
+        // Leave Afternoon/Overtime blank but styled
+        for (int c = 3; c <= 6; c++) {
+          sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: currentRow)).cellStyle = normalDataStyle;
+        }
+        
+        String note = row['note'] ?? '';
+        var noteCell = sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: currentRow));
+        noteCell.value = excel.TextCellValue(note);
+        noteCell.cellStyle = normalDataStyle;
+
+        // Apply conditional formatting for absences and lateness
+        final noteLower = note.toLowerCase();
+        if (noteLower.contains('whole day') || noteLower.contains('absent')) {
+          for (int c = 0; c <= 7; c++) {
+             sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: currentRow))
+               .cellStyle = wholeDayStyle;
+          }
+        } else if (noteLower.contains('half day') || noteLower.contains('late') || noteLower.contains('miss')) {
+          noteCell.cellStyle = redTextStyle;
+        }
+
+        currentRow++;
+      }
+      currentRow++; // Spacer row before next employee
+    }
+
+    sheet.setColumnWidth(0, 15.0);
+    for(int i = 1; i <= 6; i++) sheet.setColumnWidth(i, 10.0);
+    sheet.setColumnWidth(7, 24.0);
+
     return Uint8List.fromList(workbook.encode() ?? []);
   }
 }
