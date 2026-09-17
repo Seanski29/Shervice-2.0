@@ -93,6 +93,7 @@ def register_staff():
 def register_driver_profile():
     try:
         data = request.get_json() or {}
+<<<<<<< HEAD
         full_name = data.get('full_name')
         phone_no = str(data.get('phone_no', '09123456789')).strip()
 
@@ -101,11 +102,31 @@ def register_driver_profile():
 
         uid = str(uuid.uuid4())
         dummy_username = f"driver_{uid}"
+=======
+        email = str(data.get('email', '')).strip().lower()
+        full_name = data.get('full_name')
+        phone_no = str(data.get('phone_no', '09123456789')).strip()
+
+        if not email or not full_name:
+            return jsonify({"success": False, "message": "Driver name and email are required."}), 400
+
+        admin_supabase = get_admin_client()
+        auth_res = admin_supabase.auth.admin.create_user({
+            "email": email,
+            "password": uuid.uuid4().hex,
+            "email_confirm": True
+        })
+        uid = auth_res.user.id
+>>>>>>> origin/main
 
         supabase.table('user_account').insert({
             "user_id": uid,
             "role": 'driver',
+<<<<<<< HEAD
             "username": dummy_username,
+=======
+            "username": email,
+>>>>>>> origin/main
             "full_name": full_name
         }).execute()
 
@@ -121,10 +142,14 @@ def register_driver_profile():
 
         return jsonify({"success": True, "message": "Driver profile registered."}), 201
     except Exception as e:
+<<<<<<< HEAD
         error_message = str(e)
         if "unique_driver_phone" in error_message or "23505" in error_message:
             return jsonify({"success": False, "message": "This phone number is already registered to another driver."}), 400
         return jsonify({"success": False, "message": error_message}), 500
+=======
+        return jsonify({"success": False, "message": str(e)}), 500
+>>>>>>> origin/main
 
 @auth_bp.route('/api/auth/update-password', methods=['POST'])
 def update_user_password():
@@ -176,9 +201,34 @@ def get_system_users():
 def update_driver(driver_id):
     try:
         data = request.get_json() or {}
+<<<<<<< HEAD
         full_name = data.get("full_name")
         phone_no = str(data.get("phone_no", "09123456789")).strip()
         
+=======
+        new_email = data.get("email", "").strip().lower()
+        full_name = data.get("full_name")
+        phone_no = str(data.get("phone_no", "09123456789")).strip()
+        
+        if new_email:
+            try:
+                admin_supabase = get_admin_client()
+                admin_supabase.auth.admin.update_user_by_id(
+                    driver_id,
+                    attributes={"email": new_email, "email_confirm": True}
+                )
+            except Exception as auth_err:
+                print(f"Driver auth email sync skipped: {auth_err}")
+        
+        user_update = {}
+        if full_name:
+            user_update["full_name"] = full_name
+        if new_email:
+            user_update["username"] = new_email
+        if user_update:
+            supabase.table("user_account").update(user_update).eq("user_id", driver_id).execute()
+        
+>>>>>>> origin/main
         driver_update = {
             "full_name": full_name,
             "birthday": data.get("birthday"),
@@ -188,6 +238,7 @@ def update_driver(driver_id):
         if "is_backup" in data:
             driver_update["is_backup"] = data["is_backup"]
 
+<<<<<<< HEAD
         profile_res = supabase.table("driver_profile").update(driver_update).eq("driver_id", driver_id).execute()
         
         if profile_res.data and len(profile_res.data) > 0:
@@ -202,10 +253,19 @@ def update_driver(driver_id):
             return jsonify({"success": False, "message": "This phone number is already registered to another driver."}), 400
         print(f"Driver Update Error: {error_message}")
         return jsonify({"success": False, "message": error_message}), 500
+=======
+        supabase.table("driver_profile").update(driver_update).eq("user_id", driver_id).execute()
+        
+        return jsonify({"success": True, "message": "Driver profile updated successfully."}), 200
+    except Exception as e:
+        print(f"Driver Update Error: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
+>>>>>>> origin/main
 
 @auth_bp.route('/api/auth/delete-driver/<driver_id>', methods=['DELETE'])
 def delete_driver(driver_id):
     try:
+<<<<<<< HEAD
         profile = supabase.table("driver_profile").select("user_id").eq("driver_id", driver_id).execute()
         user_id = profile.data[0].get("user_id") if profile.data else None
         
@@ -213,8 +273,22 @@ def delete_driver(driver_id):
         
         if user_id:
             supabase.table("user_account").delete().eq("user_id", user_id).execute()
+=======
+        supabase.table("driver_profile").delete().eq("user_id", driver_id).execute()
+        supabase.table("user_account").delete().eq("user_id", driver_id).execute()
+        
+        try:
+            admin_supabase = get_admin_client()
+            admin_supabase.auth.admin.delete_user(driver_id)
+        except Exception as auth_err:
+            print(f"Driver auth deletion skipped: {auth_err}")
+>>>>>>> origin/main
         
         return jsonify({"success": True, "message": "Driver completely expunged from system."}), 200
     except Exception as e:
         print(f"Driver Delete Error: {e}")
+<<<<<<< HEAD
         return jsonify({"success": False, "message": f"Server processing error: {str(e)}"}), 500    
+=======
+        return jsonify({"success": False, "message": f"Server processing error: {str(e)}"}), 500
+>>>>>>> origin/main
