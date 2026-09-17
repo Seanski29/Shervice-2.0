@@ -181,8 +181,8 @@ class _StaffLayoutDesktopState extends State<StaffLayoutDesktop> {
                 _buildNavItem(3, 'Driver Records', Icons.people_outline),
                 _buildNavItem(
                   4,
-                  'Import & Export',
-                  Icons.import_export_outlined,
+                  'Attendance',
+                  Icons.fact_check_outlined,
                 ),
                 _buildNavItem(5, 'Analytics', Icons.analytics),
                 _buildNavItem(6, 'Settings', Icons.settings_outlined),

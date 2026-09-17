@@ -51,6 +51,8 @@ app.*.map.json
 !lib/screens/
 !lib/screens/staff/
 !lib/widgets/
+!lib/widgets/shared/
+!lib/widgets/shared/attendance.dart
 !lib/widgets/staff/
 !lib/widgets/staff/staff_trips.dart
 !lib/widgets/staff/trip_summary_editor_page.dart

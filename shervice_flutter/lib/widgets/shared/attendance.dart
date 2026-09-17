@@ -10,19 +10,16 @@ import '../../constant.dart';
 import '../../utils/file_download.dart';
 import 'universal_pagination.dart';
 
-class SharedReportsManager extends StatefulWidget {
+class Attendance extends StatefulWidget {
   final String userRole;
 
-  const SharedReportsManager({super.key, required this.userRole});
+  const Attendance({super.key, required this.userRole});
 
   @override
-  State<SharedReportsManager> createState() => _SharedReportsManagerState();
+  State<Attendance> createState() => _AttendanceState();
 }
 
-class _SharedReportsManagerState extends State<SharedReportsManager> {
-  final List<String> _reportTypes = ['Trips', 'Maintenance', 'Timecard'];
-
-  String _selectedReportType = 'Timecard';
+class _AttendanceState extends State<Attendance> {
   bool _isImporting = false;
   bool _isLoadingSystemData = false;
   String _sourceFileName = 'No file selected';
@@ -38,7 +35,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
   String _selectedRange = 'All Time';
   DateTimeRange? _customDateRange;
 
-  final List<String> _timecardColumns = [
+  final List<String> _attendanceColumns = [
     'employee',
     'pay_period',
     'day',
@@ -50,40 +47,13 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     'note',
   ];
 
-  final Map<String, List<String>> _reportColumns = const {
-    'Trips': [
-      'client_name',
-      'company_id',
-      'departure_time',
-      'estimated_arrival_time',
-      'actual_start_time',
-      'actual_end_time',
-      'trip_id',
-      'route_name',
-      'schedule_date',
-      'trip_status',
-      'driver_name',
-      'plate_number',
-    ],
-    'Maintenance': [
-      'vehicle_id',
-      'plate_number',
-      'target_date',
-      'incident_date',
-      'repair_date',
-      'description',
-      'is_resolved',
-      'status',
-    ],
-  };
-
   List<String> _columns = [];
   List<Map<String, String>> _rows = [];
 
   @override
   void initState() {
     super.initState();
-    _loadCurrentReportData();
+    _loadAttendanceData();
   }
 
   @override
@@ -91,8 +61,6 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     _searchController.dispose();
     super.dispose();
   }
-
-  bool get _canImportCurrentReport => _selectedReportType == 'Timecard';
 
   // ===========================================================================
   // PIPELINE: FILTER, SEARCH & SORT
@@ -184,18 +152,14 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
   }
 
   String _extractDateFromRow(Map<String, String> row) {
-    if (_selectedReportType == 'Timecard') return row['date'] ?? '';
-    if (_selectedReportType == 'Maintenance') return row['incident_date'] ?? '';
-    if (_selectedReportType == 'Trips')
-      return row['schedule_date'] ?? row['schedule'] ?? '';
-    return '';
+    return row['date'] ?? '';
   }
 
   // ===========================================================================
   // DATA LOADING
   // ===========================================================================
 
-  Future<void> _loadCurrentReportData() async {
+  Future<void> _loadAttendanceData() async {
     setState(() {
       _isLoadingSystemData = true;
       _currentPage = 0;
@@ -204,21 +168,11 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     });
 
     try {
-      http.Response response;
-
-      if (_selectedReportType == 'Trips') {
-        response = await http.get(Uri.parse('$backendUrl/trips'));
-      } else if (_selectedReportType == 'Maintenance') {
-        response = await http.get(
-          Uri.parse('$backendUrl/vehicles/maintenance'),
-        );
-      } else {
-        response = await http.get(
-          Uri.parse('$backendUrl/${widget.userRole}/timecards'),
-        );
-        if (response.statusCode != 200) {
-          response = await http.get(Uri.parse('$backendUrl/admin/timecards'));
-        }
+      var response = await http.get(
+        Uri.parse('$backendUrl/${widget.userRole}/attendance'),
+      );
+      if (response.statusCode != 200) {
+        response = await http.get(Uri.parse('$backendUrl/admin/attendance'));
       }
 
       if (response.statusCode != 200) {
@@ -227,28 +181,15 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
       }
 
       final decoded = jsonDecode(response.body);
-      final rawList = _selectedReportType == 'Trips'
-          ? ((decoded is Map ? decoded['trips'] : decoded) ?? [])
-          : _selectedReportType == 'Maintenance'
-          ? ((decoded is Map ? decoded['data'] : decoded) ?? [])
-          : ((decoded is Map
-                    ? decoded['data'] ?? decoded['timecards']
-                    : decoded) ??
-                []);
-
-      final normalized = _normalizeSystemRows(rawList);
-
-      final columns = _selectedReportType == 'Timecard'
-          ? _timecardColumns
-          : (_reportColumns[_selectedReportType] ??
-                (normalized.isNotEmpty
-                    ? _buildColumns(normalized.first.keys.toList())
-                    : const ['status']));
+      final rawList =
+          (decoded is Map ? decoded['data'] ?? decoded['attendance'] : decoded) ??
+          [];
+      final normalized = _normalizeAttendanceRows(rawList);
 
       if (!mounted) return;
       setState(() {
-        _sourceFileName = 'System $_selectedReportType records';
-        _columns = columns;
+        _sourceFileName = 'System attendance records';
+        _columns = _attendanceColumns;
         _rows = normalized;
       });
     } catch (error) {
@@ -262,97 +203,17 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     if (!mounted) return;
     setState(() {
       _sourceFileName = 'System data unavailable';
-      _columns = _selectedReportType == 'Timecard'
-          ? _timecardColumns
-          : (_reportColumns[_selectedReportType] ?? const ['status']);
+      _columns = _attendanceColumns;
       _rows = [];
     });
   }
 
-  List<Map<String, String>> _normalizeSystemRows(List<dynamic> rawList) {
-    final normalized = <Map<String, String>>[];
-
-    for (final item in rawList) {
-      if (item is! Map) continue;
-
-      final flat = <String, String>{};
-      final map = item as Map<String, dynamic>;
-
-      if (_selectedReportType == 'Timecard') {
-        return _normalizeTimecardRows(rawList);
-      }
-
-      for (final entry in map.entries) {
-        final key = entry.key.toString();
-        final value = entry.value;
-
-        if (key == 'user_account' && value is Map) {
-          final userName = value['full_name'] ?? value['username'] ?? '';
-          flat['driver_name'] = _normalizeCellValue(userName);
-          continue;
-        }
-
-        if (key == 'vehicle' && value is Map) {
-          final plate = value['plate_number'] ?? '';
-          final vehicleType = value['bus_type'] ?? '';
-          flat['plate_number'] = _normalizeCellValue(plate);
-          flat['bus_type'] = _normalizeCellValue(vehicleType);
-          continue;
-        }
-
-        if (key == 'oic_profile' && value is Map) {
-          final company = value['company_name'] ?? '';
-          flat['company_name'] = _normalizeCellValue(company);
-          continue;
-        }
-
-        if (key == 'client_company' && value is Map) {
-          flat['client_name'] = _normalizeCellValue(value['company_name']);
-          continue;
-        }
-
-        if (key == 'client_company') {
-          flat['client_name'] = _normalizeCellValue(value);
-          continue;
-        }
-
-        flat[key] = _normalizeCellValue(value);
-      }
-      if (_selectedReportType == 'Trips') {
-        flat['client_name'] =
-            flat['client_name'] ??
-            flat['company_name'] ??
-            flat['client'] ??
-            'Unassigned Client';
-        flat['company_id'] = flat['company_id'] ?? 'N/A';
-        flat['departure_time'] = flat['departure_time'] ?? '--:--';
-        flat['estimated_arrival_time'] =
-            flat['estimated_arrival_time'] ?? '--:--';
-        flat['actual_start_time'] = flat['actual_start_time'] ?? '--:--';
-        flat['actual_end_time'] = flat['actual_end_time'] ?? '--:--';
-        flat['trip_id'] = flat['trip_id'] ?? 'N/A';
-        flat['status'] = _normalizeCellValue(
-          flat['trip_status'] ?? flat['status'] ?? 'Scheduled',
-        );
-      } else if (_selectedReportType == 'Maintenance') {
-        flat['status'] = _normalizeCellValue(
-          flat['status'] ??
-              (flat['is_resolved']?.toLowerCase() == 'true'
-                  ? 'Resolved'
-                  : 'Needs Attention'),
-        );
-      }
-      if (flat.isNotEmpty) normalized.add(flat);
-    }
-    return normalized;
-  }
-
-  Widget _buildReportTitle(bool isDark) {
+  Widget _buildAttendanceTitle(bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Import & Export',
+          'Attendance',
           style: TextStyle(
             fontSize: 26,
             fontWeight: FontWeight.w800,
@@ -361,7 +222,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
         ),
         const SizedBox(height: 6),
         Text(
-          'View system reports and manage timecards.',
+          'Import, view, and export attendance records.',
           style: TextStyle(
             fontSize: 14,
             color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
@@ -375,9 +236,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
 
   Widget _buildImportButton() {
     return FilledButton.icon(
-      onPressed: _isImporting || !_canImportCurrentReport
-          ? null
-          : _pickExcelFile,
+      onPressed: _isImporting ? null : _pickExcelFile,
       icon: _isImporting
           ? const SizedBox(
               width: 18,
@@ -388,9 +247,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
       label: Text(
         _isImporting
             ? 'Importing...'
-            : _canImportCurrentReport
-            ? 'Import Excel'
-            : 'Import Locked',
+            : 'Import Excel',
       ),
     );
   }
@@ -399,7 +256,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     return OutlinedButton.icon(
       onPressed: _showExportDialog,
       icon: const Icon(Icons.download_outlined),
-      label: const Text('Export Report'),
+      label: const Text('Export'),
     );
   }
 
@@ -454,9 +311,12 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
         return;
       }
 
+      final savedCount = await _saveImportedAttendance(parsedRows, file.name);
+      if (!mounted) return;
+
       setState(() {
         _sourceFileName = file.name;
-        _columns = _timecardColumns;
+        _columns = _attendanceColumns;
         _rows = parsedRows;
         _currentPage = 0;
         _selectedRange = 'All Time';
@@ -466,10 +326,12 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Imported ${parsedRows.length} biometric rows from ${file.name}',
+            'Imported and saved $savedCount attendance rows from ${file.name}',
           ),
         ),
       );
+
+      await _loadAttendanceData();
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -480,13 +342,44 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     }
   }
 
+  Future<int> _saveImportedAttendance(
+    List<Map<String, String>> rows,
+    String fileName,
+  ) async {
+    final endpoints = [
+      '/${widget.userRole}/attendance/import',
+      '/admin/attendance/import',
+    ];
+
+    Object? lastError;
+    for (final endpoint in endpoints) {
+      try {
+        final response = await http.post(
+          Uri.parse('$backendUrl$endpoint'),
+          headers: const {'Content-Type': 'application/json'},
+          body: jsonEncode({'source_file': fileName, 'rows': rows}),
+        );
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          final decoded = jsonDecode(response.body);
+          return int.tryParse('${decoded['saved_count'] ?? rows.length}') ??
+              rows.length;
+        }
+
+        lastError = response.body;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw Exception('Attendance import was not saved: $lastError');
+  }
+
   Future<List<List<dynamic>>> _convertLegacyXlsDirectly(
     Uint8List fileBytes,
     String fileName,
   ) async {
     final endpoints = [
-      '/${widget.userRole}/timecards/upload-legacy-xls',
-      '/admin/timecards/upload-legacy-xls',
       '/${widget.userRole}/attendance/upload-legacy-xls',
       '/admin/attendance/upload-legacy-xls',
     ];
@@ -521,21 +414,6 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     return [];
   }
 
-  List<String> _buildColumns(List<String> keys) {
-    final seen = <String>{};
-    final unique = <String>[];
-    for (final key in keys) {
-      final cleaned = key.trim();
-      if (cleaned.isEmpty) continue;
-      final normalized = seen.contains(cleaned)
-          ? '${cleaned}_${seen.length}'
-          : cleaned;
-      seen.add(cleaned);
-      unique.add(normalized);
-    }
-    return unique.isEmpty ? ['No columns detected'] : unique;
-  }
-
   // ===========================================================================
   // EXPORT LOGIC
   // ===========================================================================
@@ -553,7 +431,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Export ${_selectedReportType}'),
+          title: const Text('Export Attendance'),
           content: Text(
             'You are about to export ${activeRows.length} displayed records.\n\nPlease select your preferred file format.',
             style: const TextStyle(fontSize: 15),
@@ -587,9 +465,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
 
   Future<void> _executeExport(String format) async {
     final filteredRows = _processedRows;
-    final exportColumns = _selectedReportType == 'Timecard'
-        ? _timecardColumns
-        : (_reportColumns[_selectedReportType] ?? _columns);
+    final exportColumns = _attendanceColumns;
 
     String baseName;
     if (_sourceFileName != 'No file selected' &&
@@ -599,7 +475,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
       String suffix = _selectedRange == 'All Time'
           ? 'all_time'
           : _selectedRange.toLowerCase().replaceAll(' ', '_');
-      baseName = '${_selectedReportType.toLowerCase()}_report_$suffix';
+      baseName = 'attendance_$suffix';
     }
 
     final fileName = '$baseName.${format.toLowerCase()}';
@@ -612,7 +488,6 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
                       {for (final column in exportColumns) column: ''},
                     ]
                   : filteredRows,
-              exportColumns,
             )
           : utf8.encode(
               <List<String>>[
@@ -644,7 +519,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to export report: $error')),
+        SnackBar(content: Text('Unable to export attendance: $error')),
       );
     }
   }
@@ -692,7 +567,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        _buildReportTitle(isDark),
+                        _buildAttendanceTitle(isDark),
                         const SizedBox(height: 12),
                         Wrap(
                           spacing: 8,
@@ -707,7 +582,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
                   : Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Expanded(child: _buildReportTitle(isDark)),
+                        Expanded(child: _buildAttendanceTitle(isDark)),
                         const SizedBox(width: 16),
                         _buildImportButton(),
                         const SizedBox(width: 12),
@@ -769,48 +644,13 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
               const SizedBox(height: 20),
 
               // ==========================================
-              // CONTROLS ROW (Chips, Search, Filter, Sort)
+              // CONTROLS ROW (Search, Filter, Sort)
               // ==========================================
               Flex(
                 direction: isMobile ? Axis.vertical : Axis.horizontal,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Flexible(
-                    fit: isMobile ? FlexFit.loose : FlexFit.tight,
-                    child: Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: _reportTypes.map((type) {
-                        final isSelected = _selectedReportType == type;
-                        return ChoiceChip(
-                          label: Text(type),
-                          selected: isSelected,
-                          avatar: Icon(
-                            type == 'Trips'
-                                ? Icons.route_outlined
-                                : type == 'Maintenance'
-                                ? Icons.build_outlined
-                                : Icons.schedule_outlined,
-                            size: 18,
-                          ),
-                          onSelected: (_) async {
-                            setState(() => _selectedReportType = type);
-                            await _loadCurrentReportData();
-                          },
-                          selectedColor: Colors.blue.shade100,
-                          backgroundColor: isDark
-                              ? const Color(0xFF1E293B)
-                              : Colors.white,
-                          labelStyle: TextStyle(
-                            color: isSelected
-                                ? Colors.blue.shade900
-                                : (isDark ? Colors.white : Colors.black87),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
+                  if (!isMobile) const Spacer(),
                   if (_columns.isNotEmpty && _rows.isNotEmpty) ...[
                     // Search Bar
                     SizedBox(
@@ -865,7 +705,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: isMobile ? 0 : 8, height: isMobile ? 8 : 0),
                     // Date Filter Dropdown
                     Container(
                       height: 42,
@@ -958,7 +798,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: isMobile ? 0 : 8, height: isMobile ? 8 : 0),
                     // Date Sort Asc/Desc Toggle
                     Container(
                       height: 42,
@@ -1018,7 +858,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
                     ? const Center(child: CircularProgressIndicator())
                     : activeData.isEmpty
                     ? const Center(
-                        child: Text('No report data matches current filters'),
+                        child: Text('No attendance data matches current filters'),
                       )
                     : Container(
                         decoration: BoxDecoration(
@@ -1415,7 +1255,7 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     return value;
   }
 
-  List<Map<String, String>> _normalizeTimecardRows(List<dynamic> rawList) {
+  List<Map<String, String>> _normalizeAttendanceRows(List<dynamic> rawList) {
     final normalized = <Map<String, String>>[];
     for (final item in rawList) {
       if (item is! Map) continue;
@@ -1579,36 +1419,13 @@ class _SharedReportsManagerState extends State<SharedReportsManager> {
     return parsedRows;
   }
 
-  Uint8List _convertRowsToXlsx(
-    List<Map<String, String>> rows,
-    List<String> columns,
-  ) {
+  Uint8List _convertRowsToXlsx(List<Map<String, String>> rows) {
     final workbook = excel.Excel.createExcel();
     final sheet = workbook['Sheet1'];
     if (sheet == null) return Uint8List(0);
 
     // ==========================================
-    // STANDARD EXPORT (Trips, Maintenance)
-    // ==========================================
-    if (_selectedReportType != 'Timecard') {
-      final headerCells = columns
-          .map((c) => excel.TextCellValue(_formatTableHeader(c)))
-          .toList();
-      sheet.insertRowIterables(headerCells, 0);
-
-      for (int i = 0; i < rows.length; i++) {
-        final values = columns.map((column) {
-          final rawValue = rows[i][column] ?? '';
-          final displayValue = _formatDisplayValue(column, rawValue);
-          return excel.TextCellValue(displayValue);
-        }).toList();
-        sheet.insertRowIterables(values, i + 1);
-      }
-      return Uint8List.fromList(workbook.encode() ?? []);
-    }
-
-    // ==========================================
-    // TIMECARD EXPORT (Grouped Format)
+    // ATTENDANCE EXPORT (Grouped Format)
     // ==========================================
     
     // 1. Group rows by employee
