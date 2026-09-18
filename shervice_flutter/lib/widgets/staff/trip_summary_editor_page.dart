@@ -43,7 +43,8 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
   String? _selectedCompanyId;
   String _selectedCompanyLabel = '';
 
-  bool get _isEditing => widget.initialRows != null;
+  bool get _isEditing =>
+      widget.summaryId != null && widget.summaryId!.isNotEmpty;
   String get _dateText => _summaryDateKey(_date);
 
   String get _workingDay {
@@ -70,15 +71,27 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
   @override
   void initState() {
     super.initState();
+    _date = DateTime.now();
+
     final initialRows = widget.initialRows;
     if (initialRows != null && initialRows.isNotEmpty) {
-      final firstDate = DateTime.tryParse(
-        (initialRows.first['schedule_date'] ?? initialRows.first['date'] ?? '')
-            .toString(),
-      );
-      if (firstDate != null) _date = firstDate;
-      _selectedCompanyId = initialRows.first['company_id']?.toString();
-      _selectedCompanyLabel = (initialRows.first['client_company'] ?? '').toString();
+      if (_isEditing) {
+        _selectedCompanyId = initialRows.first['company_id']?.toString();
+        _selectedCompanyLabel = (initialRows.first['client_company'] ?? '')
+            .toString();
+
+        final firstDate = DateTime.tryParse(
+          (initialRows.first['schedule_date'] ??
+                  initialRows.first['date'] ??
+                  '')
+              .toString(),
+        );
+        if (firstDate != null) _date = firstDate;
+      } else {
+        _selectedCompanyId = null;
+        _selectedCompanyLabel = '';
+      }
+
       _rows.addAll(initialRows.map(_EditorSummaryRow.fromTrip));
     } else {
       _rows.add(_EditorSummaryRow.empty());
@@ -101,7 +114,9 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
     try {
       final response = await http
           .get(
-            Uri.parse('$backendUrl/schedules/dispatch-options?date=$_dateText&summary=true'),
+            Uri.parse(
+              '$backendUrl/schedules/dispatch-options?date=$_dateText&summary=true',
+            ),
           )
           .timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
@@ -139,14 +154,17 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
             .map((row) => Map<String, dynamic>.from(row))
             .where((company) => !_isInternalCompanyOption(company))
             .toList();
-        if (_selectedCompanyLabel.trim().isEmpty && _selectedCompanyId != null) {
+        if (_selectedCompanyLabel.trim().isEmpty &&
+            _selectedCompanyId != null) {
           for (final company in _companies) {
             if (company['company_id']?.toString() == _selectedCompanyId) {
-              _selectedCompanyLabel = (company['company_name'] ?? '').toString();
+              _selectedCompanyLabel = (company['company_name'] ?? '')
+                  .toString();
               break;
             }
           }
-        } else if (_selectedCompanyId == null && _selectedCompanyLabel.trim().isNotEmpty) {
+        } else if (_selectedCompanyId == null &&
+            _selectedCompanyLabel.trim().isNotEmpty) {
           for (final company in _companies) {
             if ((company['company_name'] ?? '').toString().toLowerCase() ==
                 _selectedCompanyLabel.trim().toLowerCase()) {
@@ -210,19 +228,26 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
         row.capacity.text = cap;
       } else {
         final parsedCapacity = _capacityFromVehicleType(rawType);
-        if (parsedCapacity != null) row.capacity.text = parsedCapacity.toString();
+        if (parsedCapacity != null)
+          row.capacity.text = parsedCapacity.toString();
       }
     });
   }
 
   String _vehicleTypeOnly(String rawType) {
     return rawType
-        .replaceFirst(RegExp(r'^\s*\d+\s*(seats?|seater)\s*[-:]?\s*', caseSensitive: false), '')
+        .replaceFirst(
+          RegExp(r'^\s*\d+\s*(seats?|seater)\s*[-:]?\s*', caseSensitive: false),
+          '',
+        )
         .trim();
   }
 
   int? _capacityFromVehicleType(String rawType) {
-    final match = RegExp(r'^\s*(\d+)\s*(seats?|seater)\b', caseSensitive: false).firstMatch(rawType);
+    final match = RegExp(
+      r'^\s*(\d+)\s*(seats?|seater)\b',
+      caseSensitive: false,
+    ).firstMatch(rawType);
     return match == null ? null : int.tryParse(match.group(1) ?? '');
   }
 
@@ -250,8 +275,8 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
     if (selected == null) return;
     setState(() {
       _selectedCompanyId = selected['company_id']?.toString();
-      _selectedCompanyLabel =
-          (selected['company_name'] ?? 'Selected Company').toString();
+      _selectedCompanyLabel = (selected['company_name'] ?? 'Selected Company')
+          .toString();
     });
   }
 
@@ -427,12 +452,18 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
               if (_isEditing && (widget.summaryId ?? '').isNotEmpty)
                 'summary_id': widget.summaryId,
               'schedule_date': _dateText,
-              'rows': filledRows.map((row) => {
-                ...row.toPayload(
-                  _dateText, _workingDay, companyId: _selectedCompanyId,
-                ),
-                if (row.trip != null) 'trip_id': row.trip!['trip_id'],
-              }).toList(),
+              'rows': filledRows
+                  .map(
+                    (row) => {
+                      ...row.toPayload(
+                        _dateText,
+                        _workingDay,
+                        companyId: _selectedCompanyId,
+                      ),
+                      if (row.trip != null) 'trip_id': row.trip!['trip_id'],
+                    },
+                  )
+                  .toList(),
             }),
           )
           .timeout(const Duration(seconds: 25));
@@ -566,18 +597,21 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
                   child: InkWell(
                     onTap: _companies.isEmpty ? null : _selectCompany,
                     child: InputDecorator(
-                      decoration: _editorDecoration(
-                        'Company',
-                        Icons.business,
-                        fillColor,
-                        isDark,
-                      ).copyWith(
-                        suffixIcon: Icon(
-                          Icons.search,
-                          size: 18,
-                          color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                        ),
-                      ),
+                      decoration:
+                          _editorDecoration(
+                            'Company',
+                            Icons.business,
+                            fillColor,
+                            isDark,
+                          ).copyWith(
+                            suffixIcon: Icon(
+                              Icons.search,
+                              size: 18,
+                              color: isDark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey.shade600,
+                            ),
+                          ),
                       child: Text(
                         _selectedCompanyLabel.trim().isEmpty
                             ? 'Choose company'
@@ -586,7 +620,9 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: _selectedCompanyLabel.trim().isEmpty
-                              ? (isDark ? Colors.grey.shade500 : Colors.grey.shade500)
+                              ? (isDark
+                                    ? Colors.grey.shade500
+                                    : Colors.grey.shade500)
                               : textColor,
                           fontWeight: FontWeight.w500,
                         ),
@@ -1046,7 +1082,10 @@ class _EditorSummaryRow {
 
   static String _typeOnly(String rawType) {
     return rawType
-        .replaceFirst(RegExp(r'^\s*\d+\s*(seats?|seater)\s*[-:]?\s*', caseSensitive: false), '')
+        .replaceFirst(
+          RegExp(r'^\s*\d+\s*(seats?|seater)\s*[-:]?\s*', caseSensitive: false),
+          '',
+        )
         .trim();
   }
 

@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../constant.dart';
 import 'trip_summary_editor_page.dart';
 
@@ -350,6 +352,104 @@ class _StaffTripsState extends State<StaffTrips> {
           .toString()
           .startsWith(key);
     }).toList();
+  }
+
+  Future<void> _importSummaryFile() async {
+    try {
+      final files = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['xls', 'xlsx', 'csv'],
+      );
+
+      if (files.isEmpty) return;
+
+      setState(() {
+        _isLoading = true;
+        _isRefreshing = true;
+      });
+
+      final file = files.first;
+
+      final fileBytes = await file.readAsBytes();
+
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$backendUrl/schedules/upload-summary-xls'),
+      );
+      request.files.add(
+        http.MultipartFile.fromBytes('file', fileBytes, filename: file.name),
+      );
+
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 30),
+      );
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded['success'] == true) {
+          final List<dynamic> rows = decoded['rows'] ?? [];
+          if (rows.isEmpty) {
+            throw Exception("No valid trip rows found in file.");
+          }
+
+          final mappedRows = rows
+              .whereType<Map>()
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList();
+
+          if (!mounted) return;
+          final createdDate = await Navigator.of(context).push<DateTime>(
+            MaterialPageRoute(
+              builder: (_) => TripSummaryEditorPage(
+                staffId: widget.staffId,
+                initialRows: mappedRows,
+              ),
+            ),
+          );
+
+          if (createdDate != null && mounted) {
+            setState(() {
+              _selectedDate = createdDate;
+              _filterMonth = null;
+              _filterYear = null;
+              _resetPagination();
+            });
+            await _fetchTripSummary();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Imported trips successfully added.'),
+                ),
+              );
+            }
+          }
+        } else {
+          throw Exception(decoded['error'] ?? "Upload failed.");
+        }
+      } else {
+        String errorMsg = "Server error ${response.statusCode}";
+        try {
+          final decoded = jsonDecode(response.body);
+          if (decoded['error'] != null) {
+            errorMsg = decoded['error'];
+          }
+        } catch (_) {}
+        throw Exception(errorMsg);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isRefreshing = false;
+        });
+      }
+    }
   }
 
   Future<void> _showAddSummaryDialog() async {
@@ -833,7 +933,27 @@ class _StaffTripsState extends State<StaffTrips> {
             });
           },
         ),
-        if (widget.canManageSummaries)
+        if (widget.canManageSummaries) ...[
+          SizedBox(
+            height: 42,
+            child: OutlinedButton.icon(
+              onPressed: _isRefreshing ? null : _importSummaryFile,
+              icon: const Icon(Icons.upload_file, size: 18),
+              label: const Text('Import Excel'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: isDark
+                    ? Colors.blue.shade300
+                    : const Color(0xFF2563EB),
+                side: BorderSide(
+                  color: isDark ? Colors.blue.shade800 : Colors.blue.shade200,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+          ),
           SizedBox(
             height: 42,
             child: ElevatedButton.icon(
@@ -850,6 +970,7 @@ class _StaffTripsState extends State<StaffTrips> {
               ),
             ),
           ),
+        ],
         SizedBox(
           height: 42,
           width: 42,
@@ -1125,6 +1246,7 @@ class _StaffTripsState extends State<StaffTrips> {
                     style: TextStyle(
                       color: isDark ? Colors.white : const Color(0xFF0F172A),
                       fontWeight: FontWeight.w800,
+                      fontSize: 14,
                     ),
                   ),
                 ),
@@ -1737,6 +1859,91 @@ class _SummarySheetPage extends StatelessWidget {
     required this.onSaveRow,
   });
 
+  String _generateCSV() {
+    final headers = [
+      'No.',
+      'Date',
+      'Day',
+      'Type',
+      'Class',
+      'Plate',
+      'Capacity',
+      'Ticket',
+      'Driver',
+      'Route',
+      'Pax',
+      'Depart',
+      'Arrival',
+      'Util',
+      'Remarks',
+    ];
+
+    String csv = '${headers.join(',')}\n';
+
+    for (int i = 0; i < rows.length; i++) {
+      final trip = rows[i];
+
+      String escape(String value) {
+        if (value.contains(',')) {
+          return '"$value"';
+        }
+        return value;
+      }
+
+      final row = [
+        '${i + 1}',
+        escape((trip['schedule_date'] ?? trip['date'] ?? '').toString()),
+        escape((trip['working_day'] ?? '').toString()),
+        escape((trip['bus_type'] ?? '').toString()),
+        escape((trip['classification'] ?? '').toString()),
+        escape((trip['plate_number'] ?? 'Unassigned').toString()),
+        escape((trip['seating_capacity'] ?? '').toString()),
+        escape((trip['ticket_no'] ?? '').toString()),
+        escape((trip['driver_name'] ?? 'Unassigned').toString()),
+        escape((trip['route_name'] ?? '').toString()),
+        escape((trip['passenger_count'] ?? '').toString()),
+        escape((trip['departure_time'] ?? '').toString()),
+        escape((trip['estimated_arrival_time'] ?? '').toString()),
+        escape(_summaryUtilizationText(trip)),
+        escape((trip['remarks'] ?? '').toString()),
+      ];
+
+      csv += '${row.join(',')}\n';
+    }
+    return csv;
+  }
+
+  Future<void> _exportSummary(BuildContext context) async {
+    try {
+      final String csvData = _generateCSV();
+      final Uint8List fileBytes = Uint8List.fromList(utf8.encode(csvData));
+
+      final safeSummaryId = summaryId.isEmpty ? 'Trip_Summary' : summaryId;
+
+      final Uri? outputFile = await FilePicker.saveFile(
+        dialogTitle: 'Export Summary',
+        fileName: '${safeSummaryId}_Export.csv',
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+        bytes: fileBytes,
+      );
+
+      if (outputFile == null) return;
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Export successfully triggered!')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -1746,6 +1953,22 @@ class _SummarySheetPage extends StatelessWidget {
       appBar: AppBar(
         title: Text(summaryId.isEmpty ? 'Trip Summary' : summaryId),
         actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: OutlinedButton.icon(
+              onPressed: () => _exportSummary(context),
+              icon: const Icon(Icons.download, size: 18),
+              label: const Text('Export CSV'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: isDark
+                    ? Colors.blue.shade300
+                    : const Color(0xFF2563EB),
+                side: BorderSide(
+                  color: isDark ? Colors.blue.shade800 : Colors.blue.shade200,
+                ),
+              ),
+            ),
+          ),
           if (canManageSummaries)
             Padding(
               padding: const EdgeInsets.only(right: 12),
