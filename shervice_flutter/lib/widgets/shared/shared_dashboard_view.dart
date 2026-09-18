@@ -1674,13 +1674,18 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
     if (!mounted) return;
     setState(() => _isTripsChartLoading = true);
     try {
+      // FIX: Pass the selected year as a query parameter
       final response = await http
-          .get(Uri.parse('$backendUrl/trips'))
-          .timeout(const Duration(seconds: 10));
+          .get(Uri.parse('$backendUrl/trips?year=$_selectedTripsYear'))
+          .timeout(const Duration(seconds: 15));
+
       if (response.statusCode != 200) return;
+
       final decoded = json.decode(response.body);
       final rawTrips = decoded is Map ? decoded['trips'] : decoded;
+
       if (rawTrips is! List) return;
+
       final totals = List<int>.filled(12, 0);
       for (final rawTrip in rawTrips) {
         if (rawTrip is! Map) continue;
@@ -1690,6 +1695,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
         if (date != null && date.year == _selectedTripsYear)
           totals[date.month - 1]++;
       }
+
       if (mounted) setState(() => _monthlyTripTotals = totals);
     } finally {
       if (mounted) setState(() => _isTripsChartLoading = false);

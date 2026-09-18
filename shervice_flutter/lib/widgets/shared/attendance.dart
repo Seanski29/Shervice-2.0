@@ -25,14 +25,12 @@ class _AttendanceState extends State<Attendance> {
   String _sourceFileName = 'No file selected';
   String? _selectedSourceFile;
 
-  // Custom Pagination, Sorting & Search State
   int _rowsPerPage = 10;
   int _currentPage = 0;
-  bool _sortDateAscending = false; // Default: newest first
+  bool _sortDateAscending = false;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
 
-  // Main UI Date Filter State
   String _selectedRange = 'Today';
   DateTimeRange? _customDateRange;
 
@@ -63,10 +61,6 @@ class _AttendanceState extends State<Attendance> {
     super.dispose();
   }
 
-  // ===========================================================================
-  // PIPELINE: FILTER, SEARCH & SORT
-  // ===========================================================================
-
   List<Map<String, String>> get _processedRows {
     List<Map<String, String>> result = List.from(_rows);
 
@@ -76,7 +70,6 @@ class _AttendanceState extends State<Attendance> {
           .toList();
     }
 
-    // 1. Date Filter (Applied from the main UI dropdown)
     DateTime now = DateTime.now();
     DateTime? startDate;
     DateTime? endDate;
@@ -89,8 +82,7 @@ class _AttendanceState extends State<Attendance> {
       endDate = startDate.add(
         const Duration(days: 6, hours: 23, minutes: 59, seconds: 59),
       );
-    } else if (_selectedRange == 'Custom Week' &&
-        _customDateRange != null) {
+    } else if (_selectedRange == 'Custom Week' && _customDateRange != null) {
       startDate = _customDateRange!.start;
       endDate = DateTime(
         _customDateRange!.end.year,
@@ -133,7 +125,6 @@ class _AttendanceState extends State<Attendance> {
       }).toList();
     }
 
-    // 2. Search Filter
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toLowerCase();
       result = result.where((row) {
@@ -143,7 +134,6 @@ class _AttendanceState extends State<Attendance> {
       }).toList();
     }
 
-    // 3. Sort By Explicit Target Date
     result.sort((a, b) {
       DateTime dateA =
           _parseFlexibleDate(_extractDateFromRow(a)) ?? DateTime(1970);
@@ -170,10 +160,6 @@ class _AttendanceState extends State<Attendance> {
     return row['date'] ?? '';
   }
 
-  // ===========================================================================
-  // DATA LOADING
-  // ===========================================================================
-
   Future<void> _loadAttendanceData() async {
     setState(() {
       _isLoadingSystemData = true;
@@ -197,7 +183,9 @@ class _AttendanceState extends State<Attendance> {
 
       final decoded = jsonDecode(response.body);
       final rawList =
-          (decoded is Map ? decoded['data'] ?? decoded['attendance'] : decoded) ??
+          (decoded is Map
+              ? decoded['data'] ?? decoded['attendance']
+              : decoded) ??
           [];
       final normalized = _normalizeAttendanceRows(rawList);
 
@@ -261,11 +249,7 @@ class _AttendanceState extends State<Attendance> {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : const Icon(Icons.upload_file_outlined),
-      label: Text(
-        _isImporting
-            ? 'Importing...'
-            : 'Import Excel',
-      ),
+      label: Text(_isImporting ? 'Importing...' : 'Import Excel'),
     );
   }
 
@@ -281,13 +265,13 @@ class _AttendanceState extends State<Attendance> {
     setState(() => _isImporting = true);
 
     try {
+      // 🔥 FIX: Version 13 Syntax Applied
       final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['xls', 'xlsx', 'csv'],
-        withData: true,
       );
 
-      if (result.isEmpty) {
+      if (result == null || result.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No spreadsheet file was selected.')),
@@ -436,10 +420,6 @@ class _AttendanceState extends State<Attendance> {
     return [];
   }
 
-  // ===========================================================================
-  // EXPORT LOGIC
-  // ===========================================================================
-
   Future<void> _showExportDialog() async {
     final activeRows = _processedRows;
     if (activeRows.isEmpty) {
@@ -501,7 +481,6 @@ class _AttendanceState extends State<Attendance> {
     }
 
     final baseName = _exportBaseName(filteredRows);
-
     final fileName = '$baseName.${format.toLowerCase()}';
 
     try {
@@ -531,6 +510,7 @@ class _AttendanceState extends State<Attendance> {
       if (kIsWeb) {
         await downloadFileBytes(fileName: fileName, bytes: bytes);
       } else {
+        // 🔥 FIX: Version 13 Syntax Applied
         await FilePicker.saveFile(fileName: fileName, bytes: bytes);
       }
 
@@ -584,9 +564,6 @@ class _AttendanceState extends State<Attendance> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ==========================================
-              // TOP HEADER
-              // ==========================================
               isMobile
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -615,9 +592,55 @@ class _AttendanceState extends State<Attendance> {
                     ),
               const SizedBox(height: 20),
 
-              // ==========================================
-              // CONTROLS ROW (Search, Filter, Sort)
-              // ==========================================
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF111827) : Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.description_outlined,
+                      color: Colors.blue.shade500,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        _sourceFileName,
+                        style: TextStyle(
+                          color: isDark
+                              ? Colors.white
+                              : const Color(0xFF0F172A),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        'Total: ${activeData.length} rows',
+                        style: const TextStyle(
+                          color: Color(0xFF2563EB),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+
               Flex(
                 direction: isMobile ? Axis.vertical : Axis.horizontal,
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -640,7 +663,6 @@ class _AttendanceState extends State<Attendance> {
                       ),
                     ),
                     SizedBox(width: isMobile ? 0 : 8, height: isMobile ? 8 : 0),
-                    // Date Filter Dropdown
                     Container(
                       height: 42,
                       width: isMobile ? double.infinity : 560,
@@ -733,8 +755,8 @@ class _AttendanceState extends State<Attendance> {
                               context: context,
                               firstDate: DateTime(2020),
                               lastDate: DateTime(2100),
-                              initialDate: _customDateRange?.start ??
-                                  DateTime.now(),
+                              initialDate:
+                                  _customDateRange?.start ?? DateTime.now(),
                               helpText: 'Select month',
                               builder: (context, child) {
                                 return Center(
@@ -891,15 +913,14 @@ class _AttendanceState extends State<Attendance> {
               ),
               const SizedBox(height: 16),
 
-              // ==========================================
-              // FIT TABLE CONTAINER
-              // ==========================================
               Expanded(
                 child: _isLoadingSystemData
                     ? const Center(child: CircularProgressIndicator())
                     : activeData.isEmpty
                     ? const Center(
-                        child: Text('No attendance data matches current filters'),
+                        child: Text(
+                          'No attendance data matches current filters',
+                        ),
                       )
                     : Container(
                         decoration: BoxDecoration(
@@ -981,10 +1002,12 @@ class _AttendanceState extends State<Attendance> {
                                                           ),
                                                       child: Text(
                                                         displayValue,
-                                                        style: isLateColumn &&
-                                                            (lateMinutes > 0 ||
-                                                                isHalfDay ||
-                                                                isAbsent)
+                                                        style:
+                                                            isLateColumn &&
+                                                                (lateMinutes >
+                                                                        0 ||
+                                                                    isHalfDay ||
+                                                                    isAbsent)
                                                             ? const TextStyle(
                                                                 color: Color(
                                                                   0xFFEF4444,
@@ -1089,10 +1112,6 @@ class _AttendanceState extends State<Attendance> {
     );
   }
 
-  // ===========================================================================
-  // DATA FORMATTERS
-  // ===========================================================================
-
   String _formatDisplayValue(String column, String rawValue) {
     if (column == 'in_time' ||
         column == 'out_time' ||
@@ -1119,8 +1138,7 @@ class _AttendanceState extends State<Attendance> {
   }
 
   bool _canExportCurrentDateFilter() {
-    if (_selectedRange == 'Today' ||
-        _selectedRange == 'This Week') {
+    if (_selectedRange == 'Today' || _selectedRange == 'This Week') {
       return true;
     }
     if (_selectedRange == 'Custom Week' && _customDateRange != null) {
@@ -1357,9 +1375,7 @@ class _AttendanceState extends State<Attendance> {
             ? '$employeeName ($employeeId)'
             : (employeeName.isNotEmpty ? employeeName : 'Unknown'),
         'pay_period': (map['pay_period'] ?? '').toString(),
-        'day': dayOfWeek.isNotEmpty && dayOfWeek != 'null'
-            ? dayOfWeek
-            : 'NaN',
+        'day': dayOfWeek.isNotEmpty && dayOfWeek != 'null' ? dayOfWeek : 'NaN',
         'date': dateStr,
         'in_time': (map['in_time'] ?? map['time_in'] ?? '').toString(),
         'out_time': (map['out_time'] ?? map['time_out'] ?? '').toString(),
@@ -1406,12 +1422,7 @@ class _AttendanceState extends State<Attendance> {
 
   List<String> _collectPunchTimes(Map<String, dynamic> map) {
     final values = <String>[];
-    for (final key in [
-      'in_time',
-      'time_in',
-      'out_time',
-      'time_out',
-    ]) {
+    for (final key in ['in_time', 'time_in', 'out_time', 'time_out']) {
       final value = _normalizeCellValue(map[key]);
       if (_parseTimeToMinutes(value) != null) values.add(value);
     }
@@ -1443,13 +1454,7 @@ class _AttendanceState extends State<Attendance> {
       final outMinutes = _parseTimeToMinutes(outTime);
       if (inMinutes == null && outMinutes == null) continue;
 
-      _applyPunchPairToShifts(
-        shifts,
-        inTime,
-        outTime,
-        inMinutes,
-        outMinutes,
-      );
+      _applyPunchPairToShifts(shifts, inTime, outTime, inMinutes, outMinutes);
     }
 
     return shifts;
@@ -1523,12 +1528,12 @@ class _AttendanceState extends State<Attendance> {
     final currentIn = shifts[inKey] ?? '';
     final currentOut = shifts[outKey] ?? '';
 
-    if (!_hasAttendanceValue(currentIn) ||
-        _isEarlierTime(inTime, currentIn)) {
+    if (!_hasAttendanceValue(currentIn) || _isEarlierTime(inTime, currentIn)) {
       shifts[inKey] = inTime;
     }
     if (_hasAttendanceValue(outTime) &&
-        (!_hasAttendanceValue(currentOut) || _isLaterTime(outTime, currentOut))) {
+        (!_hasAttendanceValue(currentOut) ||
+            _isLaterTime(outTime, currentOut))) {
       shifts[outKey] = outTime;
     }
   }
@@ -1559,19 +1564,22 @@ class _AttendanceState extends State<Attendance> {
     }
     if (_selectedRange == 'This Week') {
       final start = DateTime(now.year, now.month, now.day);
-      return DateTimeRange(start: start, end: start.add(const Duration(days: 6)));
+      return DateTimeRange(
+        start: start,
+        end: start.add(const Duration(days: 6)),
+      );
     }
-    if ((_selectedRange == 'Custom Week' ||
-            _selectedRange == 'Month') &&
+    if ((_selectedRange == 'Custom Week' || _selectedRange == 'Month') &&
         _customDateRange != null) {
       return _customDateRange;
     }
 
-    final dates = rows
-        .map((row) => _parseFlexibleDate(_extractDateFromRow(row)))
-        .whereType<DateTime>()
-        .toList()
-      ..sort();
+    final dates =
+        rows
+            .map((row) => _parseFlexibleDate(_extractDateFromRow(row)))
+            .whereType<DateTime>()
+            .toList()
+          ..sort();
     if (dates.isEmpty) return null;
     return DateTimeRange(start: dates.first, end: dates.last);
   }
@@ -1678,9 +1686,9 @@ class _AttendanceState extends State<Attendance> {
       return parsed.hour * 60 + parsed.minute;
     } catch (_) {}
 
-    final timeMatch = RegExp(r'(\d{1,2}):(\d{2})(?::\d{2})?').firstMatch(
-      trimmed,
-    );
+    final timeMatch = RegExp(
+      r'(\d{1,2}):(\d{2})(?::\d{2})?',
+    ).firstMatch(trimmed);
     if (timeMatch == null) return null;
 
     final hour = int.tryParse(timeMatch.group(1)!);
@@ -1707,9 +1715,11 @@ class _AttendanceState extends State<Attendance> {
 
   bool _isHalfDay(Map<String, String> row) {
     if (_isAbsent(row)) return false;
-    final hasMorning = _hasAttendanceValue(row['morning_in'] ?? '') ||
+    final hasMorning =
+        _hasAttendanceValue(row['morning_in'] ?? '') ||
         _hasAttendanceValue(row['morning_out'] ?? '');
-    final hasAfternoon = _hasAttendanceValue(row['afternoon_in'] ?? '') ||
+    final hasAfternoon =
+        _hasAttendanceValue(row['afternoon_in'] ?? '') ||
         _hasAttendanceValue(row['afternoon_out'] ?? '');
     return hasMorning != hasAfternoon;
   }
@@ -1812,9 +1822,9 @@ class _AttendanceState extends State<Attendance> {
     final match = RegExp(r'^(\d{1,2})/(\d{1,2})').firstMatch(label.trim());
     if (match == null) return '';
 
-    final yearMatch = RegExp(r'\b(\d{4})[-/]\d{1,2}[-/]\d{1,2}').firstMatch(
-      payPeriod,
-    );
+    final yearMatch = RegExp(
+      r'\b(\d{4})[-/]\d{1,2}[-/]\d{1,2}',
+    ).firstMatch(payPeriod);
     final year = int.tryParse(yearMatch?.group(1) ?? '');
     final month = int.tryParse(match.group(1) ?? '');
     final day = int.tryParse(match.group(2) ?? '');
@@ -1868,7 +1878,9 @@ class _AttendanceState extends State<Attendance> {
         }
       }
 
-      final groupedDate = row.isNotEmpty ? _normalizeCellValue(row[0]).trim() : '';
+      final groupedDate = row.isNotEmpty
+          ? _normalizeCellValue(row[0]).trim()
+          : '';
       final groupedWorkDate = _dateFromGroupedLabel(
         groupedDate,
         currentPayPeriod,
@@ -1885,7 +1897,8 @@ class _AttendanceState extends State<Attendance> {
         };
         final hasShiftValue = shiftValues.values.any(_hasAttendanceValue);
         final finalCell = row.length > 7 ? _normalizeCellValue(row[7]) : '';
-        final absent = !hasShiftValue &&
+        final absent =
+            !hasShiftValue &&
             (finalCell.toLowerCase().contains('absent') ||
                 finalCell.toLowerCase().contains('whole day') ||
                 groupedDate.isNotEmpty);
@@ -1916,13 +1929,27 @@ class _AttendanceState extends State<Attendance> {
       String workTime = 'NaN';
       String dailyTotal = 'NaN';
 
-      final indexedDay = row.isNotEmpty ? _normalizeCellValue(row[0]).trim() : '';
-      final indexedDate = row.length > 1 ? _normalizeCellValue(row[1]).trim() : '';
-      final indexedIn = row.length > 2 ? _normalizeCellValue(row[2]).trim() : '';
-      final indexedOut = row.length > 3 ? _normalizeCellValue(row[3]).trim() : '';
-      final indexedWork = row.length > 4 ? _normalizeCellValue(row[4]).trim() : '';
-      final indexedTotal = row.length > 5 ? _normalizeCellValue(row[5]).trim() : '';
-      final indexedNote = row.length > 6 ? _normalizeCellValue(row[6]).trim() : '';
+      final indexedDay = row.isNotEmpty
+          ? _normalizeCellValue(row[0]).trim()
+          : '';
+      final indexedDate = row.length > 1
+          ? _normalizeCellValue(row[1]).trim()
+          : '';
+      final indexedIn = row.length > 2
+          ? _normalizeCellValue(row[2]).trim()
+          : '';
+      final indexedOut = row.length > 3
+          ? _normalizeCellValue(row[3]).trim()
+          : '';
+      final indexedWork = row.length > 4
+          ? _normalizeCellValue(row[4]).trim()
+          : '';
+      final indexedTotal = row.length > 5
+          ? _normalizeCellValue(row[5]).trim()
+          : '';
+      final indexedNote = row.length > 6
+          ? _normalizeCellValue(row[6]).trim()
+          : '';
       final upperIndexedDay = indexedDay.toUpperCase();
       final hasIndexedDay = [
         'SUN',
@@ -1936,7 +1963,8 @@ class _AttendanceState extends State<Attendance> {
       final hasIndexedDate = RegExp(
         r'^\d{1,4}[-/]\d{1,2}[-/]\d{1,4}$',
       ).hasMatch(indexedDate);
-      final hasIndexedPunch = _parseTimeToMinutes(indexedIn) != null ||
+      final hasIndexedPunch =
+          _parseTimeToMinutes(indexedIn) != null ||
           _parseTimeToMinutes(indexedOut) != null;
 
       if (hasIndexedDay || hasIndexedDate || hasIndexedPunch) {
@@ -1961,7 +1989,15 @@ class _AttendanceState extends State<Attendance> {
             continue;
           }
           final upper = val.toUpperCase();
-          if (['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].contains(upper)) {
+          if ([
+            'SUN',
+            'MON',
+            'TUE',
+            'WED',
+            'THU',
+            'FRI',
+            'SAT',
+          ].contains(upper)) {
             rowDay = upper;
             continue;
           }
@@ -2020,10 +2056,9 @@ class _AttendanceState extends State<Attendance> {
     }
     final mergedRows = _mergeAttendanceRows(parsedRows);
     return mergedRows
-        .map((row) => {
-              ...row,
-              'total_minutes_late': _finalAttendanceValue(row),
-            })
+        .map(
+          (row) => {...row, 'total_minutes_late': _finalAttendanceValue(row)},
+        )
         .toList();
   }
 
@@ -2035,7 +2070,7 @@ class _AttendanceState extends State<Attendance> {
     // ==========================================
     // ATTENDANCE EXPORT (Grouped Format)
     // ==========================================
-    
+
     // 1. Group rows by employee
     final Map<String, List<Map<String, String>>> groupedRows = {};
     for (var row in rows) {
@@ -2097,15 +2132,21 @@ class _AttendanceState extends State<Attendance> {
       );
       for (int c = 0; c <= 7; c++) {
         sheet
-            .cell(
-              excel.CellIndex.indexByColumnRow(
-                columnIndex: c,
-                rowIndex: currentRow,
-              ),
-            )
-            .cellStyle = titleStyle;
+                .cell(
+                  excel.CellIndex.indexByColumnRow(
+                    columnIndex: c,
+                    rowIndex: currentRow,
+                  ),
+                )
+                .cellStyle =
+            titleStyle;
       }
-      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow))
+      sheet.cell(
+          excel.CellIndex.indexByColumnRow(
+            columnIndex: 0,
+            rowIndex: currentRow,
+          ),
+        )
         ..value = excel.TextCellValue(employeeName)
         ..cellStyle = titleStyle;
       currentRow++;
@@ -2116,48 +2157,118 @@ class _AttendanceState extends State<Attendance> {
         excel.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: currentRow),
         excel.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: currentRow),
       );
-      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: currentRow))
+      sheet.cell(
+          excel.CellIndex.indexByColumnRow(
+            columnIndex: 1,
+            rowIndex: currentRow,
+          ),
+        )
         ..value = excel.TextCellValue('MORNING')
         ..cellStyle = headerStyle;
-      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: currentRow)).cellStyle = headerStyle;
+      sheet
+              .cell(
+                excel.CellIndex.indexByColumnRow(
+                  columnIndex: 2,
+                  rowIndex: currentRow,
+                ),
+              )
+              .cellStyle =
+          headerStyle;
 
       sheet.merge(
         excel.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: currentRow),
         excel.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: currentRow),
       );
-      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: currentRow))
+      sheet.cell(
+          excel.CellIndex.indexByColumnRow(
+            columnIndex: 3,
+            rowIndex: currentRow,
+          ),
+        )
         ..value = excel.TextCellValue('AFTERNOON')
         ..cellStyle = headerStyle;
-      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: currentRow)).cellStyle = headerStyle;
+      sheet
+              .cell(
+                excel.CellIndex.indexByColumnRow(
+                  columnIndex: 4,
+                  rowIndex: currentRow,
+                ),
+              )
+              .cellStyle =
+          headerStyle;
 
       sheet.merge(
         excel.CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: currentRow),
         excel.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: currentRow),
       );
-      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: currentRow))
+      sheet.cell(
+          excel.CellIndex.indexByColumnRow(
+            columnIndex: 5,
+            rowIndex: currentRow,
+          ),
+        )
         ..value = excel.TextCellValue('OVERTIME')
         ..cellStyle = headerStyle;
-      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: currentRow)).cellStyle = headerStyle;
+      sheet
+              .cell(
+                excel.CellIndex.indexByColumnRow(
+                  columnIndex: 6,
+                  rowIndex: currentRow,
+                ),
+              )
+              .cellStyle =
+          headerStyle;
 
-      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: currentRow))
+      sheet.cell(
+          excel.CellIndex.indexByColumnRow(
+            columnIndex: 7,
+            rowIndex: currentRow,
+          ),
+        )
         ..value = excel.TextCellValue('TOTAL MINUTES LATE')
         ..cellStyle = headerStyle;
-        
-      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow)).cellStyle = headerStyle;
+
+      sheet
+              .cell(
+                excel.CellIndex.indexByColumnRow(
+                  columnIndex: 0,
+                  rowIndex: currentRow,
+                ),
+              )
+              .cellStyle =
+          headerStyle;
       currentRow++;
 
       // Row 3: IN/OUT Headers
       sheet.setRowHeight(currentRow, 21);
-      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow))
+      sheet.cell(
+          excel.CellIndex.indexByColumnRow(
+            columnIndex: 0,
+            rowIndex: currentRow,
+          ),
+        )
         ..value = excel.TextCellValue('DATE')
         ..cellStyle = headerStyle;
 
       for (int c = 1; c <= 6; c++) {
-        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: currentRow))
+        sheet.cell(
+            excel.CellIndex.indexByColumnRow(
+              columnIndex: c,
+              rowIndex: currentRow,
+            ),
+          )
           ..value = excel.TextCellValue(c % 2 != 0 ? 'IN' : 'OUT')
           ..cellStyle = headerStyle;
       }
-      sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: currentRow)).cellStyle = headerStyle;
+      sheet
+              .cell(
+                excel.CellIndex.indexByColumnRow(
+                  columnIndex: 7,
+                  rowIndex: currentRow,
+                ),
+              )
+              .cellStyle =
+          headerStyle;
       currentRow++;
 
       // Data Rows
@@ -2166,38 +2277,85 @@ class _AttendanceState extends State<Attendance> {
         String dateVal = row['date'] ?? '';
         String dayVal = row['day'] ?? '';
         String shortDate = dateVal;
-        
+
         try {
           final parsedDate = DateTime.parse(dateVal.split('T')[0]);
           shortDate = '${parsedDate.month}/${parsedDate.day}';
         } catch (_) {}
-        
-        String displayDate = dayVal != 'NaN' && dayVal.isNotEmpty 
-            ? '$shortDate ($dayVal)' 
+
+        String displayDate = dayVal != 'NaN' && dayVal.isNotEmpty
+            ? '$shortDate ($dayVal)'
             : shortDate;
 
-        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow))
+        sheet.cell(
+            excel.CellIndex.indexByColumnRow(
+              columnIndex: 0,
+              rowIndex: currentRow,
+            ),
+          )
           ..value = excel.TextCellValue(displayDate)
           ..cellStyle = normalDataStyle;
 
-        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: currentRow))
-          ..value = excel.TextCellValue(_formatDisplayValue('morning_in', row['morning_in'] ?? ''))
+        sheet.cell(
+            excel.CellIndex.indexByColumnRow(
+              columnIndex: 1,
+              rowIndex: currentRow,
+            ),
+          )
+          ..value = excel.TextCellValue(
+            _formatDisplayValue('morning_in', row['morning_in'] ?? ''),
+          )
           ..cellStyle = normalDataStyle;
-        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: currentRow))
-          ..value = excel.TextCellValue(_formatDisplayValue('morning_out', row['morning_out'] ?? ''))
+        sheet.cell(
+            excel.CellIndex.indexByColumnRow(
+              columnIndex: 2,
+              rowIndex: currentRow,
+            ),
+          )
+          ..value = excel.TextCellValue(
+            _formatDisplayValue('morning_out', row['morning_out'] ?? ''),
+          )
           ..cellStyle = normalDataStyle;
 
-        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: currentRow))
-          ..value = excel.TextCellValue(_formatDisplayValue('afternoon_in', row['afternoon_in'] ?? ''))
+        sheet.cell(
+            excel.CellIndex.indexByColumnRow(
+              columnIndex: 3,
+              rowIndex: currentRow,
+            ),
+          )
+          ..value = excel.TextCellValue(
+            _formatDisplayValue('afternoon_in', row['afternoon_in'] ?? ''),
+          )
           ..cellStyle = normalDataStyle;
-        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: currentRow))
-          ..value = excel.TextCellValue(_formatDisplayValue('afternoon_out', row['afternoon_out'] ?? ''))
+        sheet.cell(
+            excel.CellIndex.indexByColumnRow(
+              columnIndex: 4,
+              rowIndex: currentRow,
+            ),
+          )
+          ..value = excel.TextCellValue(
+            _formatDisplayValue('afternoon_out', row['afternoon_out'] ?? ''),
+          )
           ..cellStyle = normalDataStyle;
-        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: currentRow))
-          ..value = excel.TextCellValue(_formatDisplayValue('overtime_in', row['overtime_in'] ?? ''))
+        sheet.cell(
+            excel.CellIndex.indexByColumnRow(
+              columnIndex: 5,
+              rowIndex: currentRow,
+            ),
+          )
+          ..value = excel.TextCellValue(
+            _formatDisplayValue('overtime_in', row['overtime_in'] ?? ''),
+          )
           ..cellStyle = normalDataStyle;
-        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: currentRow))
-          ..value = excel.TextCellValue(_formatDisplayValue('overtime_out', row['overtime_out'] ?? ''))
+        sheet.cell(
+            excel.CellIndex.indexByColumnRow(
+              columnIndex: 6,
+              rowIndex: currentRow,
+            ),
+          )
+          ..value = excel.TextCellValue(
+            _formatDisplayValue('overtime_out', row['overtime_out'] ?? ''),
+          )
           ..cellStyle = normalDataStyle;
 
         final finalValue = row['total_minutes_late'] ?? '';
@@ -2235,25 +2393,40 @@ class _AttendanceState extends State<Attendance> {
 
         if (isWholeDay) {
           for (int c = 0; c <= 7; c++) {
-             sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: currentRow))
-               .cellStyle = yellowRedStyle;
+            sheet
+                    .cell(
+                      excel.CellIndex.indexByColumnRow(
+                        columnIndex: c,
+                        rowIndex: currentRow,
+                      ),
+                    )
+                    .cellStyle =
+                yellowRedStyle;
           }
         } else if (isHalfDay) {
-          sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: currentRow))
-            .cellStyle = redTextStyle;
+          sheet
+                  .cell(
+                    excel.CellIndex.indexByColumnRow(
+                      columnIndex: 7,
+                      rowIndex: currentRow,
+                    ),
+                  )
+                  .cellStyle =
+              redTextStyle;
         }
 
         currentRow++;
       }
       for (int c = 0; c <= 7; c++) {
         sheet
-            .cell(
-              excel.CellIndex.indexByColumnRow(
-                columnIndex: c,
-                rowIndex: currentRow,
-              ),
-            )
-            .cellStyle = normalDataStyle;
+                .cell(
+                  excel.CellIndex.indexByColumnRow(
+                    columnIndex: c,
+                    rowIndex: currentRow,
+                  ),
+                )
+                .cellStyle =
+            normalDataStyle;
       }
       currentRow++;
     }
