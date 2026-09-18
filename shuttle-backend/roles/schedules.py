@@ -1,9 +1,63 @@
+import re
+import csv
+from io import BytesIO
+from datetime import datetime, time
 from flask import Blueprint, request, jsonify, current_app
-from datetime import datetime
 from roles.notifs import trigger_notification
+
+try:
+    import xlrd
+    from openpyxl import load_workbook
+except ImportError:
+    xlrd = None
+    load_workbook = None
 
 schedules_bp = Blueprint('schedules', __name__)
 supabase = None  
+
+def _normalize_date(val):
+    if not val:
+        return None
+    val_str = str(val).strip().split(' ')[0]
+    if re.match(r'^\d{4}-\d{2}-\d{2}$', val_str):
+        return val_str
+    for fmt in ('%m/%d/%Y', '%d/%m/%Y', '%Y/%m/%d'):
+        try:
+            return datetime.strptime(val_str, fmt).strftime('%Y-%m-%d')
+        except ValueError:
+            pass
+    return val_str
+
+def _normalize_time_str(val):
+    if val is None or str(val).strip() == '':
+        return None
+    if isinstance(val, (datetime, time)):
+        return val.strftime("%H:%M")
+    if isinstance(val, float):
+        if 0 <= val < 1.0:
+            total_minutes = int(round(val * 24 * 60))
+            hours = (total_minutes // 60) % 24
+            minutes = total_minutes % 60
+            return f"{hours:02d}:{minutes:02d}"
+    val_str = str(val).strip()
+    match = re.match(r'^(\d{1,2}):(\d{2})', val_str)
+    if match:
+        h, m = int(match.group(1)), int(match.group(2))
+        return f"{h:02d}:{m:02d}"
+    return val_str
+
+def _normalize_xls_cell(value):
+    if value is None:
+        return ""
+    if isinstance(value, float):
+        if value.is_integer():
+            return str(int(value))
+        return str(value)
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d")
+    if isinstance(value, time):
+        return value.strftime("%H:%M")
+    return str(value).strip()
 
 def _notify_summary_saved(summary_id, staff_id, added=0, updated=0, editing=False):
     try:
@@ -29,7 +83,6 @@ def _notify_summary_saved(summary_id, staff_id, added=0, updated=0, editing=Fals
 
 def _vehicle_type_only(raw_type):
     text = str(raw_type or '').strip()
-    import re
     return re.sub(r'^\s*\d+\s*(seats?|seater)\s*[-–—:]?\s*', '', text, flags=re.IGNORECASE).strip()
 
 def _to_int(value):
@@ -105,6 +158,189 @@ def _trip_payload_changed(existing, update_payload):
                 return True
     return False
 
+@schedules_bp.route('/api/schedules/upload-summary-xls', methods=['POST'])
+def upload_summary_xls():
+    try:
+        if 'file' not in request.files:
+            return jsonify({"success": False, "error": "No file uploaded."}), 400
+
+        uploaded = request.files['file']
+        file_bytes = uploaded.read()
+        filename = uploaded.filename.lower()
+
+        rows = []
+        if filename.endswith('.csv'):
+            decoded_file = file_bytes.decode('utf-8-sig').splitlines()
+            reader = csv.reader(decoded_file)
+            rows = [row for row in reader]
+        else:
+            try:
+                workbook = xlrd.open_workbook(file_contents=file_bytes)
+                sheet = workbook.sheet_by_index(0)
+                rows = [[sheet.cell_value(r, c) for c in range(sheet.ncols)] for r in range(sheet.nrows)]
+            except Exception:
+                if load_workbook is None:
+                    return jsonify({"success": False, "error": "Missing excel parsing libraries."}), 500
+                workbook = load_workbook(filename=BytesIO(file_bytes), data_only=True)
+                sheet = workbook.active
+                rows = [[cell.value for cell in row] for row in sheet.iter_rows()]
+
+        header_idx = -1
+        is_db_dump = False
+        company_name_raw = None
+
+        for i, row in enumerate(rows):
+            row_str = " ".join([str(x) for x in row if x is not None])
+            if 'customer:' in row_str.lower():
+                cust_part = row_str.split(':', 1)[-1].strip()
+                company_name_raw = re.split(r'[\t\n,]', cust_part)[0].strip()
+
+            str_row = [str(x).lower().strip() for x in row if x is not None]
+            if 'trip_id' in str_row and 'schedule_date' in str_row:
+                header_idx = i
+                is_db_dump = True
+                break
+            elif any('route' in c for c in str_row) and any('driver' in c for c in str_row):
+                header_idx = i
+                break
+        
+        if header_idx == -1:
+            return jsonify({"success": False, "error": "Could not locate valid header row."}), 400
+
+        headers = [str(x).strip().lower() for x in rows[header_idx]]
+        
+        db_drivers = supabase.table('driver_profile').select('driver_id, full_name').execute().data or []
+        db_vehicles = supabase.table('vehicle').select('vehicle_id, plate_number, bus_type').execute().data or []
+        db_companies = supabase.table('client_company').select('company_id, company_name').execute().data or []
+
+        matched_company_id = None
+        matched_company_name = None
+        if company_name_raw:
+            for c in db_companies:
+                if c['company_name'].lower() in company_name_raw.lower() or company_name_raw.lower() in c['company_name'].lower():
+                    matched_company_id = c['company_id']
+                    matched_company_name = c['company_name']
+                    break
+
+        driver_id_to_name = {str(d['driver_id']): d['full_name'] for d in db_drivers}
+        vehicle_id_to_plate = {str(v['vehicle_id']): v['plate_number'] for v in db_vehicles}
+        vehicle_id_to_type = {str(v['vehicle_id']): v['bus_type'] for v in db_vehicles}
+
+        def clean_plate(p):
+            return re.sub(r'[^A-Z0-9]', '', str(p or '').upper())
+        vehicle_lookup = {clean_plate(v['plate_number']): v for v in db_vehicles}
+
+        data_rows = []
+        for row in rows[header_idx + 1:]:
+            if not any(row): continue
+            record = {}
+            for idx, h in enumerate(headers):
+                if idx >= len(row): continue
+                val = row[idx]
+                if val is None: val = ""
+                
+                if is_db_dump:
+                    if h == 'schedule_date': record['schedule_date'] = _normalize_date(val)
+                    elif h == 'working_day': record['working_day'] = _normalize_xls_cell(val).upper()
+                    elif h == 'bus_type': record['bus_type'] = _normalize_xls_cell(val)
+                    elif h == 'classification': record['classification'] = _normalize_xls_cell(val)
+                    elif h == 'vehicle_id': record['vehicle_id'] = _normalize_xls_cell(val)
+                    elif h == 'seating_capacity': 
+                        try: record['seating_capacity'] = int(float(_normalize_xls_cell(val)))
+                        except: record['seating_capacity'] = 14
+                    elif h == 'ticket_no': record['ticket_no'] = _normalize_xls_cell(val)
+                    elif h == 'driver_id': record['driver_id'] = _normalize_xls_cell(val)
+                    elif h == 'route_name': record['route_name'] = _normalize_xls_cell(val)
+                    elif h == 'passenger_count': 
+                        try: record['passenger_count'] = int(float(_normalize_xls_cell(val)))
+                        except: record['passenger_count'] = 0
+                    elif h == 'departure_time': record['departure_time'] = _normalize_time_str(val)
+                    elif h == 'estimated_arrival_time': record['estimated_arrival_time'] = _normalize_time_str(val)
+                    elif h == 'utilization_rate': 
+                        try: record['utilization_rate'] = float(_normalize_xls_cell(val))
+                        except: record['utilization_rate'] = None
+                    elif h == 'remarks': record['remarks'] = _normalize_xls_cell(val)
+                else:
+                    if 'date' in h and 'cr' not in h: record['schedule_date'] = _normalize_date(val)
+                    elif 'working' in h: record['working_day'] = _normalize_xls_cell(val).upper()
+                    elif 'type' in h: record['bus_type'] = _normalize_xls_cell(val)
+                    elif 'class' in h: record['classification'] = _normalize_xls_cell(val)
+                    elif 'plate' in h or 'bus no' in h: record['plate_number'] = _normalize_xls_cell(val)
+                    elif 'capacity' in h or 'seating' in h:
+                        try: record['seating_capacity'] = int(float(_normalize_xls_cell(val)))
+                        except: record['seating_capacity'] = 14
+                    elif 'ticket' in h: record['ticket_no'] = _normalize_xls_cell(val)
+                    elif 'driver' in h: record['driver_name'] = _normalize_xls_cell(val)
+                    elif 'route' in h: record['route_name'] = _normalize_xls_cell(val)
+                    elif 'pass' in h or 'pax' in h:
+                        try: record['passenger_count'] = int(float(_normalize_xls_cell(val)))
+                        except: record['passenger_count'] = 0
+                    elif 'dept' in h or 'dep' in h: record['departure_time'] = _normalize_time_str(val)
+                    elif 'arriv' in h: record['estimated_arrival_time'] = _normalize_time_str(val)
+                    elif 'util' in h:
+                        raw_u = str(val).replace('%', '').strip()
+                        try:
+                            u_val = float(raw_u)
+                            record['utilization_rate'] = u_val / 100.0 if u_val > 1.0 else u_val
+                        except: record['utilization_rate'] = None
+                    elif 'remark' in h: record['remarks'] = _normalize_xls_cell(val)
+
+            if not record.get('route_name'): continue
+
+            if is_db_dump:
+                v_id = str(record.get('vehicle_id') or '').strip()
+                d_id = str(record.get('driver_id') or '').strip()
+                record['plate_number'] = vehicle_id_to_plate.get(v_id, 'Unassigned')
+                if not record.get('bus_type'):
+                    record['bus_type'] = vehicle_id_to_type.get(v_id, '')
+                record['driver_name'] = driver_id_to_name.get(d_id, 'Unassigned')
+            else:
+                record['company_id'] = matched_company_id
+                record['client_company'] = matched_company_name
+                raw_plate = clean_plate(record.get('plate_number'))
+                matched_veh = vehicle_lookup.get(raw_plate)
+                if matched_veh:
+                    record['vehicle_id'] = matched_veh['vehicle_id']
+                    record['plate_number'] = matched_veh['plate_number']
+                    if not record.get('bus_type'):
+                        record['bus_type'] = matched_veh.get('bus_type')
+                else:
+                    record['vehicle_id'] = None
+
+                raw_driver = str(record.get('driver_name') or '').strip().upper()
+                matched_driver_id = None
+                matched_driver_name = record.get('driver_name')
+                parts = re.split(r'[\s.]+', raw_driver)
+                parts = [p for p in parts if p]
+                if len(parts) >= 2:
+                    initial = parts[0][0]
+                    surname = parts[-1]
+                    for d in db_drivers:
+                        d_name_upper = d['full_name'].upper()
+                        if surname in d_name_upper and (d_name_upper.startswith(initial) or f" {initial}" in d_name_upper):
+                            matched_driver_id = d['driver_id']
+                            matched_driver_name = d['full_name']
+                            break
+
+                record['driver_id'] = matched_driver_id
+                record['driver_name'] = matched_driver_name
+
+            dep_time = record.get('departure_time') or '08:00'
+            arr_time = record.get('estimated_arrival_time')
+            if not arr_time or str(arr_time).strip() == '':
+                try:
+                    h, m = [int(x) for x in dep_time.split(':')[:2]]
+                    arr_time = f"{(h + 1) % 24:02d}:{m:02d}"
+                except Exception:
+                    arr_time = '09:00'
+            record['estimated_arrival_time'] = arr_time
+
+            data_rows.append(record)
+
+        return jsonify({"success": True, "rows": data_rows}), 200
+    except Exception as exc:
+        return jsonify({"success": False, "error": f"Failed to parse file: {str(exc)}"}), 500
+
 @schedules_bp.route('/api/schedules/staff-options', methods=['GET'])
 def get_staff_options():
     try:
@@ -115,7 +351,6 @@ def get_staff_options():
 
 @schedules_bp.route('/api/schedules/dispatch-options', methods=['GET'])
 def get_dispatch_options():
-    """Returns available vehicles and drivers for summary logging."""
     try:
         all_vehicles = supabase.table('vehicle').select('*').eq('is_available', True).execute()
         raw_drivers = supabase.table('driver_profile').select('*').execute()
@@ -123,7 +358,6 @@ def get_dispatch_options():
         all_drivers = raw_drivers.data or []
         active_drivers = [d for d in all_drivers if str(d.get('employment_status', '')).strip().lower() == 'active']
 
-        # Since operations are strictly summary reports now, we no longer lock out assets.
         return jsonify({
             "success": True,
             "vehicles": all_vehicles.data or [],
@@ -135,7 +369,6 @@ def get_dispatch_options():
 
 @schedules_bp.route('/api/schedules/driver/<string:driver_id>', methods=['GET'])
 def get_driver_trips(driver_id):
-    """Used for evaluating a specific driver's trip history"""
     try:
         query = supabase.table('trip_schedule').select('*').eq('driver_id', driver_id).order('schedule_date', desc=True).execute()
         return jsonify({"success": True, "data": query.data}), 200
@@ -144,7 +377,6 @@ def get_driver_trips(driver_id):
 
 @schedules_bp.route('/api/schedules/all', methods=['GET'])
 def get_all_trips():
-    """Fetches all raw trip summaries for admin/fleet views"""
     try:
         trips = supabase.table('trip_schedule').select('*').order('schedule_date', desc=True).execute()
         vehicles = supabase.table('vehicle').select('*').execute()
@@ -165,7 +397,6 @@ def get_all_trips():
 
 @schedules_bp.route('/api/schedules/staff-summary/<string:staff_uuid>', methods=['GET'])
 def get_staff_trip_summary(staff_uuid):
-    """Fetches grouped trip summaries for the staff UI"""
     try:
         query = supabase.table('trip_schedule').select('*')
         if str(staff_uuid).lower() not in ('all', 'admin'):
@@ -363,7 +594,6 @@ def update_staff_trip_summary(trip_id, data=None, notify=True):
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 
-
 @schedules_bp.route('/api/schedules/staff-summary/save', methods=['POST'])
 def save_staff_trip_summary():
     """Save an editor submission and notify once, including mixed adds/edits."""
@@ -385,7 +615,6 @@ def save_staff_trip_summary():
         updates, additions = [], []
         seen_ids = set()
         for row in rows:
-            # Validate the whole submission before writing any row.
             passengers = int(row.get('passenger_count') or 0)
             capacity = int(row.get('seating_capacity') or 0)
             if capacity and passengers > capacity:

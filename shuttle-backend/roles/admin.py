@@ -307,17 +307,25 @@ def diagnostic_database_check():
     except Exception as e:
         print(f"❌ Diagnostic database connection failed: {e}")
         return jsonify({"connection_status": "FAILED", "error_details": str(e)}), 500
-
+    
 @admin_bp.route('/trips', methods=['GET'])
+@admin_bp.route('/api/trips', methods=['GET'])
 def get_admin_schedules():
     try:
-        trips_res = supabase.table('trip_schedule').select(
+        query = supabase.table('trip_schedule').select(
             'trip_id, schedule_date, departure_time, route_name, '
             'passenger_count, estimated_arrival_time, company_id, '
             'vehicle_id, vehicle(plate_number, bus_type), '
             'driver_id, user_account(full_name)'
-        ).order('schedule_date', desc=False).execute()
-        
+        )
+
+        # Apply the year filter so the DB doesn't cut off data at 1000 rows
+        year_param = request.args.get('year')
+        if year_param and year_param.isdigit():
+            query = query.gte('schedule_date', f'{year_param}-01-01').lt('schedule_date', f'{int(year_param)+1}-01-01')
+
+        # Limit safely increased to 10000 for heavy payloads
+        trips_res = query.order('schedule_date', desc=False).limit(10000).execute()
         raw_trips = trips_res.data or []
 
         clients_res = supabase.table('client_company').select('company_id, company_name').execute()
@@ -327,7 +335,8 @@ def get_admin_schedules():
             if c.get('company_id') is not None
         }
 
-        evals_res = supabase.table('evaluation').select('trip_id, safety_score, punctuality_score, professionalism_score').execute()
+        # Safe limit for evaluations
+        evals_res = supabase.table('evaluation').select('trip_id, safety_score, punctuality_score, professionalism_score').limit(10000).execute()
         
         trip_evals = {}
         for ev in (evals_res.data or []):
@@ -443,23 +452,23 @@ def import_attendance_records():
 @admin_bp.route('/api/dashboard/metrics', methods=['GET'])
 def get_dashboard_metrics():
     try:
+        # FIX: Removed 'user_id' from the select statement and removed the separate user mapping
         drivers_query = supabase.table('driver_profile').select(
-            'driver_id, user_id, full_name, phone_no, '
-            'employment_status, date_hired, birthday, user_account(username)'
+            'driver_id, full_name, phone_no, employment_status, date_hired, birthday'
         ).execute()
         all_drivers = drivers_query.data or []
+        
         total_drivers = len(all_drivers)
         active_driver_rows = [
             driver for driver in all_drivers
             if str(driver.get('employment_status') or 'Active').strip().lower() == 'active'
         ]
         active_drivers_count = len(active_driver_rows)
+        
         driver_details = [
             {
-                "label": driver.get('full_name') or f"Driver {driver.get('user_id', 'Unknown')}",
+                "label": driver.get('full_name') or f"Driver {driver.get('driver_id', 'Unknown')}",
                 "driver_id": driver.get('driver_id'),
-                "user_id": driver.get('user_id'),
-                "username": (driver.get('user_account') or {}).get('username'),
                 "phone_no": driver.get('phone_no', '09123456789'),
                 "employment_status": driver.get('employment_status', 'Active'),
                 "date_hired": driver.get('date_hired'),
