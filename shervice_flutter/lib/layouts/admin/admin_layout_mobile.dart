@@ -5,6 +5,7 @@ import '../../screens/admin/admin_drivers.dart';
 import '../../screens/admin/admin_vehicles.dart';
 import '../../screens/admin/admin_users.dart';
 import '../../screens/admin/admin_settings.dart';
+import '../../screens/admin/admin_payroll.dart';
 import '../../login/login.dart';
 import '../../widgets/shared/notification_bell.dart';
 import '../../widgets/shared/shervice_floating_stack.dart';
@@ -39,6 +40,7 @@ class _AdminMobileLayoutState extends State<AdminMobileLayout> {
     const AdminUsers(),
     const AdminCompanies(),
     const SharedAnalyticsHub(),
+    const AdminPayroll(),
     AdminSettings(adminId: widget.adminId),
   ];
 
@@ -50,6 +52,7 @@ class _AdminMobileLayoutState extends State<AdminMobileLayout> {
     'Users',
     'Companies',
     'Analytics',
+    'Payroll',
     'Settings',
   ];
 
@@ -61,6 +64,7 @@ class _AdminMobileLayoutState extends State<AdminMobileLayout> {
     Icons.admin_panel_settings_outlined,
     Icons.business_outlined,
     Icons.analytics_outlined,
+    Icons.payments_outlined,
     Icons.settings_outlined,
   ];
 

@@ -4,6 +4,7 @@ import '../../screens/staff/staff_vehicle.dart';
 import '../../screens/staff/staff_trips.dart';
 import '../../screens/staff/staff_drivers.dart';
 import '../../screens/staff/staff_reports_manager.dart';
+import '../../screens/staff/staff_payroll.dart';
 import '../../widgets/shared/shared_analytics_hub.dart';
 import '../../login/login.dart';
 import '../../screens/staff/staff_settings.dart';
@@ -48,6 +49,7 @@ class _StaffLayoutDesktopState extends State<StaffLayoutDesktop> {
       StaffVehicle(staffId: widget.staffId),
       const StaffDrivers(),
       const StaffReportsManager(),
+      const StaffPayroll(),
       SharedAnalyticsHub(),
       StaffSettings(
         staffId: widget.staffId,
@@ -184,8 +186,9 @@ class _StaffLayoutDesktopState extends State<StaffLayoutDesktop> {
                   'Attendance',
                   Icons.fact_check_outlined,
                 ),
-                _buildNavItem(5, 'Analytics', Icons.analytics),
-                _buildNavItem(6, 'Settings', Icons.settings_outlined),
+                _buildNavItem(5, 'Payroll', Icons.payments_outlined),
+                _buildNavItem(6, 'Analytics', Icons.analytics),
+                _buildNavItem(7, 'Settings', Icons.settings_outlined),
               ],
             ),
           ),

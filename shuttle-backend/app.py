@@ -13,6 +13,7 @@ import roles.staff as staff_module
 import roles.evaluation as evaluation_module
 import roles.vehicle as vehicles_module  
 import roles.schedules as schedules_module
+import roles.payroll as payroll_module
 import roles.predictive_ml as predictive_ml
 import roles.driver_ml as driver_ml_module
 import roles.route_ml as route_ml_module
@@ -63,6 +64,7 @@ class TransportBackendApp:
         evaluation_module.supabase = self.supabase
         vehicles_module.supabase = self.supabase  
         schedules_module.supabase = self.supabase
+        payroll_module.supabase = self.supabase
         predictive_ml.supabase = self.supabase
         driver_ml_module.supabase = self.supabase
         route_ml_module.supabase = self.supabase
@@ -75,6 +77,7 @@ class TransportBackendApp:
         self.app.register_blueprint(evaluation_module.evaluate_bp)
         self.app.register_blueprint(vehicles_module.vehicles_bp) 
         self.app.register_blueprint(schedules_module.schedules_bp)
+        self.app.register_blueprint(payroll_module.payroll_bp)
         self.app.register_blueprint(predictive_ml.predictive_bp)
         self.app.register_blueprint(driver_ml_module.driver_ml_bp)
         self.app.register_blueprint(route_ml_module.route_ml_bp)
