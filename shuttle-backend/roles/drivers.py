@@ -7,13 +7,12 @@ supabase = None
 def get_all_drivers():
     try:
         res = supabase.table('driver_profile')\
-            .select('*, user_account(username)')\
+            .select('*')\
             .execute()
 
         drivers = res.data or []
         for driver in drivers:
-            account = driver.pop('user_account', None) or {}
-            driver['username'] = account.get('username', '')
+            driver['username'] = driver.get('username', '')
 
         return jsonify({
             "connection_status": "SUCCESS",
