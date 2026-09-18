@@ -46,20 +46,3 @@ app.*.map.json
 
 .vercel
 .env*
-**
-!lib/
-!lib/screens/
-!lib/screens/admin/
-!lib/screens/admin/admin_payroll.dart
-!lib/screens/admin/admin_routes.dart
-!lib/screens/staff/
-!lib/screens/staff/staff_payroll.dart
-!lib/screens/staff/staff_routes.dart
-!lib/widgets/
-!lib/widgets/shared/
-!lib/widgets/shared/attendance.dart
-!lib/widgets/shared/payroll.dart
-!lib/widgets/shared/route_management.dart
-!lib/widgets/staff/
-!lib/widgets/staff/staff_trips.dart
-!lib/widgets/staff/trip_summary_editor_page.dart
