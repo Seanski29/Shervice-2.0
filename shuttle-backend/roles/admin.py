@@ -26,9 +26,19 @@ def get_admin_client():
         raise RuntimeError("Missing SUPABASE_SERVICE_ROLE_KEY for admin auth operations.")
     return create_client(os.getenv("SUPABASE_URL"), admin_key)
 
-def _normalize_xls_cell(value: Any) -> Any:
+def _normalize_xls_cell(value: Any, cell_type: Optional[int] = None, datemode: int = 0) -> Any:
     if value is None:
         return ""
+    if cell_type == xlrd.XL_CELL_DATE:
+        try:
+            parsed = xlrd.xldate_as_datetime(value, datemode)
+            if parsed.date().isoformat() == "1899-12-31":
+                return parsed.strftime("%H:%M")
+            if parsed.hour or parsed.minute or parsed.second:
+                return parsed.strftime("%Y-%m-%d %H:%M:%S")
+            return parsed.date().isoformat()
+        except (ValueError, TypeError, OverflowError):
+            pass
     if isinstance(value, float):
         if value.is_integer():
             return str(int(value))
@@ -46,7 +56,13 @@ def parse_legacy_xls_bytes(file_bytes: bytes) -> Dict[str, Any]:
         for row_idx in range(sheet.nrows):
             values = []
             for col_idx in range(sheet.ncols):
-                values.append(sheet.cell_value(row_idx, col_idx))
+                values.append(
+                    _normalize_xls_cell(
+                        sheet.cell_value(row_idx, col_idx),
+                        sheet.cell_type(row_idx, col_idx),
+                        workbook.datemode,
+                    )
+                )
             rows.append(values)
 
         if not rows:
@@ -57,14 +73,20 @@ def parse_legacy_xls_bytes(file_bytes: bytes) -> Dict[str, Any]:
             normalized = _normalize_xls_cell(header)
             headers.append(normalized or f"Column {index + 1}")
 
-        data_rows = []
+        has_table_header = any(
+            str(header).strip().lower()
+            in {"employee id", "employee name", "employee", "date", "time in"}
+            for header in headers
+        )
+
+        data_rows: List[Any] = []
         for row in rows[1:]:
             record = {}
             for index, header in enumerate(headers):
                 value = row[index] if index < len(row) else ""
                 record[header] = _normalize_xls_cell(value)
             if any(str(value).strip() for value in record.values()):
-                data_rows.append(record)
+                data_rows.append(record if has_table_header else row)
 
         workbook_out = Workbook()
         ws = workbook_out.active
