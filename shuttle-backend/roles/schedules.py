@@ -85,6 +85,43 @@ def _vehicle_type_only(raw_type):
     text = str(raw_type or '').strip()
     return re.sub(r'^\s*\d+\s*(seats?|seater)\s*[-–—:]?\s*', '', text, flags=re.IGNORECASE).strip()
 
+def _is_missing_vehicle_type_column(error):
+    code = str(getattr(error, 'code', ''))
+    message = str(getattr(error, 'message', error))
+    details = str(getattr(error, 'details', ''))
+    return (
+        (code == 'PGRST204' or 'PGRST204' in message)
+        and 'vehicle_type' in f'{message} {details}'
+    )
+
+def _legacy_summary_payload(payload):
+    """Map vehicle_type to bus_type until the database migration is applied."""
+    legacy_payload = dict(payload)
+    vehicle_type = legacy_payload.pop('vehicle_type', None)
+    if vehicle_type and not legacy_payload.get('bus_type'):
+        legacy_payload['bus_type'] = vehicle_type
+    return legacy_payload
+
+def _insert_summary_rows(payloads):
+    try:
+        return supabase.table('trip_schedule').insert(payloads).execute()
+    except Exception as error:
+        if not _is_missing_vehicle_type_column(error):
+            raise
+        return supabase.table('trip_schedule').insert(
+            [_legacy_summary_payload(row) for row in payloads]
+        ).execute()
+
+def _update_summary_row(trip_id, payload):
+    try:
+        return supabase.table('trip_schedule').update(payload).eq('trip_id', trip_id).execute()
+    except Exception as error:
+        if not _is_missing_vehicle_type_column(error):
+            raise
+        return supabase.table('trip_schedule').update(
+            _legacy_summary_payload(payload)
+        ).eq('trip_id', trip_id).execute()
+
 def _to_int(value):
     if value in (None, ''):
         return None
@@ -111,7 +148,7 @@ def _trip_update_payload(data):
 
     update_payload = {}
     text_fields = [
-        'summary_id', 'schedule_date', 'working_day', 'bus_type',
+        'summary_id', 'schedule_date', 'working_day', 'bus_type', 'vehicle_type',
         'classification', 'ticket_no', 'route_name', 'departure_time',
         'estimated_arrival_time', 'remarks',
     ]
@@ -210,7 +247,7 @@ def upload_summary_xls():
         headers = [str(x).strip().lower() for x in rows[header_idx]]
         
         db_drivers = supabase.table('driver_profile').select('driver_id, full_name').execute().data or []
-        db_vehicles = supabase.table('vehicle').select('vehicle_id, plate_number, bus_type').execute().data or []
+        db_vehicles = supabase.table('vehicle').select('vehicle_id, plate_number, bus_type, vehicle_type').execute().data or []
         db_companies = supabase.table('client_company').select('company_id, company_name').execute().data or []
 
         matched_company_id = None
@@ -224,7 +261,7 @@ def upload_summary_xls():
 
         driver_id_to_name = {str(d['driver_id']): d['full_name'] for d in db_drivers}
         vehicle_id_to_plate = {str(v['vehicle_id']): v['plate_number'] for v in db_vehicles}
-        vehicle_id_to_type = {str(v['vehicle_id']): v['bus_type'] for v in db_vehicles}
+        vehicle_id_to_type = {str(v['vehicle_id']): v.get('vehicle_type') for v in db_vehicles}
 
         def clean_plate(p):
             return re.sub(r'[^A-Z0-9]', '', str(p or '').upper())
@@ -243,6 +280,7 @@ def upload_summary_xls():
                     if h == 'schedule_date': record['schedule_date'] = _normalize_date(val)
                     elif h == 'working_day': record['working_day'] = _normalize_xls_cell(val).upper()
                     elif h == 'bus_type': record['bus_type'] = _normalize_xls_cell(val)
+                    elif 'vehicle type' in h: record['vehicle_type'] = _normalize_xls_cell(val)
                     elif h == 'classification': record['classification'] = _normalize_xls_cell(val)
                     elif h == 'vehicle_id': record['vehicle_id'] = _normalize_xls_cell(val)
                     elif h == 'seating_capacity': 
@@ -263,7 +301,8 @@ def upload_summary_xls():
                 else:
                     if 'date' in h and 'cr' not in h: record['schedule_date'] = _normalize_date(val)
                     elif 'working' in h: record['working_day'] = _normalize_xls_cell(val).upper()
-                    elif 'type' in h: record['bus_type'] = _normalize_xls_cell(val)
+                    elif 'vehicle type' in h: record['vehicle_type'] = _normalize_xls_cell(val)
+                    elif 'type' in h: record['vehicle_type'] = _normalize_xls_cell(val)
                     elif 'class' in h: record['classification'] = _normalize_xls_cell(val)
                     elif 'plate' in h or 'bus no' in h: record['plate_number'] = _normalize_xls_cell(val)
                     elif 'capacity' in h or 'seating' in h:
@@ -291,8 +330,8 @@ def upload_summary_xls():
                 v_id = str(record.get('vehicle_id') or '').strip()
                 d_id = str(record.get('driver_id') or '').strip()
                 record['plate_number'] = vehicle_id_to_plate.get(v_id, 'Unassigned')
-                if not record.get('bus_type'):
-                    record['bus_type'] = vehicle_id_to_type.get(v_id, '')
+                if not record.get('vehicle_type'):
+                    record['vehicle_type'] = vehicle_id_to_type.get(v_id, '')
                 record['driver_name'] = driver_id_to_name.get(d_id, 'Unassigned')
             else:
                 record['company_id'] = matched_company_id
@@ -302,8 +341,8 @@ def upload_summary_xls():
                 if matched_veh:
                     record['vehicle_id'] = matched_veh['vehicle_id']
                     record['plate_number'] = matched_veh['plate_number']
-                    if not record.get('bus_type'):
-                        record['bus_type'] = matched_veh.get('bus_type')
+                    if not record.get('vehicle_type'):
+                        record['vehicle_type'] = matched_veh.get('vehicle_type')
                 else:
                     record['vehicle_id'] = None
 
@@ -405,11 +444,12 @@ def get_staff_trip_summary(staff_uuid):
 
         vehicles = supabase.table('vehicle').select('*').execute()
         drivers = supabase.table('driver_profile').select('*').execute()
-        companies = supabase.table('client_company').select('company_id, company_name').execute()
+        companies = supabase.table('client_company').select('*').execute()
 
         v_map = {v['vehicle_id']: v for v in (vehicles.data or []) if v.get('vehicle_id') is not None}
         d_map = {d['driver_id']: d['full_name'] for d in (drivers.data or []) if d.get('driver_id') is not None}
         c_map = {c['company_id']: c['company_name'] for c in (companies.data or []) if c.get('company_id') is not None}
+        company_rows = {c['company_id']: c for c in (companies.data or []) if c.get('company_id') is not None}
 
         formatted_trips = []
         for trip in trips.data or []:
@@ -435,11 +475,20 @@ def get_staff_trip_summary(staff_uuid):
                 **trip,
                 'date': schedule_date,
                 'working_day': working_day,
-                'bus_type': _vehicle_type_only(trip.get('bus_type') or vehicle.get('bus_type')),
+                'bus_type': trip.get('bus_type') or vehicle.get('bus_type'),
+                'vehicle_type': (
+                    trip.get('vehicle_type') or vehicle.get('vehicle_type')
+                    or trip.get('bus_type') or vehicle.get('bus_type') or 'Unspecified'
+                ),
                 'plate_number': vehicle.get('plate_number', 'Unassigned'),
                 'seating_capacity': seating_capacity,
                 'driver_name': d_map.get(trip.get('driver_id'), 'Unassigned'),
                 'client_company': c_map.get(trip.get('company_id'), 'Unknown Client'),
+                'client_company_address': (
+                    company_rows.get(trip.get('company_id'), {}).get('address')
+                    or company_rows.get(trip.get('company_id'), {}).get('company_address')
+                    or ''
+                ),
                 'utilization_rate': utilization_rate,
             })
 
@@ -497,7 +546,8 @@ def create_staff_trip_summary(data=None, notify=True):
                 "company_id": to_int(row.get('company_id') or data.get('company_id')),
                 "schedule_date": schedule_date,
                 "working_day": row.get('working_day'),
-                "bus_type": _vehicle_type_only(row.get('bus_type')),
+                "bus_type": _vehicle_type_only(row.get('bus_type') or row.get('vehicle_type')),
+                "vehicle_type": str(row.get('vehicle_type') or '').strip() or None,
                 "classification": row.get('classification'),
                 "vehicle_id": to_int(row.get('vehicle_id')),
                 "seating_capacity": seating_capacity,
@@ -514,7 +564,7 @@ def create_staff_trip_summary(data=None, notify=True):
         if not payloads:
             return jsonify({"success": False, "message": "At least one trip summary row with a date is required."}), 400
 
-        response = supabase.table('trip_schedule').insert(payloads).execute()
+        response = _insert_summary_rows(payloads)
         if notify:
             _notify_summary_saved(summary_id, staff_id, added=len(payloads))
         return jsonify({
@@ -553,7 +603,7 @@ def update_staff_trip_summary(trip_id, data=None, notify=True):
 
         update_payload = {}
         text_fields = [
-            'summary_id', 'schedule_date', 'working_day', 'bus_type',
+            'summary_id', 'schedule_date', 'working_day', 'bus_type', 'vehicle_type',
             'classification', 'ticket_no', 'route_name', 'departure_time',
             'estimated_arrival_time', 'remarks',
         ]
@@ -578,7 +628,7 @@ def update_staff_trip_summary(trip_id, data=None, notify=True):
         if not update_payload:
             return jsonify({"success": False, "message": "No trip summary fields to update."}), 400
 
-        response = supabase.table('trip_schedule').update(update_payload).eq('trip_id', trip_id).execute()
+        response = _update_summary_row(trip_id, update_payload)
         updated_rows = response.data or []
         if not updated_rows:
             return jsonify({"success": False, "message": "Trip summary row not found."}), 404

@@ -47,7 +47,8 @@ class _AdminCompaniesState extends State<AdminCompanies> {
   }
 
   Future<void> _addCompanyDialog() async {
-    final controller = TextEditingController();
+    final nameController = TextEditingController();
+    final addressController = TextEditingController();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     await showDialog(
@@ -59,18 +60,38 @@ class _AdminCompaniesState extends State<AdminCompanies> {
           'Add Client Company',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-          decoration: InputDecoration(
-            labelText: 'Company Name',
-            hintText: 'e.g. Bandai, EPSON, Denso',
-            prefixIcon: const Icon(Icons.business),
-            filled: true,
-            fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              autofocus: true,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              decoration: InputDecoration(
+                labelText: 'Company Name',
+                hintText: 'e.g. Bandai, EPSON, Denso',
+                prefixIcon: const Icon(Icons.business),
+                filled: true,
+                fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: addressController,
+              minLines: 1,
+              maxLines: 3,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              decoration: InputDecoration(
+                labelText: 'Address',
+                hintText: 'Company street, city, and province',
+                prefixIcon: const Icon(Icons.location_on_outlined),
+                filled: true,
+                fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -85,10 +106,11 @@ class _AdminCompaniesState extends State<AdminCompanies> {
               ),
             ),
             onPressed: () async {
-              final name = controller.text.trim();
-              if (name.isEmpty) return;
+              final name = nameController.text.trim();
+              final address = addressController.text.trim();
+              if (name.isEmpty || address.isEmpty) return;
               Navigator.pop(ctx);
-              _submitAddCompany(name);
+              _submitAddCompany(name, address);
             },
             child: const Text(
               'Add Company',
@@ -101,16 +123,18 @@ class _AdminCompaniesState extends State<AdminCompanies> {
         ],
       ),
     );
+    nameController.dispose();
+    addressController.dispose();
   }
 
-  Future<void> _submitAddCompany(String name) async {
+  Future<void> _submitAddCompany(String name, String address) async {
     setState(() => _isLoading = true);
     try {
       final res = await http
           .post(
             Uri.parse('$backendUrl/companies'),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'company_name': name}),
+            body: jsonEncode({'company_name': name, 'address': address}),
           )
           .timeout(const Duration(seconds: 10));
 
@@ -179,6 +203,58 @@ class _AdminCompaniesState extends State<AdminCompanies> {
         ],
       ),
     );
+  }
+
+  Future<void> _editCompanyDialog(Map<String, dynamic> company) async {
+    final nameController = TextEditingController(
+      text: (company['company_name'] ?? '').toString(),
+    );
+    final addressController = TextEditingController(
+      text: (company['address'] ?? '').toString(),
+    );
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Company Details'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Company Name')),
+            TextField(controller: addressController, minLines: 1, maxLines: 3, decoration: const InputDecoration(labelText: 'Address')),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              final name = nameController.text.trim();
+              final address = addressController.text.trim();
+              if (name.isEmpty || address.isEmpty) return;
+              Navigator.pop(ctx);
+              try {
+                final response = await http.put(
+                  Uri.parse('$backendUrl/companies/${company['company_id']}'),
+                  headers: {'Content-Type': 'application/json'},
+                  body: jsonEncode({'company_name': name, 'address': address}),
+                );
+                final result = jsonDecode(response.body);
+                if (response.statusCode == 200 && result['success'] == true) {
+                  _showSnackBar('Company details updated.', const Color(0xFF10B981));
+                  await _fetchCompanies();
+                } else {
+                  _showSnackBar(result['message'] ?? 'Company update failed.', const Color(0xFFEF4444));
+                }
+              } catch (error) {
+                _showSnackBar('Company update failed: $error', const Color(0xFFEF4444));
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+    nameController.dispose();
+    addressController.dispose();
   }
 
   Future<void> _deleteCompany(Map<String, dynamic> company) async {
@@ -489,6 +565,18 @@ class _AdminCompaniesState extends State<AdminCompanies> {
                                         color: textColor,
                                       ),
                                     ),
+                                    if ((comp['address'] ?? '').toString().trim().isNotEmpty) ...[
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        comp['address'].toString(),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                                        ),
+                                      ),
+                                    ],
                                     const SizedBox(height: 2),
                                     Text(
                                       isInternal
@@ -504,6 +592,12 @@ class _AdminCompaniesState extends State<AdminCompanies> {
                                   ],
                                 ),
                               ),
+                              if (!isInternal)
+                                IconButton(
+                                  icon: const Icon(Icons.edit_outlined, color: Color(0xFF2563EB)),
+                                  tooltip: 'Edit Company',
+                                  onPressed: () => _editCompanyDialog(Map<String, dynamic>.from(comp)),
+                                ),
                               if (!isInternal)
                                 IconButton(
                                   icon: Icon(

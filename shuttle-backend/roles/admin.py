@@ -264,10 +264,26 @@ def _save_attendance_rows(rows: List[Dict[str, Any]], source_file: str) -> List[
 @admin_bp.route('/driver/all', methods=['GET'])
 def diagnostic_database_check():
     try:
-        test_query = supabase.table('driver_profile').select(
-            '*, user_account(username)'
-        ).execute()
-        raw_data = test_query.data or []
+        driver_query = supabase.table('driver_profile').select('*').limit(10000).execute()
+        raw_data = driver_query.data or []
+
+        # driver_profile.user_id has no PostgREST relationship to user_account
+        # in every deployed schema, so fetch usernames separately and join by ID.
+        user_ids = list({
+            str(row['user_id']) for row in raw_data if row.get('user_id') is not None
+        })
+        usernames = {}
+        if user_ids:
+            try:
+                accounts = supabase.table('user_account').select(
+                    'user_id, username'
+                ).in_('user_id', user_ids).execute().data or []
+                usernames = {
+                    str(account['user_id']): account.get('username', '')
+                    for account in accounts if account.get('user_id') is not None
+                }
+            except Exception as account_error:
+                print(f"Driver username lookup skipped: {account_error}")
 
         evals_query = supabase.table('evaluation').select('driver_id, safety_score, punctuality_score, professionalism_score').limit(10000).execute()
         
@@ -286,8 +302,7 @@ def diagnostic_database_check():
 
         flattened_drivers = []
         for row in raw_data:
-            linked_account = row.get('user_account') or {}
-            row['username'] = linked_account.get('username', '')
+            row['username'] = usernames.get(str(row.get('user_id')), '')
             
             if not row.get('phone_no'):
                 row['phone_no'] = '09123456789'
@@ -881,7 +896,11 @@ def add_client_company():
         if not name:
             return jsonify({"success": False, "message": "Company name is required."}), 400
 
-        res = supabase.table('client_company').insert({"company_name": name}).execute()
+        address = (data.get('address') or '').strip()
+        if not address:
+            return jsonify({"success": False, "message": "Company address is required."}), 400
+
+        res = supabase.table('client_company').insert({"company_name": name, "address": address}).execute()
         return jsonify({"success": True, "message": "Company added successfully!", "data": res.data}), 201
     except Exception as e:
         print(f"❌ Add Company Error: {e}")
@@ -905,3 +924,23 @@ def delete_client_company(company_id):
     except Exception as e:
         print(f"❌ Delete Company Error: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
+
+@admin_bp.route('/api/companies/<int:company_id>', methods=['PUT'])
+def update_client_company(company_id):
+    try:
+        data = request.get_json() or {}
+        name = (data.get('company_name') or '').strip()
+        address = (data.get('address') or '').strip()
+        if not name or not address:
+            return jsonify({'success': False, 'message': 'Company name and address are required.'}), 400
+
+        result = supabase.table('client_company').update({
+            'company_name': name,
+            'address': address,
+        }).eq('company_id', company_id).execute()
+        if not result.data:
+            return jsonify({'success': False, 'message': 'Company not found.'}), 404
+        return jsonify({'success': True, 'data': result.data}), 200
+    except Exception as e:
+        print(f"Company update error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500

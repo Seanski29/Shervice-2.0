@@ -1790,6 +1790,7 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
 
   late TextEditingController _plateController;
   late TextEditingController _modelController;
+  late TextEditingController _vehicleTypeController;
   late TextEditingController _modelYearController;
   late TextEditingController _insuranceNoController;
   late TextEditingController _insuranceExpiryController;
@@ -1821,6 +1822,9 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
       text: isEdit ? (widget.vehicle!['plate_number'] ?? '') : '',
     );
     _modelController = TextEditingController(text: parsedModel);
+    _vehicleTypeController = TextEditingController(
+      text: isEdit ? (widget.vehicle!['vehicle_type'] ?? 'Van').toString() : 'Van',
+    );
     _modelYearController = TextEditingController(
       text: isEdit ? (widget.vehicle!['model_year'] ?? '') : '',
     );
@@ -1926,6 +1930,7 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
         ),
         'bus_type':
             "$_selectedCapacity - ${cleanStr(_modelController, 'Standard Shuttle')}",
+        'vehicle_type': cleanStr(_vehicleTypeController, 'Van'),
         'model_year': cleanStr(_modelYearController, '2026'),
         'insurance_policy_no': cleanStr(_insuranceNoController, 'N/A'),
         'insurance_expiry': cleanStr(_insuranceExpiryController, '2027-01-01'),
@@ -1996,6 +2001,7 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
   void dispose() {
     _plateController.dispose();
     _modelController.dispose();
+    _vehicleTypeController.dispose();
     _modelYearController.dispose();
     _insuranceNoController.dispose();
     _insuranceExpiryController.dispose();
@@ -2071,6 +2077,18 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _vehicleTypeController,
+                  readOnly: !_isWritingUnlocked,
+                  style: TextStyle(color: textColor),
+                  decoration: _fieldStyle(
+                    context: context,
+                    label: 'Vehicle Type (e.g. Van, Jeep)',
+                    icon: Icons.category_outlined,
+                  ),
+                  validator: (val) => val!.trim().isEmpty ? 'Required' : null,
                 ),
                 const SizedBox(height: 14),
                 Row(
