@@ -7,6 +7,7 @@ import '../../screens/admin/admin_users.dart';
 import '../../screens/admin/admin_reports_manager.dart';
 import '../../screens/admin/admin_settings.dart';
 import '../../screens/admin/admin_payroll.dart';
+import '../../screens/admin/admin_routes.dart';
 import '../../login/login.dart';
 import '../../widgets/shared/notification_bell.dart';
 import '../../widgets/shared/shervice_floating_stack.dart';
@@ -50,6 +51,7 @@ class _AdminDesktopLayoutState extends State<AdminDesktopLayout> {
       const SharedAnalyticsHub(),
       const AdminReportsManager(),
       const AdminPayroll(),
+      const AdminRoutes(),
       AdminSettings(adminId: widget.adminId),
       // Note: You can add AdminFeedbacks() here if you want it mapped to a sidebar index!
     ];
@@ -189,7 +191,8 @@ class _AdminDesktopLayoutState extends State<AdminDesktopLayout> {
                   Icons.fact_check_outlined,
                 ),
                 _buildNavItem(8, 'Payroll', Icons.payments_outlined),
-                _buildNavItem(9, 'Settings', Icons.settings_outlined),
+                _buildNavItem(9, 'Route Management', Icons.route_outlined),
+                _buildNavItem(10, 'Settings', Icons.settings_outlined),
               ],
             ),
           ),

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import '../../constant.dart';
 
@@ -40,6 +41,7 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
   List<Map<String, dynamic>> _vehicles = [];
   List<Map<String, dynamic>> _drivers = [];
   List<Map<String, dynamic>> _companies = [];
+  List<Map<String, dynamic>> _routes = [];
   String? _selectedCompanyId;
   String _selectedCompanyLabel = '';
 
@@ -98,6 +100,7 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
     }
     _loadDispatchOptions();
     _loadCompanies();
+    _loadRoutes();
   }
 
   @override
@@ -179,6 +182,25 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
     }
   }
 
+  Future<void> _loadRoutes() async {
+    try {
+      final response = await http
+          .get(Uri.parse('$backendUrl/routes'))
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) return;
+      final decoded = jsonDecode(response.body);
+      if (!mounted) return;
+      setState(() {
+        _routes = (decoded['data'] as List? ?? [])
+            .whereType<Map>()
+            .map((row) => Map<String, dynamic>.from(row))
+            .toList();
+      });
+    } catch (error) {
+      debugPrint('Route options fetch failed: $error');
+    }
+  }
+
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -203,21 +225,61 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
     setState(() => _rows.removeAt(index).dispose());
   }
 
-  Future<void> _selectVehicle(_EditorSummaryRow row) async {
-    final selected = await _showSearchPicker(
-      title: 'Select Vehicle',
-      items: _vehicles,
-      labelBuilder: (vehicle) {
-        final plate = (vehicle['plate_number'] ?? 'Unnamed Vehicle').toString();
-        final type = (vehicle['vehicle_type'] ?? '').toString().trim();
-        return type.isEmpty ? plate : '$plate - $type';
-      },
-    );
-    if (selected == null) return;
+  String _vehicleOptionLabel(Map<String, dynamic> vehicle) {
+    final plate = (vehicle['plate_number'] ?? 'Unnamed Vehicle').toString();
+    final type = (vehicle['vehicle_type'] ?? vehicle['bus_type'] ?? '')
+        .toString()
+        .trim();
+    return type.isEmpty ? plate : '$plate - $type';
+  }
+
+  String _driverOptionLabel(Map<String, dynamic> driver) {
+    final name = (driver['full_name'] ?? 'Unnamed Driver').toString();
+    final id = driver['driver_id']?.toString();
+    return id == null || id.trim().isEmpty ? name : '$name #$id';
+  }
+
+  bool _matchesOptionLabel(String option, String query) {
+    return option.toLowerCase().contains(query.trim().toLowerCase());
+  }
+
+  void _resolveTypedVehicle(_EditorSummaryRow row) {
+    if (row.vehicleId != null && row.vehicleId!.trim().isNotEmpty) return;
+    final typed = row.vehicle.text.trim().toLowerCase();
+    if (typed.isEmpty) return;
+    for (final vehicle in _vehicles) {
+      final plate = (vehicle['plate_number'] ?? '').toString().trim().toLowerCase();
+      final label = _vehicleOptionLabel(vehicle).trim().toLowerCase();
+      final id = (vehicle['vehicle_id'] ?? '').toString().trim().toLowerCase();
+      if (typed == plate || typed == label || typed == id) {
+        row.vehicleId = vehicle['vehicle_id']?.toString();
+        return;
+      }
+    }
+  }
+
+  void _resolveTypedDriver(_EditorSummaryRow row) {
+    if (row.driverId != null && row.driverId!.trim().isNotEmpty) return;
+    final typed = row.driver.text.trim().toLowerCase();
+    if (typed.isEmpty) return;
+    for (final driver in _drivers) {
+      final name = (driver['full_name'] ?? '').toString().trim().toLowerCase();
+      final label = _driverOptionLabel(driver).trim().toLowerCase();
+      final id = (driver['driver_id'] ?? '').toString().trim().toLowerCase();
+      if (typed == name || typed == label || typed == id || typed == '#$id') {
+        row.driverId = driver['driver_id']?.toString();
+        return;
+      }
+    }
+  }
+
+  void _selectVehicleOption(_EditorSummaryRow row, Map<String, dynamic> selected) {
     setState(() {
       row.vehicleId = selected['vehicle_id']?.toString();
-      row.vehicleLabel = (selected['plate_number'] ?? 'Selected Vehicle')
-          .toString();
+      row.vehicle.text = _vehicleOptionLabel(selected);
+      row.vehicle.selection = TextSelection.fromPosition(
+        TextPosition(offset: row.vehicle.text.length),
+      );
 
       final rawType = (selected['bus_type'] ?? '').toString();
       final type = (selected['vehicle_type'] ?? '').toString().trim();
@@ -242,17 +304,13 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
     return match == null ? null : int.tryParse(match.group(1) ?? '');
   }
 
-  Future<void> _selectDriver(_EditorSummaryRow row) async {
-    final selected = await _showSearchPicker(
-      title: 'Select Driver',
-      items: _drivers,
-      labelBuilder: (driver) =>
-          (driver['full_name'] ?? 'Unnamed Driver').toString(),
-    );
-    if (selected == null) return;
+  void _selectDriverOption(_EditorSummaryRow row, Map<String, dynamic> selected) {
     setState(() {
       row.driverId = selected['driver_id']?.toString();
-      row.driverLabel = (selected['full_name'] ?? 'Selected Driver').toString();
+      row.driver.text = _driverOptionLabel(selected);
+      row.driver.selection = TextSelection.fromPosition(
+        TextPosition(offset: row.driver.text.length),
+      );
     });
   }
 
@@ -423,10 +481,20 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
     try {
       for (var i = 0; i < filledRows.length; i++) {
         final row = filledRows[i];
+        _resolveTypedVehicle(row);
+        _resolveTypedDriver(row);
         final passengers = int.tryParse(row.passengers.text.trim()) ?? 0;
         final capacity = int.tryParse(row.capacity.text.trim()) ?? 0;
         if (capacity > 0 && passengers > capacity) {
           throw Exception('Row ${i + 1}: Pax cannot exceed Capacity.');
+        }
+        if (row.vehicle.text.trim().isNotEmpty &&
+            (row.vehicleId == null || row.vehicleId!.trim().isEmpty)) {
+          throw Exception('Row ${i + 1}: Choose a vehicle from the suggestions.');
+        }
+        if (row.driver.text.trim().isNotEmpty &&
+            (row.driverId == null || row.driverId!.trim().isEmpty)) {
+          throw Exception('Row ${i + 1}: Choose a driver from the suggestions.');
         }
       }
 
@@ -767,12 +835,11 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
                                 ),
                               ),
                               DataCell(
-                                _selectorCell(
-                                  row.vehicleLabel,
+                                _vehicleAutocompleteCell(
+                                  row,
                                   180,
                                   fillColor,
                                   isDark,
-                                  () => _selectVehicle(row),
                                 ),
                               ),
                               DataCell(
@@ -810,21 +877,15 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
                                 ),
                               ),
                               DataCell(
-                                _selectorCell(
-                                  row.driverLabel,
+                                _driverAutocompleteCell(
+                                  row,
                                   170,
                                   fillColor,
                                   isDark,
-                                  () => _selectDriver(row),
                                 ),
                               ),
                               DataCell(
-                                _editorTextField(
-                                  row.route,
-                                  190,
-                                  fillColor,
-                                  isDark,
-                                ),
+                                _routeAutocompleteCell(row, 190, fillColor, isDark),
                               ),
                               DataCell(
                                 _editorTextField(
@@ -962,6 +1023,273 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
     );
   }
 
+  Widget _optionTile(String title, String subtitle, VoidCallback onTap) {
+    return ListTile(
+      dense: true,
+      title: Text(title, overflow: TextOverflow.ellipsis),
+      subtitle: subtitle.trim().isEmpty
+          ? null
+          : Text(subtitle, overflow: TextOverflow.ellipsis),
+      onTap: onTap,
+    );
+  }
+
+  Widget _autocompletePopup<T>(
+    Iterable<T> options,
+    Widget Function(T option) itemBuilder,
+  ) {
+    return Align(
+      alignment: Alignment.topLeft,
+      child: Material(
+        elevation: 6,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 240, maxWidth: 300),
+          child: ListView(
+            padding: EdgeInsets.zero,
+            shrinkWrap: true,
+            children: options.map(itemBuilder).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _vehicleAutocompleteCell(
+    _EditorSummaryRow row,
+    double width,
+    Color fillColor,
+    bool isDark,
+  ) {
+    List<Map<String, dynamic>> matchingVehicles(String value) {
+      final query = value.trim();
+      if (query.isEmpty) return _vehicles.take(8).toList();
+      return _vehicles
+          .where((vehicle) {
+            final label = _vehicleOptionLabel(vehicle);
+            final id = vehicle['vehicle_id']?.toString() ?? '';
+            return _matchesOptionLabel('$label $id', query);
+          })
+          .take(8)
+          .toList();
+    }
+
+    return SizedBox(
+      width: width,
+      child: RawAutocomplete<Map<String, dynamic>>(
+        textEditingController: row.vehicle,
+        focusNode: row.vehicleFocus,
+        optionsBuilder: (value) => matchingVehicles(value.text),
+        displayStringForOption: _vehicleOptionLabel,
+        onSelected: (vehicle) => _selectVehicleOption(row, vehicle),
+        fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+          return Focus(
+            onKeyEvent: (node, event) {
+              if (event is KeyDownEvent &&
+                  event.logicalKey == LogicalKeyboardKey.tab) {
+                final options = matchingVehicles(controller.text);
+                if (options.isNotEmpty) {
+                  _selectVehicleOption(row, options.first);
+                  return KeyEventResult.handled;
+                }
+              }
+              return KeyEventResult.ignored;
+            },
+            child: TextFormField(
+              controller: controller,
+              focusNode: focusNode,
+              enabled: !_isLoadingOptions,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              onChanged: (_) => row.vehicleId = null,
+              decoration: _cellDecoration(fillColor, isDark).copyWith(
+                suffixIcon: Icon(
+                  Icons.search,
+                  size: 18,
+                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                ),
+              ),
+            ),
+          );
+        },
+        optionsViewBuilder: (context, onSelected, options) {
+          return _autocompletePopup<Map<String, dynamic>>(
+            options,
+            (vehicle) => _optionTile(
+              (vehicle['plate_number'] ?? 'Unnamed Vehicle').toString(),
+              [
+                if ((vehicle['vehicle_type'] ?? vehicle['bus_type'] ?? '')
+                    .toString()
+                    .trim()
+                    .isNotEmpty)
+                  (vehicle['vehicle_type'] ?? vehicle['bus_type']).toString(),
+                if (vehicle['vehicle_id'] != null) 'ID ${vehicle['vehicle_id']}',
+              ].join(' - '),
+              () => onSelected(vehicle),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _driverAutocompleteCell(
+    _EditorSummaryRow row,
+    double width,
+    Color fillColor,
+    bool isDark,
+  ) {
+    List<Map<String, dynamic>> matchingDrivers(String value) {
+      final query = value.trim();
+      if (query.isEmpty) return _drivers.take(8).toList();
+      return _drivers
+          .where((driver) {
+            final label = _driverOptionLabel(driver);
+            final id = driver['driver_id']?.toString() ?? '';
+            return _matchesOptionLabel('$label $id', query);
+          })
+          .take(8)
+          .toList();
+    }
+
+    return SizedBox(
+      width: width,
+      child: RawAutocomplete<Map<String, dynamic>>(
+        textEditingController: row.driver,
+        focusNode: row.driverFocus,
+        optionsBuilder: (value) => matchingDrivers(value.text),
+        displayStringForOption: _driverOptionLabel,
+        onSelected: (driver) => _selectDriverOption(row, driver),
+        fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+          return Focus(
+            onKeyEvent: (node, event) {
+              if (event is KeyDownEvent &&
+                  event.logicalKey == LogicalKeyboardKey.tab) {
+                final options = matchingDrivers(controller.text);
+                if (options.isNotEmpty) {
+                  _selectDriverOption(row, options.first);
+                  return KeyEventResult.handled;
+                }
+              }
+              return KeyEventResult.ignored;
+            },
+            child: TextFormField(
+              controller: controller,
+              focusNode: focusNode,
+              enabled: !_isLoadingOptions,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              onChanged: (_) => row.driverId = null,
+              decoration: _cellDecoration(fillColor, isDark).copyWith(
+                suffixIcon: Icon(
+                  Icons.search,
+                  size: 18,
+                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                ),
+              ),
+            ),
+          );
+        },
+        optionsViewBuilder: (context, onSelected, options) {
+          return _autocompletePopup<Map<String, dynamic>>(
+            options,
+            (driver) => _optionTile(
+              (driver['full_name'] ?? 'Unnamed Driver').toString(),
+              driver['driver_id'] == null ? '' : 'ID ${driver['driver_id']}',
+              () => onSelected(driver),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _routeAutocompleteCell(
+    _EditorSummaryRow row,
+    double width,
+    Color fillColor,
+    bool isDark,
+  ) {
+    List<String> matchingRoutes(String value) {
+      final query = value.trim().toLowerCase();
+      final names = _routes
+          .map((route) => (route['route_name'] ?? '').toString())
+          .where((name) => name.trim().isNotEmpty)
+          .toList();
+      if (query.isEmpty) return names.take(8).toList();
+      return names
+          .where((name) => name.toLowerCase().contains(query))
+          .take(8)
+          .toList();
+    }
+
+    void selectRoute(String name) {
+      row.route.text = name;
+      row.routeId = null;
+      for (final route in _routes) {
+        if ((route['route_name'] ?? '').toString().toLowerCase() ==
+            name.toLowerCase()) {
+          row.routeId = route['route_id']?.toString();
+          break;
+        }
+      }
+      row.route.selection = TextSelection.fromPosition(
+        TextPosition(offset: row.route.text.length),
+      );
+    }
+
+    return SizedBox(
+      width: width,
+      child: RawAutocomplete<String>(
+        textEditingController: row.route,
+        focusNode: row.routeFocus,
+        optionsBuilder: (value) => matchingRoutes(value.text),
+        onSelected: selectRoute,
+        fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+          return Focus(
+            onKeyEvent: (node, event) {
+              if (event is KeyDownEvent &&
+                  event.logicalKey == LogicalKeyboardKey.tab) {
+                final options = matchingRoutes(controller.text);
+                if (options.isNotEmpty) {
+                  selectRoute(options.first);
+                  return KeyEventResult.handled;
+                }
+              }
+              return KeyEventResult.ignored;
+            },
+            child: TextFormField(
+              controller: controller,
+              focusNode: focusNode,
+              style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              onChanged: (_) => row.routeId = null,
+              decoration: _cellDecoration(fillColor, isDark),
+            ),
+          );
+        },
+        optionsViewBuilder: (context, onSelected, options) {
+          return Align(
+            alignment: Alignment.topLeft,
+            child: Material(
+              elevation: 6,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 220, maxWidth: 260),
+                child: ListView(
+                  padding: EdgeInsets.zero,
+                  shrinkWrap: true,
+                  children: options.map((option) {
+                    return ListTile(
+                      dense: true,
+                      title: Text(option),
+                      onTap: () => onSelected(option),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _timeCell(
     TextEditingController controller,
     double width,
@@ -1039,19 +1367,23 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
 
 class _EditorSummaryRow {
   final Map<String, dynamic>? trip;
+  final vehicle = TextEditingController();
+  final vehicleFocus = FocusNode();
   final busType = TextEditingController();
   final classification = TextEditingController();
   final capacity = TextEditingController();
   final ticketNo = TextEditingController();
+  final driver = TextEditingController();
+  final driverFocus = FocusNode();
   final route = TextEditingController();
+  final routeFocus = FocusNode();
   final passengers = TextEditingController();
   final departure = TextEditingController();
   final arrival = TextEditingController();
   final remarks = TextEditingController();
   String? vehicleId;
   String? driverId;
-  String vehicleLabel = '';
-  String driverLabel = '';
+  String? routeId;
 
   _EditorSummaryRow.empty() : trip = null;
 
@@ -1061,14 +1393,18 @@ class _EditorSummaryRow {
     capacity.text = (source['seating_capacity'] ?? '').toString();
     ticketNo.text = (source['ticket_no'] ?? '').toString();
     route.text = (source['route_name'] ?? '').toString();
+    routeId = source['route_id']?.toString();
     passengers.text = (source['passenger_count'] ?? '').toString();
     departure.text = (source['departure_time'] ?? '').toString();
     arrival.text = (source['estimated_arrival_time'] ?? '').toString();
     remarks.text = (source['remarks'] ?? '').toString();
     vehicleId = source['vehicle_id']?.toString();
     driverId = source['driver_id']?.toString();
-    vehicleLabel = (source['plate_number'] ?? '').toString();
-    driverLabel = (source['driver_name'] ?? '').toString();
+    vehicle.text = (source['plate_number'] ?? '').toString();
+    driver.text = [
+      (source['driver_name'] ?? '').toString(),
+      if (source['driver_id'] != null) '#${source['driver_id']}',
+    ].where((part) => part.trim().isNotEmpty).join(' ');
   }
 
   bool get hasContent {
@@ -1082,6 +1418,8 @@ class _EditorSummaryRow {
       departure.text,
       arrival.text,
       remarks.text,
+      vehicle.text,
+      driver.text,
       vehicleId ?? '',
       driverId ?? '',
     ].any((value) => value.trim().isNotEmpty);
@@ -1122,6 +1460,7 @@ class _EditorSummaryRow {
       'seating_capacity': capacity.text.trim(),
       'ticket_no': ticketNo.text.trim(),
       'driver_id': safeDriverId,
+      'route_id': routeId == null ? null : int.tryParse(routeId!),
       'route_name': route.text.trim(),
       'passenger_count': passengers.text.trim(),
       'departure_time': departure.text.trim(),
@@ -1132,11 +1471,16 @@ class _EditorSummaryRow {
   }
 
   void dispose() {
+    vehicle.dispose();
+    vehicleFocus.dispose();
     busType.dispose();
     classification.dispose();
     capacity.dispose();
     ticketNo.dispose();
+    driver.dispose();
+    driverFocus.dispose();
     route.dispose();
+    routeFocus.dispose();
     passengers.dispose();
     departure.dispose();
     arrival.dispose();
