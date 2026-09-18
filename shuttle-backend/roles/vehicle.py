@@ -25,6 +25,7 @@ def handle_vehicles():
             new_vehicle = {
                 "plate_number": clean_field(data.get('plate_number')),
                 "bus_type": clean_field(data.get('bus_type')) or 'Standard Shuttle',
+                "vehicle_type": clean_field(data.get('vehicle_type')) or 'Van',
                 "model_year": to_int(data.get('model_year')),
                 "insurance_policy_no": clean_field(data.get('insurance_policy_no')),
                 "insurance_expiry": clean_field(data.get('insurance_expiry')),
@@ -102,6 +103,40 @@ def delete_vehicle(vehicle_identifier):
     except Exception as e:
         print(f"❌ Deletion error: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
+
+
+@vehicles_bp.route('/api/vehicles/update/<int:vehicle_id>', methods=['PUT'])
+def update_vehicle(vehicle_id):
+    try:
+        data = request.get_json() or {}
+
+        def clean_field(value):
+            if value is None:
+                return None
+            cleaned = str(value).strip()
+            return cleaned if cleaned and cleaned.lower() != 'n/a' else None
+
+        payload = {
+            'plate_number': clean_field(data.get('plate_number')),
+            'bus_type': clean_field(data.get('bus_type')),
+            'vehicle_type': clean_field(data.get('vehicle_type')),
+            'model_year': int(data['model_year']) if str(data.get('model_year', '')).isdigit() else None,
+            'insurance_policy_no': clean_field(data.get('insurance_policy_no')),
+            'insurance_expiry': clean_field(data.get('insurance_expiry')),
+            'cr_no': clean_field(data.get('cr_no')),
+            'cr_date': clean_field(data.get('cr_date')),
+            'or_no': clean_field(data.get('or_no')),
+            'or_expiry': clean_field(data.get('or_expiry')),
+        }
+        if not payload['plate_number'] or not payload['vehicle_type']:
+            return jsonify({'success': False, 'message': 'Plate number and vehicle type are required.'}), 400
+
+        result = supabase.table('vehicle').update(payload).eq('vehicle_id', vehicle_id).execute()
+        if not result.data:
+            return jsonify({'success': False, 'message': 'Vehicle not found.'}), 404
+        return jsonify({'success': True, 'message': 'Vehicle updated.', 'data': result.data}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 @vehicles_bp.route('/api/vehicles/maintenance', methods=['GET'])

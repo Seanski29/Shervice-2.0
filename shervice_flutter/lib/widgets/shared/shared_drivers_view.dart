@@ -94,9 +94,10 @@ class SharedDriversViewState extends State<SharedDriversView> {
 
   void _applyFiltersAndSort() {
     List<DriverProfileModel> temp = _allDrivers.where((driver) {
-      final matchesSearch = driver.name.toLowerCase().contains(
-        _searchQuery.toLowerCase(),
-      );
+      final searchText = _searchQuery.trim().toLowerCase();
+      final matchesSearch =
+          driver.name.toLowerCase().contains(searchText) ||
+          driver.id.toString().toLowerCase().contains(searchText);
 
       bool matchesStatus = true;
       if (_selectedStatusFilter != 'All') {
@@ -363,24 +364,6 @@ class SharedDriversViewState extends State<SharedDriversView> {
             padding: EdgeInsets.zero,
           ),
         ),
-        if (widget.canManage)
-          ElevatedButton.icon(
-            onPressed: () => DriverFormDialogs.showAddDriverDialog(
-              context,
-              onSuccess: refreshData,
-            ),
-            icon: const Icon(Icons.add, size: 16),
-            label: const Text("Add Driver"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2563EB),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
         if (widget.actionWidget != null)
           SizedBox(height: 40, child: widget.actionWidget!),
       ],
@@ -610,7 +593,7 @@ class SharedDriversViewState extends State<SharedDriversView> {
                     children: [
                       _cardIconText(
                         Icons.badge_outlined,
-                        "ID: ${driver.id}",
+                        "Driver ID: ${driver.id}",
                         isDark,
                       ),
                       _cardIconText(

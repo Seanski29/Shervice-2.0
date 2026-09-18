@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:excel/excel.dart' as xlsx;
 import '../../constant.dart';
 import 'trip_summary_editor_page.dart';
 
@@ -503,7 +504,7 @@ class _StaffTripsState extends State<StaffTrips> {
                 _detailRow('Working Day', _workingDay(trip), isDark),
                 _detailRow(
                   'Bus Type',
-                  (trip['bus_type'] ?? '').toString(),
+                  (trip['vehicle_type'] ?? trip['bus_type'] ?? '').toString(),
                   isDark,
                 ),
                 _detailRow(
@@ -674,7 +675,7 @@ class _StaffTripsState extends State<StaffTrips> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isNarrow = MediaQuery.of(context).size.width < 1000;
+    final isNarrow = MediaQuery.of(context).size.width < 1200;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -682,58 +683,63 @@ class _StaffTripsState extends State<StaffTrips> {
         onRefresh: _fetchTripSummary,
         child: Skeletonizer(
           enabled: _isLoading,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(isDark, isNarrow),
-                const SizedBox(height: 18),
-                _buildSummaryCards(isDark, isNarrow),
-                const SizedBox(height: 20),
-                isNarrow
-                    ? Column(
-                        children: [
-                          _isCalendarExpanded
-                              ? _buildCalendar(isDark, isNarrow)
-                              : _buildCollapsedCalendarBar(isDark, true),
-                          const SizedBox(height: 18),
-                          _buildTripWorkspace(isDark),
-                        ],
-                      )
-                    : Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 220),
-                            child: _isCalendarExpanded
-                                ? SizedBox(
-                                    width: 360,
-                                    child: _buildCalendar(isDark, isNarrow),
-                                  )
-                                : _buildCollapsedCalendarBar(isDark, false),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final stackHeader = constraints.maxWidth < 1650;
+              return SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(isDark, stackHeader, isNarrow),
+                    const SizedBox(height: 18),
+                    _buildSummaryCards(isDark, isNarrow),
+                    const SizedBox(height: 20),
+                    isNarrow
+                        ? Column(
+                            children: [
+                              _isCalendarExpanded
+                                  ? _buildCalendar(isDark, isNarrow)
+                                  : _buildCollapsedCalendarBar(isDark, true),
+                              const SizedBox(height: 18),
+                              _buildTripWorkspace(isDark),
+                            ],
+                          )
+                        : Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 220),
+                                child: _isCalendarExpanded
+                                    ? SizedBox(
+                                        width: 360,
+                                        child: _buildCalendar(isDark, isNarrow),
+                                      )
+                                    : _buildCollapsedCalendarBar(isDark, false),
+                              ),
+                              const SizedBox(width: 20),
+                              Expanded(child: _buildTripWorkspace(isDark)),
+                            ],
                           ),
-                          const SizedBox(width: 20),
-                          Expanded(child: _buildTripWorkspace(isDark)),
-                        ],
-                      ),
-              ],
-            ),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader(bool isDark, bool isNarrow) {
-    return isNarrow
+  Widget _buildHeader(bool isDark, bool stackHeader, bool isNarrow) {
+    return stackHeader
         ? Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildTitle(isDark),
               const SizedBox(height: 14),
-              _buildFilters(isDark, true),
+              _buildFilters(isDark, isNarrow),
             ],
           )
         : Row(
@@ -1503,7 +1509,7 @@ class _StaffTripsState extends State<StaffTrips> {
                       ),
                       DataCell(Text((trip['summary_id'] ?? '').toString())),
                       DataCell(Text(_workingDay(trip))),
-                      DataCell(Text((trip['bus_type'] ?? '').toString())),
+                      DataCell(Text((trip['vehicle_type'] ?? trip['bus_type'] ?? '').toString())),
                       DataCell(Text((trip['classification'] ?? '').toString())),
                       DataCell(Text((trip['plate_number'] ?? '').toString())),
                       DataCell(
@@ -1825,6 +1831,7 @@ class _StaffTripsState extends State<StaffTrips> {
       'schedule_date': _dateKey(DateTime.now()),
       'working_day': 'LOADING',
       'bus_type': 'VAN',
+      'vehicle_type': 'VAN',
       'classification': 'IN7AM',
       'plate_number': 'ABC1234',
       'seating_capacity': 14,
@@ -1860,57 +1867,102 @@ class _SummarySheetPage extends StatelessWidget {
   });
 
   String _generateCSV() {
-    final headers = [
-      'No.',
-      'Date',
-      'Day',
-      'Type',
-      'Class',
-      'Plate',
-      'Capacity',
-      'Ticket',
-      'Driver',
-      'Route',
-      'Pax',
-      'Depart',
-      'Arrival',
-      'Util',
-      'Remarks',
+    const headers = [
+      'No.', 'Date', 'Working Day', '(Bus) Type', 'Classification',
+      'Bus No. (Jeep plate no.)', 'Seating Capacity', 'Ticket no.', 'Driver',
+      'Route', 'No. of Passengers', 'Dept. Time', 'Arrival Time',
+      'Rate per Trip', 'Cost/head/day', 'Utilization Rate', 'REMARKS',
     ];
-
-    String csv = '${headers.join(',')}\n';
+    String csv = 'Company,${_csvEscape((rows.first['client_company'] ?? 'Unassigned Company').toString())}\n';
+    csv += 'Address,${_csvEscape((rows.first['client_company_address'] ?? '').toString())}\n\n';
+    csv += '${headers.map(_csvEscape).join(',')}\n';
 
     for (int i = 0; i < rows.length; i++) {
       final trip = rows[i];
 
-      String escape(String value) {
-        if (value.contains(',')) {
-          return '"$value"';
-        }
-        return value;
-      }
-
       final row = [
         '${i + 1}',
-        escape((trip['schedule_date'] ?? trip['date'] ?? '').toString()),
-        escape((trip['working_day'] ?? '').toString()),
-        escape((trip['bus_type'] ?? '').toString()),
-        escape((trip['classification'] ?? '').toString()),
-        escape((trip['plate_number'] ?? 'Unassigned').toString()),
-        escape((trip['seating_capacity'] ?? '').toString()),
-        escape((trip['ticket_no'] ?? '').toString()),
-        escape((trip['driver_name'] ?? 'Unassigned').toString()),
-        escape((trip['route_name'] ?? '').toString()),
-        escape((trip['passenger_count'] ?? '').toString()),
-        escape((trip['departure_time'] ?? '').toString()),
-        escape((trip['estimated_arrival_time'] ?? '').toString()),
-        escape(_summaryUtilizationText(trip)),
-        escape((trip['remarks'] ?? '').toString()),
+        (trip['schedule_date'] ?? trip['date'] ?? '').toString(),
+        (trip['working_day'] ?? '').toString(),
+        (trip['vehicle_type'] ?? trip['bus_type'] ?? '').toString(),
+        (trip['classification'] ?? '').toString(),
+        (trip['plate_number'] ?? 'Unassigned').toString(),
+        (trip['seating_capacity'] ?? '').toString(),
+        (trip['ticket_no'] ?? '').toString(),
+        (trip['driver_name'] ?? 'Unassigned').toString(),
+        (trip['route_name'] ?? '').toString(),
+        (trip['passenger_count'] ?? '').toString(),
+        (trip['departure_time'] ?? '').toString(),
+        (trip['estimated_arrival_time'] ?? '').toString(),
+        '',
+        '',
+        _summaryUtilizationText(trip),
+        (trip['remarks'] ?? '').toString(),
       ];
 
-      csv += '${row.join(',')}\n';
+      csv += '${row.map(_csvEscape).join(',')}\n';
     }
     return csv;
+  }
+
+  String _csvEscape(String value) => '"${value.replaceAll('"', '""')}"';
+
+  Uint8List _generateXlsx() {
+    final excel = xlsx.Excel.createExcel();
+    final sheet = excel['Summary'];
+    sheet.appendRow([
+      xlsx.TextCellValue('Company'),
+      xlsx.TextCellValue((rows.first['client_company'] ?? 'Unassigned Company').toString()),
+    ]);
+    sheet.appendRow([
+      xlsx.TextCellValue('Address'),
+      xlsx.TextCellValue((rows.first['client_company_address'] ?? '').toString()),
+    ]);
+    sheet.appendRow([xlsx.TextCellValue('')]);
+    const headers = [
+      'No.', 'Date', 'Working Day', '(Bus) Type', 'Classification',
+      'Bus No. (Jeep plate no.)', 'Seating Capacity', 'Ticket no.', 'Driver',
+      'Route', 'No. of Passengers', 'Dept. Time', 'Arrival Time',
+      'Rate per Trip', 'Cost/head/day', 'Utilization Rate', 'REMARKS',
+    ];
+    sheet.appendRow(headers.map((value) => xlsx.TextCellValue(value)).toList());
+    for (var i = 0; i < rows.length; i++) {
+      final trip = rows[i];
+      final values = [
+        '${i + 1}', (trip['schedule_date'] ?? trip['date'] ?? '').toString(),
+        (trip['working_day'] ?? '').toString(),
+        (trip['vehicle_type'] ?? trip['bus_type'] ?? '').toString(),
+        (trip['classification'] ?? '').toString(),
+        (trip['plate_number'] ?? 'Unassigned').toString(),
+        (trip['seating_capacity'] ?? '').toString(),
+        (trip['ticket_no'] ?? '').toString(),
+        (trip['driver_name'] ?? 'Unassigned').toString(),
+        (trip['route_name'] ?? '').toString(),
+        (trip['passenger_count'] ?? '').toString(),
+        (trip['departure_time'] ?? '').toString(),
+        (trip['estimated_arrival_time'] ?? '').toString(),
+        '', '',
+        _summaryUtilizationText(trip), (trip['remarks'] ?? '').toString(),
+      ];
+      sheet.appendRow(values.map((value) => xlsx.TextCellValue(value)).toList());
+    }
+    excel.setDefaultSheet('Summary');
+    final headerStyle = xlsx.CellStyle(
+      backgroundColorHex: xlsx.ExcelColor.fromHexString('FF1E3A8A'),
+      fontColorHex: xlsx.ExcelColor.white,
+      bold: true,
+      fontSize: 10,
+      horizontalAlign: xlsx.HorizontalAlign.Center,
+      verticalAlign: xlsx.VerticalAlign.Center,
+      textWrapping: xlsx.TextWrapping.WrapText,
+    );
+    for (var column = 0; column < headers.length; column++) {
+      sheet.cell(xlsx.CellIndex.indexByColumnRow(columnIndex: column, rowIndex: 3)).cellStyle = headerStyle;
+      sheet.setColumnWidth(column, column == 0 ? 8 : 18);
+    }
+    sheet.setColumnWidth(5, 24);
+    sheet.setColumnWidth(16, 30);
+    return Uint8List.fromList(excel.encode()!);
   }
 
   Future<void> _exportSummary(BuildContext context) async {
@@ -1944,6 +1996,30 @@ class _SummarySheetPage extends StatelessWidget {
     }
   }
 
+  Future<void> _exportXlsx(BuildContext context) async {
+    try {
+      final safeSummaryId = summaryId.isEmpty ? 'Trip_Summary' : summaryId;
+      final outputFile = await FilePicker.saveFile(
+        dialogTitle: 'Export Summary as Excel',
+        fileName: '${safeSummaryId}_Export.xlsx',
+        type: FileType.custom,
+        allowedExtensions: ['xlsx'],
+        bytes: _generateXlsx(),
+      );
+      if (outputFile != null && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Excel export completed.')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Excel export failed: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -1967,6 +2043,14 @@ class _SummarySheetPage extends StatelessWidget {
                   color: isDark ? Colors.blue.shade800 : Colors.blue.shade200,
                 ),
               ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: OutlinedButton.icon(
+              onPressed: () => _exportXlsx(context),
+              icon: const Icon(Icons.table_view, size: 18),
+              label: const Text('Export XLSX'),
             ),
           ),
           if (canManageSummaries)
@@ -2086,7 +2170,7 @@ class _SummarySheetPage extends StatelessWidget {
                               ),
                               DataCell(
                                 _plainCell(
-                                  (trip['bus_type'] ?? '').toString(),
+                                  (trip['vehicle_type'] ?? trip['bus_type'] ?? '').toString(),
                                   180,
                                 ),
                               ),

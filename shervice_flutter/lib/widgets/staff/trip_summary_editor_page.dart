@@ -209,7 +209,7 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
       items: _vehicles,
       labelBuilder: (vehicle) {
         final plate = (vehicle['plate_number'] ?? 'Unnamed Vehicle').toString();
-        final type = _vehicleTypeOnly((vehicle['bus_type'] ?? '').toString());
+        final type = (vehicle['vehicle_type'] ?? '').toString().trim();
         return type.isEmpty ? plate : '$plate - $type';
       },
     );
@@ -220,7 +220,7 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
           .toString();
 
       final rawType = (selected['bus_type'] ?? '').toString();
-      final type = _vehicleTypeOnly(rawType);
+      final type = (selected['vehicle_type'] ?? '').toString().trim();
       if (type.isNotEmpty) row.busType.text = type;
 
       final cap = (selected['seating_capacity'] ?? '').toString();
@@ -232,15 +232,6 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
           row.capacity.text = parsedCapacity.toString();
       }
     });
-  }
-
-  String _vehicleTypeOnly(String rawType) {
-    return rawType
-        .replaceFirst(
-          RegExp(r'^\s*\d+\s*(seats?|seater)\s*[-:]?\s*', caseSensitive: false),
-          '',
-        )
-        .trim();
   }
 
   int? _capacityFromVehicleType(String rawType) {
@@ -749,7 +740,7 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
                         columns: const [
                           DataColumn(label: Text('No.')),
                           DataColumn(label: Text('Vehicle')),
-                          DataColumn(label: Text('Type')),
+                          DataColumn(label: Text('Vehicle Type')),
                           DataColumn(label: Text('Class')),
                           DataColumn(label: Text('Capacity')),
                           DataColumn(label: Text('Ticket')),
@@ -1065,7 +1056,7 @@ class _EditorSummaryRow {
   _EditorSummaryRow.empty() : trip = null;
 
   _EditorSummaryRow.fromTrip(Map<String, dynamic> source) : trip = source {
-    busType.text = _typeOnly((source['bus_type'] ?? '').toString());
+    busType.text = (source['vehicle_type'] ?? source['bus_type'] ?? '').toString();
     classification.text = (source['classification'] ?? '').toString();
     capacity.text = (source['seating_capacity'] ?? '').toString();
     ticketNo.text = (source['ticket_no'] ?? '').toString();
@@ -1078,15 +1069,6 @@ class _EditorSummaryRow {
     driverId = source['driver_id']?.toString();
     vehicleLabel = (source['plate_number'] ?? '').toString();
     driverLabel = (source['driver_name'] ?? '').toString();
-  }
-
-  static String _typeOnly(String rawType) {
-    return rawType
-        .replaceFirst(
-          RegExp(r'^\s*\d+\s*(seats?|seater)\s*[-:]?\s*', caseSensitive: false),
-          '',
-        )
-        .trim();
   }
 
   bool get hasContent {
@@ -1134,7 +1116,7 @@ class _EditorSummaryRow {
       'schedule_date': dateText,
       'working_day': workingDay,
       'company_id': companyId == null ? null : int.tryParse(companyId),
-      'bus_type': busType.text.trim(),
+      'vehicle_type': busType.text.trim(),
       'classification': classification.text.trim(),
       'vehicle_id': safeVehicleId,
       'seating_capacity': capacity.text.trim(),

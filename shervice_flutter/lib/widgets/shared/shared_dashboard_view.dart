@@ -59,6 +59,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
   int _selectedTripsYear = DateTime.now().year;
   bool _isTripsChartLoading = false;
   List<int> _monthlyTripTotals = List<int>.filled(12, 0);
+  int _tripTotalsRequestId = 0;
   int _selectedMaintenanceYear = DateTime.now().year;
   bool _isRatingLoading = false;
   bool _isMaintenanceLoading = false;
@@ -1672,33 +1673,49 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
 
   Future<void> _loadMonthlyTripTotals() async {
     if (!mounted) return;
+    final requestId = ++_tripTotalsRequestId;
+    final requestedYear = _selectedTripsYear;
     setState(() => _isTripsChartLoading = true);
     try {
-      // FIX: Pass the selected year as a query parameter
       final response = await http
-          .get(Uri.parse('$backendUrl/trips?year=$_selectedTripsYear'))
+          .get(Uri.parse('$backendUrl/schedules/staff-summary/all'))
           .timeout(const Duration(seconds: 15));
 
-      if (response.statusCode != 200) return;
+      if (response.statusCode != 200) {
+        throw Exception('Trip summary request failed (${response.statusCode}).');
+      }
 
       final decoded = json.decode(response.body);
-      final rawTrips = decoded is Map ? decoded['trips'] : decoded;
+      final rawTrips = decoded is Map
+          ? (decoded['data'] ?? decoded['trips'] ?? decoded['sample_data_payload'])
+          : decoded;
 
-      if (rawTrips is! List) return;
+      if (rawTrips is! List) {
+        throw const FormatException('Trip summary response did not contain a list.');
+      }
 
       final totals = List<int>.filled(12, 0);
       for (final rawTrip in rawTrips) {
         if (rawTrip is! Map) continue;
         final date = DateTime.tryParse(
-          rawTrip['schedule_date']?.toString() ?? '',
+          (rawTrip['schedule_date'] ?? rawTrip['date'])?.toString() ?? '',
         );
-        if (date != null && date.year == _selectedTripsYear)
+        if (date != null && date.year == requestedYear)
           totals[date.month - 1]++;
       }
 
-      if (mounted) setState(() => _monthlyTripTotals = totals);
+      if (mounted && requestId == _tripTotalsRequestId) {
+        setState(() => _monthlyTripTotals = totals);
+      }
+    } catch (error) {
+      debugPrint('Monthly trip totals failed to load: $error');
+      if (mounted && requestId == _tripTotalsRequestId) {
+        setState(() => _monthlyTripTotals = List<int>.filled(12, 0));
+      }
     } finally {
-      if (mounted) setState(() => _isTripsChartLoading = false);
+      if (mounted && requestId == _tripTotalsRequestId) {
+        setState(() => _isTripsChartLoading = false);
+      }
     }
   }
 

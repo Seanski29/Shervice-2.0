@@ -6,13 +6,30 @@ supabase = None
 @drivers_bp.route('/api/driver/all', methods=['GET'])
 def get_all_drivers():
     try:
-        res = supabase.table('driver_profile')\
-            .select('*')\
-            .execute()
-
+        res = supabase.table('driver_profile').select('*').limit(10000).execute()
         drivers = res.data or []
+
+        # Resolve usernames by ID instead of relying on an optional PostgREST FK.
+        user_ids = list({
+            str(driver['user_id'])
+            for driver in drivers
+            if driver.get('user_id') is not None
+        })
+        usernames = {}
+        if user_ids:
+            try:
+                accounts = supabase.table('user_account').select(
+                    'user_id, username'
+                ).in_('user_id', user_ids).execute().data or []
+                usernames = {
+                    str(account['user_id']): account.get('username', '')
+                    for account in accounts
+                    if account.get('user_id') is not None
+                }
+            except Exception as account_error:
+                print(f"Driver username lookup skipped: {account_error}")
         for driver in drivers:
-            driver['username'] = driver.get('username', '')
+            driver['username'] = usernames.get(str(driver.get('user_id')), '')
 
         return jsonify({
             "connection_status": "SUCCESS",
