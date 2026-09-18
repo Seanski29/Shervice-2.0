@@ -125,7 +125,31 @@ def _split_employee_label(label: str) -> Tuple[str, str]:
     return match.group(1).strip(), match.group(2).strip()
 
 
-def _attendance_payload_from_row(row: Dict[str, Any], source_file: str) -> Dict[str, Any]:
+def _attendance_int(value: Any) -> int:
+    try:
+        return int(float(_clean_attendance_value(value) or 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+def _attendance_driver_id(value: Any) -> Optional[int]:
+    raw = _clean_attendance_value(value)
+    if not raw:
+        return None
+    match = re.search(r"\d+", raw)
+    if not match:
+        return None
+    try:
+        return int(match.group(0))
+    except ValueError:
+        return None
+
+
+def _attendance_payload_from_row(
+    row: Dict[str, Any],
+    source_file: str,
+    valid_driver_ids: Optional[set[int]] = None,
+) -> Dict[str, Any]:
     employee_label = _clean_attendance_value(
         row.get("employee")
         or row.get("employee_name")
@@ -137,9 +161,17 @@ def _attendance_payload_from_row(row: Dict[str, Any], source_file: str) -> Dict[
     employee_id = employee_id or _clean_attendance_value(
         row.get("employee_id") or row.get("Employee ID")
     )
+    candidate_driver_id = _attendance_driver_id(employee_id)
+    driver_id = (
+        candidate_driver_id
+        if candidate_driver_id is not None
+        and (valid_driver_ids is None or candidate_driver_id in valid_driver_ids)
+        else None
+    )
     raw_date = _clean_attendance_value(row.get("date") or row.get("work_date") or row.get("Date"))
 
     return {
+        "driver_id": driver_id,
         "employee_name": employee_name or "Unknown",
         "employee_id": employee_id or None,
         "pay_period": _clean_attendance_value(row.get("pay_period") or row.get("Pay Period")) or None,
@@ -150,6 +182,13 @@ def _attendance_payload_from_row(row: Dict[str, Any], source_file: str) -> Dict[
         "time_out": _clean_attendance_value(row.get("out_time") or row.get("time_out") or row.get("OUT") or row.get("Time Out")) or None,
         "work_time": _clean_attendance_value(row.get("work_time") or row.get("work_hours") or row.get("Work Time")) or None,
         "daily_total": _clean_attendance_value(row.get("daily_total") or row.get("total_hours") or row.get("Daily Total")) or None,
+        "morning_in": _clean_attendance_value(row.get("morning_in") or row.get("Morning IN")) or None,
+        "morning_out": _clean_attendance_value(row.get("morning_out") or row.get("Morning OUT")) or None,
+        "afternoon_in": _clean_attendance_value(row.get("afternoon_in") or row.get("Afternoon IN")) or None,
+        "afternoon_out": _clean_attendance_value(row.get("afternoon_out") or row.get("Afternoon OUT")) or None,
+        "overtime_in": _clean_attendance_value(row.get("overtime_in") or row.get("Overtime IN")) or None,
+        "overtime_out": _clean_attendance_value(row.get("overtime_out") or row.get("Overtime OUT")) or None,
+        "total_minutes_late": _attendance_int(row.get("total_minutes_late") or row.get("Total Minutes Late")),
         "note": _clean_attendance_value(row.get("note") or row.get("notes") or row.get("remarks") or row.get("Note")) or None,
         "source_file": source_file or None,
         "raw_payload": row,
@@ -157,8 +196,29 @@ def _attendance_payload_from_row(row: Dict[str, Any], source_file: str) -> Dict[
 
 
 def _save_attendance_rows(rows: List[Dict[str, Any]], source_file: str) -> List[Dict[str, Any]]:
+    candidate_driver_ids = {
+        driver_id
+        for row in rows
+        if isinstance(row, dict)
+        for driver_id in [_attendance_driver_id(row.get("employee_id") or row.get("employee") or row.get("Employee ID"))]
+        if driver_id is not None
+    }
+    valid_driver_ids: set[int] = set()
+    if candidate_driver_ids:
+        drivers = (
+            supabase.table("driver_profile")
+            .select("driver_id")
+            .in_("driver_id", list(candidate_driver_ids))
+            .execute()
+        )
+        valid_driver_ids = {
+            int(row["driver_id"])
+            for row in (drivers.data or [])
+            if row.get("driver_id") is not None
+        }
+
     payloads = [
-        _attendance_payload_from_row(row, source_file)
+        _attendance_payload_from_row(row, source_file, valid_driver_ids)
         for row in rows
         if isinstance(row, dict)
     ]
