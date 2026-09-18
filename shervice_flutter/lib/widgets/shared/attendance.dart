@@ -33,7 +33,7 @@ class _AttendanceState extends State<Attendance> {
   final TextEditingController _searchController = TextEditingController();
 
   // Main UI Date Filter State
-  String _selectedRange = 'All Time';
+  String _selectedRange = 'Today';
   DateTimeRange? _customDateRange;
 
   final List<String> _attendanceColumns = [
@@ -85,21 +85,22 @@ class _AttendanceState extends State<Attendance> {
       startDate = DateTime(now.year, now.month, now.day);
       endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
     } else if (_selectedRange == 'This Week') {
-      startDate = DateTime(
-        now.year,
-        now.month,
-        now.day,
-      ).subtract(Duration(days: now.weekday - 1));
+      startDate = DateTime(now.year, now.month, now.day);
       endDate = startDate.add(
         const Duration(days: 6, hours: 23, minutes: 59, seconds: 59),
       );
-    } else if (_selectedRange == 'This Month') {
-      startDate = DateTime(now.year, now.month, 1);
-      endDate = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
-    } else if (_selectedRange == 'This Year') {
-      startDate = DateTime(now.year, 1, 1);
-      endDate = DateTime(now.year, 12, 31, 23, 59, 59);
-    } else if (_selectedRange == 'Custom Range' && _customDateRange != null) {
+    } else if (_selectedRange == 'Custom Week' &&
+        _customDateRange != null) {
+      startDate = _customDateRange!.start;
+      endDate = DateTime(
+        _customDateRange!.end.year,
+        _customDateRange!.end.month,
+        _customDateRange!.end.day,
+        23,
+        59,
+        59,
+      );
+    } else if (_selectedRange == 'Month' && _customDateRange != null) {
       startDate = _customDateRange!.start;
       endDate = DateTime(
         _customDateRange!.end.year,
@@ -112,13 +113,20 @@ class _AttendanceState extends State<Attendance> {
     }
 
     if (startDate != null && endDate != null) {
+      final filterStart = DateTime(
+        startDate.year,
+        startDate.month,
+        startDate.day,
+      );
+      final filterEnd = DateTime(endDate.year, endDate.month, endDate.day);
       result = result.where((row) {
         final dateStr = _extractDateFromRow(row);
         if (dateStr == 'NaN' || dateStr.isEmpty) return false;
         try {
           final parsed = DateTime.parse(dateStr.split('T')[0]);
-          return parsed.isAfter(startDate!.subtract(const Duration(days: 1))) &&
-              parsed.isBefore(endDate!.add(const Duration(days: 1)));
+          final parsedDay = DateTime(parsed.year, parsed.month, parsed.day);
+          return !parsedDay.isBefore(filterStart) &&
+              !parsedDay.isAfter(filterEnd);
         } catch (_) {
           return false;
         }
@@ -170,7 +178,7 @@ class _AttendanceState extends State<Attendance> {
     setState(() {
       _isLoadingSystemData = true;
       _currentPage = 0;
-      _selectedRange = 'All Time';
+      _selectedRange = 'Today';
       _customDateRange = null;
     });
 
@@ -333,7 +341,7 @@ class _AttendanceState extends State<Attendance> {
         _columns = _attendanceColumns;
         _rows = importedRows;
         _currentPage = 0;
-        _selectedRange = 'All Time';
+        _selectedRange = 'Today';
         _customDateRange = null;
       });
 
@@ -481,16 +489,18 @@ class _AttendanceState extends State<Attendance> {
     final filteredRows = _processedRows;
     final exportColumns = _attendanceColumns;
 
-    String baseName;
-    if (_sourceFileName != 'No file selected' &&
-        !_sourceFileName.startsWith('System ')) {
-      baseName = _sourceFileName.replaceAll(RegExp(r'\.[^.]+$'), '');
-    } else {
-      String suffix = _selectedRange == 'All Time'
-          ? 'all_time'
-          : _selectedRange.toLowerCase().replaceAll(' ', '_');
-      baseName = 'attendance_$suffix';
+    if (!_canExportCurrentDateFilter()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Choose Today, This Week, Custom Week, or Month before exporting attendance.',
+          ),
+        ),
+      );
+      return;
     }
+
+    final baseName = _exportBaseName(filteredRows);
 
     final fileName = '$baseName.${format.toLowerCase()}';
 
@@ -606,44 +616,21 @@ class _AttendanceState extends State<Attendance> {
               const SizedBox(height: 20),
 
               // ==========================================
-              // INFO PANEL
+              // CONTROLS ROW (Search, Filter, Sort)
               // ==========================================
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF111827) : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.description_outlined,
-                      color: Colors.blue.shade500,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        _sourceFileName,
-                        style: TextStyle(
-                          color: isDark
-                              ? Colors.white
-                              : const Color(0xFF0F172A),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+              Flex(
+                direction: isMobile ? Axis.vertical : Axis.horizontal,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (_columns.isNotEmpty && _rows.isNotEmpty) ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
+                      height: 42,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
                         color: Colors.blue.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(999),
                       ),
+                      alignment: Alignment.center,
                       child: Text(
                         'Total: ${activeData.length} rows',
                         style: const TextStyle(
@@ -652,20 +639,165 @@ class _AttendanceState extends State<Attendance> {
                         ),
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // ==========================================
-              // CONTROLS ROW (Search, Filter, Sort)
-              // ==========================================
-              Flex(
-                direction: isMobile ? Axis.vertical : Axis.horizontal,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  if (!isMobile) const Spacer(),
-                  if (_columns.isNotEmpty && _rows.isNotEmpty) ...[
+                    SizedBox(width: isMobile ? 0 : 8, height: isMobile ? 8 : 0),
+                    // Date Filter Dropdown
+                    Container(
+                      height: 42,
+                      width: isMobile ? double.infinity : 560,
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1F2937) : Colors.white,
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.grey.shade700
+                              : Colors.grey.shade300,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: PopupMenuButton<String>(
+                        tooltip: 'Date',
+                        offset: const Offset(0, 48),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.calendar_today_outlined,
+                                size: 18,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  'Date: ${_dateFilterLabel()}',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF111827),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                Icons.keyboard_arrow_down,
+                                size: 18,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                            ],
+                          ),
+                        ),
+                        onSelected: (val) async {
+                          if (val == 'Custom Week') {
+                            final picked = await showDateRangePicker(
+                              context: context,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2100),
+                              initialDateRange: _customDateRange,
+                              builder: (context, child) {
+                                return Center(
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 400,
+                                      maxHeight: 600,
+                                    ),
+                                    child: child,
+                                  ),
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              final dayCount =
+                                  picked.end.difference(picked.start).inDays +
+                                  1;
+                              if (dayCount > 7) {
+                                if (!mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Attendance print range can only be one week at most.',
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+                              setState(() {
+                                _selectedRange = val;
+                                _customDateRange = picked;
+                                _currentPage = 0;
+                              });
+                            }
+                          } else if (val == 'Month') {
+                            final picked = await showDatePicker(
+                              context: context,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2100),
+                              initialDate: _customDateRange?.start ??
+                                  DateTime.now(),
+                              helpText: 'Select month',
+                              builder: (context, child) {
+                                return Center(
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 400,
+                                      maxHeight: 600,
+                                    ),
+                                    child: child,
+                                  ),
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              final start = DateTime(
+                                picked.year,
+                                picked.month,
+                                1,
+                              );
+                              final end = DateTime(
+                                picked.year,
+                                picked.month + 1,
+                                0,
+                              );
+                              setState(() {
+                                _selectedRange = val;
+                                _customDateRange = DateTimeRange(
+                                  start: start,
+                                  end: end,
+                                );
+                                _currentPage = 0;
+                              });
+                            }
+                          } else {
+                            setState(() {
+                              _selectedRange = val;
+                              _customDateRange = null;
+                              _currentPage = 0;
+                            });
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'Today',
+                            child: Text('Today'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'This Week',
+                            child: Text('This Week'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'Custom Week',
+                            child: Text('Custom Week...'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'Month',
+                            child: Text('Month...'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (!isMobile) const Spacer(),
+                    SizedBox(width: isMobile ? 0 : 8, height: isMobile ? 8 : 0),
                     // Search Bar
                     SizedBox(
                       width: isMobile ? double.infinity : 200,
@@ -720,99 +852,6 @@ class _AttendanceState extends State<Attendance> {
                       ),
                     ),
                     SizedBox(width: isMobile ? 0 : 8, height: isMobile ? 8 : 0),
-                    // Date Filter Dropdown
-                    Container(
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1F2937) : Colors.white,
-                        border: Border.all(
-                          color: isDark
-                              ? Colors.grey.shade700
-                              : Colors.grey.shade300,
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: PopupMenuButton<String>(
-                        tooltip: 'Filter by Date Range',
-                        offset: const Offset(0, 48),
-                        icon: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.calendar_today_outlined,
-                              size: 18,
-                              color: isDark ? Colors.white : Colors.black87,
-                            ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              Icons.keyboard_arrow_down,
-                              size: 18,
-                              color: isDark ? Colors.white : Colors.black87,
-                            ),
-                          ],
-                        ),
-                        onSelected: (val) async {
-                          if (val == 'Custom Range') {
-                            final picked = await showDateRangePicker(
-                              context: context,
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime(2100),
-                              initialDateRange: _customDateRange,
-                              builder: (context, child) {
-                                return Center(
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxWidth: 400,
-                                      maxHeight: 600,
-                                    ),
-                                    child: child,
-                                  ),
-                                );
-                              },
-                            );
-                            if (picked != null) {
-                              setState(() {
-                                _selectedRange = val;
-                                _customDateRange = picked;
-                                _currentPage = 0;
-                              });
-                            }
-                          } else {
-                            setState(() {
-                              _selectedRange = val;
-                              _currentPage = 0;
-                            });
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'All Time',
-                            child: Text('All Time'),
-                          ),
-                          const PopupMenuItem(
-                            value: 'Today',
-                            child: Text('Today'),
-                          ),
-                          const PopupMenuItem(
-                            value: 'This Week',
-                            child: Text('This Week'),
-                          ),
-                          const PopupMenuItem(
-                            value: 'This Month',
-                            child: Text('This Month'),
-                          ),
-                          const PopupMenuItem(
-                            value: 'This Year',
-                            child: Text('This Year'),
-                          ),
-                          const PopupMenuItem(
-                            value: 'Custom Range',
-                            child: Text('Custom Range...'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: isMobile ? 0 : 8, height: isMobile ? 8 : 0),
                     // Date Sort Asc/Desc Toggle
                     Container(
                       height: 42,
@@ -850,18 +889,6 @@ class _AttendanceState extends State<Attendance> {
                   ],
                 ],
               ),
-              if (_selectedRange != 'All Time')
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    'Filtering: $_selectedRange',
-                    style: TextStyle(
-                      color: Colors.blue.shade700,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
               const SizedBox(height: 16),
 
               // ==========================================
@@ -941,6 +968,10 @@ class _AttendanceState extends State<Attendance> {
                                                       (row[col] ?? '')
                                                           .toLowerCase()
                                                           .contains('half');
+                                                  final isAbsent =
+                                                      (row[col] ?? '')
+                                                          .toLowerCase()
+                                                          .contains('absent');
                                                   return DataCell(
                                                     ConstrainedBox(
                                                       constraints:
@@ -952,7 +983,8 @@ class _AttendanceState extends State<Attendance> {
                                                         displayValue,
                                                         style: isLateColumn &&
                                                             (lateMinutes > 0 ||
-                                                                isHalfDay)
+                                                                isHalfDay ||
+                                                                isAbsent)
                                                             ? const TextStyle(
                                                                 color: Color(
                                                                   0xFFEF4444,
@@ -1080,9 +1112,22 @@ class _AttendanceState extends State<Attendance> {
     } else if (column == 'total_minutes_late') {
       final minutes = int.tryParse(rawValue) ?? 0;
       if (rawValue.toLowerCase().contains('half')) return 'Half Day';
+      if (rawValue.toLowerCase().contains('absent')) return 'Absent';
       return minutes > 0 ? '$minutes' : '-';
     }
     return rawValue;
+  }
+
+  bool _canExportCurrentDateFilter() {
+    if (_selectedRange == 'Today' ||
+        _selectedRange == 'This Week') {
+      return true;
+    }
+    if (_selectedRange == 'Custom Week' && _customDateRange != null) {
+      return _customDateRange!.end.difference(_customDateRange!.start).inDays <
+          7;
+    }
+    return _selectedRange == 'Month' && _customDateRange != null;
   }
 
   String _formatTimeValue(String val) {
@@ -1123,7 +1168,7 @@ class _AttendanceState extends State<Attendance> {
     final ampm = hour >= 12 ? 'PM' : 'AM';
     final displayHour = hour % 12 == 0 ? 12 : hour % 12;
     final displayMin = minute.toString().padLeft(2, '0');
-    return '${displayHour.toString().padLeft(2, '0')}:$displayMin $ampm';
+    return '$displayHour:$displayMin $ampm';
   }
 
   String _formatDurationValue(String val) {
@@ -1332,9 +1377,6 @@ class _AttendanceState extends State<Attendance> {
   }
 
   Map<String, String> _resolveShiftValues(Map<String, dynamic> map) {
-    final punchTimes = _collectPunchTimes(map);
-    if (punchTimes.isNotEmpty) return _buildShiftValues(punchTimes);
-
     final existing = {
       'morning_in': _firstValue(map, ['morning_in']),
       'morning_out': _firstValue(map, ['morning_out']),
@@ -1347,6 +1389,9 @@ class _AttendanceState extends State<Attendance> {
     if (existing.values.any((value) => _hasAttendanceValue(value))) {
       return existing;
     }
+
+    final punchTimes = _collectPunchTimes(map);
+    if (punchTimes.isNotEmpty) return _buildShiftValues(punchTimes);
 
     return existing;
   }
@@ -1488,6 +1533,107 @@ class _AttendanceState extends State<Attendance> {
     }
   }
 
+  String _exportBaseName(List<Map<String, String>> rows) {
+    final range = _activeDateFilterRange(rows);
+    if (range != null) {
+      return 'attendance_${_dateRangeFileSegment(range.start, range.end)}';
+    }
+
+    if (_sourceFileName != 'No file selected' &&
+        !_sourceFileName.startsWith('System ')) {
+      final source = _sourceFileName.replaceAll(RegExp(r'\.[^.]+$'), '');
+      return 'attendance_${_fileSafeSegment(source)}';
+    }
+
+    final suffix = _selectedRange == 'All Time'
+        ? 'all_time'
+        : _fileSafeSegment(_selectedRange);
+    return 'attendance_$suffix';
+  }
+
+  DateTimeRange? _activeDateFilterRange(List<Map<String, String>> rows) {
+    final now = DateTime.now();
+    if (_selectedRange == 'Today') {
+      final day = DateTime(now.year, now.month, now.day);
+      return DateTimeRange(start: day, end: day);
+    }
+    if (_selectedRange == 'This Week') {
+      final start = DateTime(now.year, now.month, now.day);
+      return DateTimeRange(start: start, end: start.add(const Duration(days: 6)));
+    }
+    if ((_selectedRange == 'Custom Week' ||
+            _selectedRange == 'Month') &&
+        _customDateRange != null) {
+      return _customDateRange;
+    }
+
+    final dates = rows
+        .map((row) => _parseFlexibleDate(_extractDateFromRow(row)))
+        .whereType<DateTime>()
+        .toList()
+      ..sort();
+    if (dates.isEmpty) return null;
+    return DateTimeRange(start: dates.first, end: dates.last);
+  }
+
+  String _dateRangeFileSegment(DateTime start, DateTime end) {
+    final sameMonth = start.year == end.year && start.month == end.month;
+    final month = _monthName(start.month).toLowerCase();
+    if (sameMonth) {
+      return '${month}_${start.day}-${end.day}';
+    }
+    return '${month}_${start.day}_${_monthName(end.month).toLowerCase()}_${end.day}';
+  }
+
+  String _monthName(int month) {
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    if (month < 1 || month > 12) return 'Unknown';
+    return months[month - 1];
+  }
+
+  String _fileSafeSegment(String value) {
+    return value
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+        .replaceAll(RegExp(r'^_+|_+$'), '');
+  }
+
+  String _dateFilterLabel() {
+    final now = DateTime.now();
+    if (_selectedRange == 'Today') {
+      return 'Today(${_longDateLabel(DateTime(now.year, now.month, now.day))})';
+    }
+    if (_selectedRange == 'This Week') {
+      final start = DateTime(now.year, now.month, now.day);
+      final end = start.add(const Duration(days: 6));
+      return 'This Week(${_longDateLabel(start)} - ${_longDateLabel(end)})';
+    }
+    if (_selectedRange == 'Custom Week' && _customDateRange != null) {
+      return 'Custom Week(${_longDateLabel(_customDateRange!.start)} - ${_longDateLabel(_customDateRange!.end)})';
+    }
+    if (_selectedRange == 'Month' && _customDateRange != null) {
+      return _monthName(_customDateRange!.start.month);
+    }
+    return _selectedRange;
+  }
+
+  String _longDateLabel(DateTime date) {
+    return '${_monthName(date.month)} ${date.day}, ${date.year}';
+  }
+
   bool _isEarlierTime(String candidate, String current) {
     final candidateMinutes = _parseTimeToMinutes(candidate);
     final currentMinutes = _parseTimeToMinutes(current);
@@ -1560,14 +1706,31 @@ class _AttendanceState extends State<Attendance> {
   }
 
   bool _isHalfDay(Map<String, String> row) {
+    if (_isAbsent(row)) return false;
     final hasMorning = _hasAttendanceValue(row['morning_in'] ?? '') ||
         _hasAttendanceValue(row['morning_out'] ?? '');
     final hasAfternoon = _hasAttendanceValue(row['afternoon_in'] ?? '') ||
         _hasAttendanceValue(row['afternoon_out'] ?? '');
-    return hasMorning && !hasAfternoon;
+    return hasMorning != hasAfternoon;
+  }
+
+  bool _isAbsent(Map<String, String> row) {
+    final note = (row['note'] ?? '').toLowerCase();
+    if (note.contains('absent') || note.contains('whole day')) return true;
+
+    final hasRegularOrOvertime = [
+      'morning_in',
+      'morning_out',
+      'afternoon_in',
+      'afternoon_out',
+      'overtime_in',
+      'overtime_out',
+    ].any((key) => _hasAttendanceValue(row[key] ?? ''));
+    return !hasRegularOrOvertime;
   }
 
   String _finalAttendanceValue(Map<String, String> row) {
+    if (_isAbsent(row)) return 'Absent';
     if (_isHalfDay(row)) return 'Half Day';
     return _calculateTotalMinutesLate(row).toString();
   }
@@ -1591,6 +1754,14 @@ class _AttendanceState extends State<Attendance> {
         if (!_hasAttendanceValue(existingValue) &&
             _hasAttendanceValue(entry.value)) {
           existing[entry.key] = entry.value;
+        }
+      }
+
+      for (final shift in ['morning', 'afternoon', 'overtime']) {
+        final inValue = row['${shift}_in'] ?? '';
+        final outValue = row['${shift}_out'] ?? '';
+        if (_hasAttendanceValue(inValue) || _hasAttendanceValue(outValue)) {
+          _setShiftPair(existing, shift, inValue, outValue);
         }
       }
     }
@@ -1618,6 +1789,47 @@ class _AttendanceState extends State<Attendance> {
     return rawRows;
   }
 
+  String _extractEmployeeTitle(List<dynamic> row) {
+    final nonEmpty = row
+        .map((cell) => _normalizeCellValue(cell).trim())
+        .where((value) => value.isNotEmpty)
+        .toList();
+    if (nonEmpty.length != 1) return '';
+
+    final value = nonEmpty.first.replaceAll('\n', ' ').trim();
+    if (!RegExp(r'\(\s*\d+\s*\)$').hasMatch(value)) return '';
+
+    final lower = value.toLowerCase();
+    if (lower.contains('total') ||
+        lower.contains('pay period') ||
+        lower.contains('employee')) {
+      return '';
+    }
+    return value;
+  }
+
+  String _dateFromGroupedLabel(String label, String payPeriod) {
+    final match = RegExp(r'^(\d{1,2})/(\d{1,2})').firstMatch(label.trim());
+    if (match == null) return '';
+
+    final yearMatch = RegExp(r'\b(\d{4})[-/]\d{1,2}[-/]\d{1,2}').firstMatch(
+      payPeriod,
+    );
+    final year = int.tryParse(yearMatch?.group(1) ?? '');
+    final month = int.tryParse(match.group(1) ?? '');
+    final day = int.tryParse(match.group(2) ?? '');
+    if (year == null || month == null || day == null) return '';
+
+    return '${year.toString().padLeft(4, '0')}-'
+        '${month.toString().padLeft(2, '0')}-'
+        '${day.toString().padLeft(2, '0')}';
+  }
+
+  String _dayFromGroupedLabel(String label) {
+    final match = RegExp(r'\(([A-Za-z]{3})\)').firstMatch(label);
+    return match?.group(1)?.toUpperCase() ?? '';
+  }
+
   List<Map<String, String>> _applySmartHeuristics(List<List<dynamic>> rawRows) {
     String currentEmployee = 'Unknown';
     String currentPayPeriod = 'NaN';
@@ -1626,6 +1838,12 @@ class _AttendanceState extends State<Attendance> {
     final parsedRows = <Map<String, String>>[];
 
     for (var row in rawRows) {
+      final employeeTitle = _extractEmployeeTitle(row);
+      if (employeeTitle.isNotEmpty) {
+        currentEmployee = employeeTitle;
+        continue;
+      }
+
       bool hasEmployeeLabel = row.any(
         (c) => [
           'employee',
@@ -1650,29 +1868,105 @@ class _AttendanceState extends State<Attendance> {
         }
       }
 
+      final groupedDate = row.isNotEmpty ? _normalizeCellValue(row[0]).trim() : '';
+      final groupedWorkDate = _dateFromGroupedLabel(
+        groupedDate,
+        currentPayPeriod,
+      );
+      if (groupedWorkDate.isNotEmpty) {
+        final groupedDay = _dayFromGroupedLabel(groupedDate);
+        final shiftValues = {
+          'morning_in': row.length > 1 ? _normalizeCellValue(row[1]) : 'NaN',
+          'morning_out': row.length > 2 ? _normalizeCellValue(row[2]) : 'NaN',
+          'afternoon_in': row.length > 3 ? _normalizeCellValue(row[3]) : 'NaN',
+          'afternoon_out': row.length > 4 ? _normalizeCellValue(row[4]) : 'NaN',
+          'overtime_in': row.length > 5 ? _normalizeCellValue(row[5]) : 'NaN',
+          'overtime_out': row.length > 6 ? _normalizeCellValue(row[6]) : 'NaN',
+        };
+        final hasShiftValue = shiftValues.values.any(_hasAttendanceValue);
+        final finalCell = row.length > 7 ? _normalizeCellValue(row[7]) : '';
+        final absent = !hasShiftValue &&
+            (finalCell.toLowerCase().contains('absent') ||
+                finalCell.toLowerCase().contains('whole day') ||
+                groupedDate.isNotEmpty);
+
+        if (hasShiftValue || absent) {
+          currentDate = groupedWorkDate;
+          if (groupedDay.isNotEmpty) currentDay = groupedDay;
+          parsedRows.add({
+            'employee': currentEmployee,
+            'pay_period': currentPayPeriod,
+            'day': groupedDay.isNotEmpty ? groupedDay : currentDay,
+            'date': groupedWorkDate,
+            'in_time': shiftValues['morning_in'] ?? 'NaN',
+            'out_time': shiftValues['morning_out'] ?? 'NaN',
+            'work_time': 'NaN',
+            'daily_total': 'NaN',
+            'note': absent ? 'Absent' : 'NaN',
+            ...shiftValues,
+          });
+          continue;
+        }
+      }
+
       List<String> times = [];
       String rowDate = '';
       String rowDay = '';
       List<String> texts = [];
+      String workTime = 'NaN';
+      String dailyTotal = 'NaN';
 
-      for (var cell in row) {
-        String val = _normalizeCellValue(cell).trim();
-        if (val.isEmpty) continue;
+      final indexedDay = row.isNotEmpty ? _normalizeCellValue(row[0]).trim() : '';
+      final indexedDate = row.length > 1 ? _normalizeCellValue(row[1]).trim() : '';
+      final indexedIn = row.length > 2 ? _normalizeCellValue(row[2]).trim() : '';
+      final indexedOut = row.length > 3 ? _normalizeCellValue(row[3]).trim() : '';
+      final indexedWork = row.length > 4 ? _normalizeCellValue(row[4]).trim() : '';
+      final indexedTotal = row.length > 5 ? _normalizeCellValue(row[5]).trim() : '';
+      final indexedNote = row.length > 6 ? _normalizeCellValue(row[6]).trim() : '';
+      final upperIndexedDay = indexedDay.toUpperCase();
+      final hasIndexedDay = [
+        'SUN',
+        'MON',
+        'TUE',
+        'WED',
+        'THU',
+        'FRI',
+        'SAT',
+      ].contains(upperIndexedDay);
+      final hasIndexedDate = RegExp(
+        r'^\d{1,4}[-/]\d{1,2}[-/]\d{1,4}$',
+      ).hasMatch(indexedDate);
+      final hasIndexedPunch = _parseTimeToMinutes(indexedIn) != null ||
+          _parseTimeToMinutes(indexedOut) != null;
 
-        if (RegExp(r'^\d{1,2}:\d{2}(:\d{2})?$').hasMatch(val)) {
-          times.add(val.substring(0, 5));
-          continue;
+      if (hasIndexedDay || hasIndexedDate || hasIndexedPunch) {
+        if (hasIndexedDay) rowDay = upperIndexedDay;
+        if (hasIndexedDate) rowDate = indexedDate;
+        if (_parseTimeToMinutes(indexedIn) != null) times.add(indexedIn);
+        if (_parseTimeToMinutes(indexedOut) != null) times.add(indexedOut);
+        if (_hasAttendanceValue(indexedWork)) workTime = indexedWork;
+        if (_hasAttendanceValue(indexedTotal)) dailyTotal = indexedTotal;
+        if (_hasAttendanceValue(indexedNote)) texts.add(indexedNote);
+      } else {
+        for (var cell in row) {
+          String val = _normalizeCellValue(cell).trim();
+          if (val.isEmpty) continue;
+
+          if (RegExp(r'^\d{1,2}:\d{2}(:\d{2})?$').hasMatch(val)) {
+            times.add(val.substring(0, 5));
+            continue;
+          }
+          if (RegExp(r'^\d{1,4}[-/]\d{1,2}[-/]\d{1,4}$').hasMatch(val)) {
+            rowDate = val;
+            continue;
+          }
+          final upper = val.toUpperCase();
+          if (['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].contains(upper)) {
+            rowDay = upper;
+            continue;
+          }
+          texts.add(val);
         }
-        if (RegExp(r'^\d{1,4}[-/]\d{1,2}[-/]\d{1,4}$').hasMatch(val)) {
-          rowDate = val;
-          continue;
-        }
-        final upper = val.toUpperCase();
-        if (['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].contains(upper)) {
-          rowDay = upper;
-          continue;
-        }
-        texts.add(val);
       }
 
       if (rowDate.isNotEmpty) currentDate = rowDate;
@@ -1688,7 +1982,7 @@ class _AttendanceState extends State<Attendance> {
           noteText.toLowerCase().contains('absent') ||
           noteText.toLowerCase().contains('whole day');
 
-      if (times.isNotEmpty || isAbsentRow) {
+      if (times.isNotEmpty || isAbsentRow || rowDate.isNotEmpty) {
         texts.removeWhere(
           (t) =>
               [
@@ -1706,11 +2000,10 @@ class _AttendanceState extends State<Attendance> {
               t == currentEmployee,
         );
 
-        final punchTimes = times.length > 2 ? times.take(2).toList() : times;
-        final shiftValues = _buildShiftValues(punchTimes);
+        final shiftValues = _buildShiftValues(times);
         final note = texts.isNotEmpty
             ? texts.join(' | ')
-            : (isAbsentRow ? noteText : 'NaN');
+            : (isAbsentRow || times.isEmpty ? 'Absent' : 'NaN');
         parsedRows.add({
           'employee': currentEmployee,
           'pay_period': currentPayPeriod,
@@ -1718,8 +2011,8 @@ class _AttendanceState extends State<Attendance> {
           'date': rowDate,
           'in_time': times.isNotEmpty ? times[0] : 'NaN',
           'out_time': times.length > 1 ? times[1] : 'NaN',
-          'work_time': times.length > 2 ? times[2] : 'NaN',
-          'daily_total': times.length > 3 ? times[3] : 'NaN',
+          'work_time': workTime,
+          'daily_total': dailyTotal,
           'note': note,
           ...shiftValues,
         });
@@ -1751,58 +2044,74 @@ class _AttendanceState extends State<Attendance> {
     }
 
     int currentRow = 0;
-
-    // 2. Define strict cell styles mapping to the image theme
-    final excel.CellStyle titleStyle = excel.CellStyle(
-      backgroundColorHex: excel.ExcelColor.fromHexString('#FFFF00'), // Solid Yellow
-      bold: true,
-      horizontalAlign: excel.HorizontalAlign.Center,
-      verticalAlign: excel.VerticalAlign.Center,
+    final blackBorder = excel.Border(
+      borderStyle: excel.BorderStyle.Thick,
+      borderColorHex: excel.ExcelColor.fromHexString('#000000'),
     );
 
-    final excel.CellStyle headerStyle = excel.CellStyle(
-      backgroundColorHex: excel.ExcelColor.fromHexString('#D9D9D9'), // Light Gray
-      bold: true,
-      horizontalAlign: excel.HorizontalAlign.Center,
-      verticalAlign: excel.VerticalAlign.Center,
-    );
+    excel.CellStyle printStyle({
+      String background = '#FFFFFF',
+      String fontColor = '#000000',
+      int fontSize = 12,
+    }) {
+      return excel.CellStyle(
+        backgroundColorHex: excel.ExcelColor.fromHexString(background),
+        fontColorHex: excel.ExcelColor.fromHexString(fontColor),
+        fontFamily: 'Arial',
+        fontSize: fontSize,
+        bold: true,
+        textWrapping: excel.TextWrapping.Clip,
+        horizontalAlign: excel.HorizontalAlign.Center,
+        verticalAlign: excel.VerticalAlign.Center,
+        leftBorder: blackBorder,
+        rightBorder: blackBorder,
+        topBorder: blackBorder,
+        bottomBorder: blackBorder,
+      );
+    }
 
-    final excel.CellStyle normalDataStyle = excel.CellStyle(
-      bold: true, // Data is bold in the provided format
-      horizontalAlign: excel.HorizontalAlign.Center,
-      verticalAlign: excel.VerticalAlign.Center,
-    );
-
-    final excel.CellStyle redTextStyle = excel.CellStyle(
-      fontColorHex: excel.ExcelColor.fromHexString('#FF0000'), // Red text
-      bold: true,
-      horizontalAlign: excel.HorizontalAlign.Center,
-      verticalAlign: excel.VerticalAlign.Center,
-    );
-
-    final excel.CellStyle wholeDayStyle = excel.CellStyle(
-      backgroundColorHex: excel.ExcelColor.fromHexString('#FFFF00'), // Yellow background
-      fontColorHex: excel.ExcelColor.fromHexString('#FF0000'), // Red text
-      bold: true,
-      horizontalAlign: excel.HorizontalAlign.Center,
-      verticalAlign: excel.VerticalAlign.Center,
+    final titleStyle = printStyle(background: '#9EA000', fontSize: 16);
+    final headerStyle = printStyle(background: '#D9D9D9', fontSize: 11);
+    final normalDataStyle = printStyle(fontSize: 11);
+    final redTextStyle = printStyle(fontColor: '#FF0000', fontSize: 11);
+    final yellowRedStyle = printStyle(
+      background: '#FFFF00',
+      fontColor: '#FF0000',
+      fontSize: 11,
     );
 
     for (var entry in groupedRows.entries) {
       final employeeName = entry.key.toUpperCase();
-      final employeeData = entry.value;
+      final employeeData = entry.value
+        ..sort((a, b) {
+          final aDate = _parseFlexibleDate(a['date'] ?? '') ?? DateTime(1970);
+          final bDate = _parseFlexibleDate(b['date'] ?? '') ?? DateTime(1970);
+          return aDate.compareTo(bDate);
+        });
 
       // Row 1: Employee Title
+      sheet.setRowHeight(currentRow, 24);
       sheet.merge(
         excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow),
         excel.CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: currentRow),
       );
+      for (int c = 0; c <= 7; c++) {
+        sheet
+            .cell(
+              excel.CellIndex.indexByColumnRow(
+                columnIndex: c,
+                rowIndex: currentRow,
+              ),
+            )
+            .cellStyle = titleStyle;
+      }
       sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow))
         ..value = excel.TextCellValue(employeeName)
         ..cellStyle = titleStyle;
       currentRow++;
 
       // Row 2: Shift Headers (Morning, Afternoon, Overtime)
+      sheet.setRowHeight(currentRow, 21);
       sheet.merge(
         excel.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: currentRow),
         excel.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: currentRow),
@@ -1838,6 +2147,7 @@ class _AttendanceState extends State<Attendance> {
       currentRow++;
 
       // Row 3: IN/OUT Headers
+      sheet.setRowHeight(currentRow, 21);
       sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: currentRow))
         ..value = excel.TextCellValue('DATE')
         ..cellStyle = headerStyle;
@@ -1852,6 +2162,7 @@ class _AttendanceState extends State<Attendance> {
 
       // Data Rows
       for (var row in employeeData) {
+        sheet.setRowHeight(currentRow, 23);
         String dateVal = row['date'] ?? '';
         String dayVal = row['day'] ?? '';
         String shortDate = dateVal;
@@ -1892,6 +2203,13 @@ class _AttendanceState extends State<Attendance> {
         final finalValue = row['total_minutes_late'] ?? '';
         final lateMinutes = int.tryParse(finalValue) ?? 0;
         final isHalfDay = finalValue.toLowerCase().contains('half');
+        final isAbsent = finalValue.toLowerCase().contains('absent');
+        String note = row['note'] ?? '';
+        final noteLower = note.toLowerCase();
+        final isWholeDay =
+            isAbsent ||
+            noteLower.contains('whole day') ||
+            noteLower.contains('absent');
         final lateCell = sheet.cell(
           excel.CellIndex.indexByColumnRow(
             columnIndex: 7,
@@ -1899,33 +2217,51 @@ class _AttendanceState extends State<Attendance> {
           ),
         );
         lateCell.value = excel.TextCellValue(
-          isHalfDay
-              ? 'Half Day'
+          isWholeDay
+              ? 'whole day'
+              : isHalfDay
+              ? 'half day'
               : lateMinutes > 0
               ? '$lateMinutes'
               : '',
         );
-        lateCell.cellStyle = lateMinutes > 0 || isHalfDay
+        lateCell.cellStyle = lateMinutes > 0 || isHalfDay || isWholeDay
             ? redTextStyle
             : normalDataStyle;
 
-        // Apply conditional formatting for absences.
-        String note = row['note'] ?? '';
-        final noteLower = note.toLowerCase();
-        if (noteLower.contains('whole day') || noteLower.contains('absent')) {
+        if (isHalfDay) {
+          lateCell.cellStyle = redTextStyle;
+        }
+
+        if (isWholeDay) {
           for (int c = 0; c <= 7; c++) {
              sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: currentRow))
-               .cellStyle = wholeDayStyle;
+               .cellStyle = yellowRedStyle;
           }
+        } else if (isHalfDay) {
+          sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: currentRow))
+            .cellStyle = redTextStyle;
         }
 
         currentRow++;
       }
-      currentRow++; // Spacer row before next employee
+      for (int c = 0; c <= 7; c++) {
+        sheet
+            .cell(
+              excel.CellIndex.indexByColumnRow(
+                columnIndex: c,
+                rowIndex: currentRow,
+              ),
+            )
+            .cellStyle = normalDataStyle;
+      }
+      currentRow++;
     }
 
-    sheet.setColumnWidth(0, 15.0);
-    for(int i = 1; i <= 6; i++) sheet.setColumnWidth(i, 10.0);
+    sheet.setColumnWidth(0, 15.5);
+    for (int i = 1; i <= 6; i++) {
+      sheet.setColumnWidth(i, 12.0);
+    }
     sheet.setColumnWidth(7, 24.0);
 
     return Uint8List.fromList(workbook.encode() ?? []);
