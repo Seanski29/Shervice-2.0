@@ -23,6 +23,7 @@ class _AttendanceState extends State<Attendance> {
   bool _isImporting = false;
   bool _isLoadingSystemData = false;
   String _sourceFileName = 'No file selected';
+  String? _selectedSourceFile;
 
   // Custom Pagination, Sorting & Search State
   int _rowsPerPage = 10;
@@ -37,14 +38,14 @@ class _AttendanceState extends State<Attendance> {
 
   final List<String> _attendanceColumns = [
     'employee',
-    'pay_period',
-    'day',
     'date',
-    'in_time',
-    'out_time',
-    'work_time',
-    'daily_total',
-    'note',
+    'morning_in',
+    'morning_out',
+    'afternoon_in',
+    'afternoon_out',
+    'overtime_in',
+    'overtime_out',
+    'total_minutes_late',
   ];
 
   List<String> _columns = [];
@@ -68,6 +69,12 @@ class _AttendanceState extends State<Attendance> {
 
   List<Map<String, String>> get _processedRows {
     List<Map<String, String>> result = List.from(_rows);
+
+    if (_selectedSourceFile != null) {
+      result = result
+          .where((row) => row['source_file'] == _selectedSourceFile)
+          .toList();
+    }
 
     // 1. Date Filter (Applied from the main UI dropdown)
     DateTime now = DateTime.now();
@@ -188,7 +195,9 @@ class _AttendanceState extends State<Attendance> {
 
       if (!mounted) return;
       setState(() {
-        _sourceFileName = 'System attendance records';
+        _sourceFileName = _selectedSourceFile == null
+            ? 'System attendance records'
+            : 'Imported attendance: $_selectedSourceFile';
         _columns = _attendanceColumns;
         _rows = normalized;
       });
@@ -311,13 +320,18 @@ class _AttendanceState extends State<Attendance> {
         return;
       }
 
-      final savedCount = await _saveImportedAttendance(parsedRows, file.name);
+      final importedRows = parsedRows
+          .map((row) => {...row, 'source_file': file.name})
+          .toList();
+
+      _selectedSourceFile = file.name;
+      final savedCount = await _saveImportedAttendance(importedRows, file.name);
       if (!mounted) return;
 
       setState(() {
         _sourceFileName = file.name;
         _columns = _attendanceColumns;
-        _rows = parsedRows;
+        _rows = importedRows;
         _currentPage = 0;
         _selectedRange = 'All Time';
         _customDateRange = null;
@@ -915,6 +929,18 @@ class _AttendanceState extends State<Attendance> {
                                                         col,
                                                         row[col] ?? '',
                                                       );
+                                                  final isLateColumn =
+                                                      col ==
+                                                      'total_minutes_late';
+                                                  final lateMinutes =
+                                                      int.tryParse(
+                                                        row[col] ?? '',
+                                                      ) ??
+                                                      0;
+                                                  final isHalfDay =
+                                                      (row[col] ?? '')
+                                                          .toLowerCase()
+                                                          .contains('half');
                                                   return DataCell(
                                                     ConstrainedBox(
                                                       constraints:
@@ -924,6 +950,18 @@ class _AttendanceState extends State<Attendance> {
                                                           ),
                                                       child: Text(
                                                         displayValue,
+                                                        style: isLateColumn &&
+                                                            (lateMinutes > 0 ||
+                                                                isHalfDay)
+                                                            ? const TextStyle(
+                                                                color: Color(
+                                                                  0xFFEF4444,
+                                                                ),
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w800,
+                                                              )
+                                                            : null,
                                                         overflow: TextOverflow
                                                             .ellipsis,
                                                         maxLines: 2,
@@ -1024,7 +1062,10 @@ class _AttendanceState extends State<Attendance> {
   // ===========================================================================
 
   String _formatDisplayValue(String column, String rawValue) {
-    if (column == 'in_time' || column == 'out_time') {
+    if (column == 'in_time' ||
+        column == 'out_time' ||
+        column.endsWith('_in') ||
+        column.endsWith('_out')) {
       return _formatTimeValue(rawValue);
     } else if (column == 'work_time' || column == 'daily_total') {
       return _formatDurationValue(rawValue);
@@ -1036,6 +1077,10 @@ class _AttendanceState extends State<Attendance> {
       return (rawValue == 'NaN' || rawValue.isEmpty || rawValue == 'null')
           ? '-'
           : rawValue.toUpperCase();
+    } else if (column == 'total_minutes_late') {
+      final minutes = int.tryParse(rawValue) ?? 0;
+      if (rawValue.toLowerCase().contains('half')) return 'Half Day';
+      return minutes > 0 ? '$minutes' : '-';
     }
     return rawValue;
   }
@@ -1149,6 +1194,13 @@ class _AttendanceState extends State<Attendance> {
     if (lowerVal == 'date') return 'Date';
     if (lowerVal == 'in_time' || lowerVal == 'in') return 'IN';
     if (lowerVal == 'out_time' || lowerVal == 'out') return 'OUT';
+    if (lowerVal == 'morning_in') return 'Morning IN';
+    if (lowerVal == 'morning_out') return 'Morning OUT';
+    if (lowerVal == 'afternoon_in') return 'Afternoon IN';
+    if (lowerVal == 'afternoon_out') return 'Afternoon OUT';
+    if (lowerVal == 'overtime_in') return 'Overtime IN';
+    if (lowerVal == 'overtime_out') return 'Overtime OUT';
+    if (lowerVal == 'total_minutes_late') return 'Total Minutes Late';
     if (lowerVal == 'work_time' || lowerVal == 'work_hours') return 'Work Time';
     if (lowerVal == 'daily_total' || lowerVal == 'total_hours')
       return 'Daily Total';
@@ -1240,10 +1292,13 @@ class _AttendanceState extends State<Attendance> {
         employeeName = (map['employee_name'] ?? '').toString();
       }
 
-      String dateStr = (map['date'] ?? map['work_date'] ?? '').toString();
-      String dayOfWeek = 'NaN';
+      final dateStr = (map['date'] ?? map['work_date'] ?? '').toString();
+      var dayOfWeek = (map['day'] ?? map['day_label'] ?? '').toString();
 
-      if (dateStr.isNotEmpty && dateStr != 'null' && dateStr != 'NaN') {
+      if ((dayOfWeek.isEmpty || dayOfWeek == 'null') &&
+          dateStr.isNotEmpty &&
+          dateStr != 'null' &&
+          dateStr != 'NaN') {
         try {
           final date = DateTime.parse(dateStr);
           const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
@@ -1251,12 +1306,15 @@ class _AttendanceState extends State<Attendance> {
         } catch (_) {}
       }
 
-      normalized.add({
+      final shiftValues = _resolveShiftValues(map);
+      final row = {
         'employee': employeeName.isNotEmpty && employeeId.isNotEmpty
             ? '$employeeName ($employeeId)'
             : (employeeName.isNotEmpty ? employeeName : 'Unknown'),
         'pay_period': (map['pay_period'] ?? '').toString(),
-        'day': dayOfWeek,
+        'day': dayOfWeek.isNotEmpty && dayOfWeek != 'null'
+            ? dayOfWeek
+            : 'NaN',
         'date': dateStr,
         'in_time': (map['in_time'] ?? map['time_in'] ?? '').toString(),
         'out_time': (map['out_time'] ?? map['time_out'] ?? '').toString(),
@@ -1264,9 +1322,284 @@ class _AttendanceState extends State<Attendance> {
         'daily_total': (map['daily_total'] ?? map['total_hours'] ?? '')
             .toString(),
         'note': (map['note'] ?? map['notes'] ?? '').toString(),
-      });
+        'source_file': (map['source_file'] ?? '').toString(),
+        ...shiftValues,
+      };
+      row['total_minutes_late'] = _finalAttendanceValue(row);
+      normalized.add(row);
     }
-    return normalized;
+    return _mergeAttendanceRows(normalized);
+  }
+
+  Map<String, String> _resolveShiftValues(Map<String, dynamic> map) {
+    final punchTimes = _collectPunchTimes(map);
+    if (punchTimes.isNotEmpty) return _buildShiftValues(punchTimes);
+
+    final existing = {
+      'morning_in': _firstValue(map, ['morning_in']),
+      'morning_out': _firstValue(map, ['morning_out']),
+      'afternoon_in': _firstValue(map, ['afternoon_in']),
+      'afternoon_out': _firstValue(map, ['afternoon_out']),
+      'overtime_in': _firstValue(map, ['overtime_in']),
+      'overtime_out': _firstValue(map, ['overtime_out']),
+    };
+
+    if (existing.values.any((value) => _hasAttendanceValue(value))) {
+      return existing;
+    }
+
+    return existing;
+  }
+
+  String _firstValue(Map<String, dynamic> map, List<String> keys) {
+    for (final key in keys) {
+      final value = _normalizeCellValue(map[key]);
+      if (_hasAttendanceValue(value)) return value;
+    }
+    return 'NaN';
+  }
+
+  List<String> _collectPunchTimes(Map<String, dynamic> map) {
+    final values = <String>[];
+    for (final key in [
+      'in_time',
+      'time_in',
+      'out_time',
+      'time_out',
+    ]) {
+      final value = _normalizeCellValue(map[key]);
+      if (_parseTimeToMinutes(value) != null) values.add(value);
+    }
+    return values;
+  }
+
+  bool _hasAttendanceValue(String value) {
+    final normalized = value.trim().toLowerCase();
+    return normalized.isNotEmpty &&
+        normalized != 'nan' &&
+        normalized != 'null' &&
+        normalized != '-';
+  }
+
+  Map<String, String> _buildShiftValues(List<String> times) {
+    final shifts = {
+      'morning_in': 'NaN',
+      'morning_out': 'NaN',
+      'afternoon_in': 'NaN',
+      'afternoon_out': 'NaN',
+      'overtime_in': 'NaN',
+      'overtime_out': 'NaN',
+    };
+
+    for (var index = 0; index < times.length; index += 2) {
+      final inTime = times[index];
+      final outTime = index + 1 < times.length ? times[index + 1] : 'NaN';
+      final inMinutes = _parseTimeToMinutes(inTime);
+      final outMinutes = _parseTimeToMinutes(outTime);
+      if (inMinutes == null && outMinutes == null) continue;
+
+      _applyPunchPairToShifts(
+        shifts,
+        inTime,
+        outTime,
+        inMinutes,
+        outMinutes,
+      );
+    }
+
+    return shifts;
+  }
+
+  void _applyPunchPairToShifts(
+    Map<String, String> shifts,
+    String inTime,
+    String outTime,
+    int? inMinutes,
+    int? outMinutes,
+  ) {
+    const morningEnd = 7 * 60;
+    const afternoonStart = 15 * 60;
+    const afternoonEnd = 19 * 60;
+
+    final start = inMinutes ?? outMinutes;
+    if (start == null) return;
+
+    if (start < morningEnd) {
+      _setShiftPair(
+        shifts,
+        'morning',
+        inTime,
+        outMinutes != null && outMinutes > morningEnd
+            ? _formatMinutesAsTime(morningEnd)
+            : outTime,
+      );
+      if (outMinutes != null && outMinutes > morningEnd) {
+        _setShiftPair(
+          shifts,
+          'overtime',
+          _formatMinutesAsTime(morningEnd),
+          outTime,
+        );
+      }
+      return;
+    }
+
+    if (start >= afternoonStart && start < afternoonEnd) {
+      _setShiftPair(
+        shifts,
+        'afternoon',
+        inTime,
+        outMinutes != null && outMinutes > afternoonEnd
+            ? _formatMinutesAsTime(afternoonEnd)
+            : outTime,
+      );
+      if (outMinutes != null && outMinutes > afternoonEnd) {
+        _setShiftPair(
+          shifts,
+          'overtime',
+          _formatMinutesAsTime(afternoonEnd),
+          outTime,
+        );
+      }
+      return;
+    }
+
+    _setShiftPair(shifts, 'overtime', inTime, outTime);
+  }
+
+  void _setShiftPair(
+    Map<String, String> shifts,
+    String shift,
+    String inTime,
+    String outTime,
+  ) {
+    final inKey = '${shift}_in';
+    final outKey = '${shift}_out';
+    final currentIn = shifts[inKey] ?? '';
+    final currentOut = shifts[outKey] ?? '';
+
+    if (!_hasAttendanceValue(currentIn) ||
+        _isEarlierTime(inTime, currentIn)) {
+      shifts[inKey] = inTime;
+    }
+    if (_hasAttendanceValue(outTime) &&
+        (!_hasAttendanceValue(currentOut) || _isLaterTime(outTime, currentOut))) {
+      shifts[outKey] = outTime;
+    }
+  }
+
+  bool _isEarlierTime(String candidate, String current) {
+    final candidateMinutes = _parseTimeToMinutes(candidate);
+    final currentMinutes = _parseTimeToMinutes(current);
+    if (candidateMinutes == null) return false;
+    if (currentMinutes == null) return true;
+    return candidateMinutes < currentMinutes;
+  }
+
+  bool _isLaterTime(String candidate, String current) {
+    final candidateMinutes = _parseTimeToMinutes(candidate);
+    final currentMinutes = _parseTimeToMinutes(current);
+    if (candidateMinutes == null) return false;
+    if (currentMinutes == null) return true;
+    return candidateMinutes > currentMinutes;
+  }
+
+  String _formatMinutesAsTime(int minutes) {
+    final hour = (minutes ~/ 60) % 24;
+    final minute = minutes % 60;
+    return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+  }
+
+  int? _parseTimeToMinutes(String value) {
+    if (!_hasAttendanceValue(value)) return null;
+    final trimmed = value.trim();
+
+    final amPmMatch = RegExp(
+      r'^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$',
+      caseSensitive: false,
+    ).firstMatch(trimmed);
+    if (amPmMatch != null) {
+      var hour = int.parse(amPmMatch.group(1)!);
+      final minute = int.parse(amPmMatch.group(2)!);
+      final meridiem = amPmMatch.group(3)!.toUpperCase();
+      if (meridiem == 'PM' && hour != 12) hour += 12;
+      if (meridiem == 'AM' && hour == 12) hour = 0;
+      return hour * 60 + minute;
+    }
+
+    try {
+      final parsed = DateTime.parse(trimmed);
+      return parsed.hour * 60 + parsed.minute;
+    } catch (_) {}
+
+    final timeMatch = RegExp(r'(\d{1,2}):(\d{2})(?::\d{2})?').firstMatch(
+      trimmed,
+    );
+    if (timeMatch == null) return null;
+
+    final hour = int.tryParse(timeMatch.group(1)!);
+    final minute = int.tryParse(timeMatch.group(2)!);
+    if (hour == null || minute == null || hour > 23 || minute > 59) {
+      return null;
+    }
+    return hour * 60 + minute;
+  }
+
+  int _calculateTotalMinutesLate(Map<String, String> row) {
+    var total = 0;
+    final morningIn = _parseTimeToMinutes(row['morning_in'] ?? '');
+    if (morningIn != null && morningIn > 3 * 60) {
+      total += morningIn - 3 * 60;
+    }
+
+    final afternoonIn = _parseTimeToMinutes(row['afternoon_in'] ?? '');
+    if (afternoonIn != null && afternoonIn > 15 * 60) {
+      total += afternoonIn - 15 * 60;
+    }
+    return total;
+  }
+
+  bool _isHalfDay(Map<String, String> row) {
+    final hasMorning = _hasAttendanceValue(row['morning_in'] ?? '') ||
+        _hasAttendanceValue(row['morning_out'] ?? '');
+    final hasAfternoon = _hasAttendanceValue(row['afternoon_in'] ?? '') ||
+        _hasAttendanceValue(row['afternoon_out'] ?? '');
+    return hasMorning && !hasAfternoon;
+  }
+
+  String _finalAttendanceValue(Map<String, String> row) {
+    if (_isHalfDay(row)) return 'Half Day';
+    return _calculateTotalMinutesLate(row).toString();
+  }
+
+  List<Map<String, String>> _mergeAttendanceRows(
+    List<Map<String, String>> rows,
+  ) {
+    final grouped = <String, Map<String, String>>{};
+
+    for (final row in rows) {
+      final key =
+          '${row['source_file'] ?? ''}|${row['employee']}|${row['date']}';
+      final existing = grouped[key];
+      if (existing == null) {
+        grouped[key] = Map<String, String>.from(row);
+        continue;
+      }
+
+      for (final entry in row.entries) {
+        final existingValue = existing[entry.key] ?? '';
+        if (!_hasAttendanceValue(existingValue) &&
+            _hasAttendanceValue(entry.value)) {
+          existing[entry.key] = entry.value;
+        }
+      }
+    }
+
+    for (final row in grouped.values) {
+      row['total_minutes_late'] = _finalAttendanceValue(row);
+    }
+
+    return grouped.values.toList();
   }
 
   List<List<dynamic>> _extractRawRows(Uint8List bytes, bool isCsv) {
@@ -1350,7 +1683,12 @@ class _AttendanceState extends State<Attendance> {
         rowDay = currentDay;
       }
 
-      if (times.isNotEmpty) {
+      final noteText = texts.join(' | ');
+      final isAbsentRow =
+          noteText.toLowerCase().contains('absent') ||
+          noteText.toLowerCase().contains('whole day');
+
+      if (times.isNotEmpty || isAbsentRow) {
         texts.removeWhere(
           (t) =>
               [
@@ -1368,6 +1706,11 @@ class _AttendanceState extends State<Attendance> {
               t == currentEmployee,
         );
 
+        final punchTimes = times.length > 2 ? times.take(2).toList() : times;
+        final shiftValues = _buildShiftValues(punchTimes);
+        final note = texts.isNotEmpty
+            ? texts.join(' | ')
+            : (isAbsentRow ? noteText : 'NaN');
         parsedRows.add({
           'employee': currentEmployee,
           'pay_period': currentPayPeriod,
@@ -1377,11 +1720,18 @@ class _AttendanceState extends State<Attendance> {
           'out_time': times.length > 1 ? times[1] : 'NaN',
           'work_time': times.length > 2 ? times[2] : 'NaN',
           'daily_total': times.length > 3 ? times[3] : 'NaN',
-          'note': texts.isNotEmpty ? texts.join(' | ') : 'NaN',
+          'note': note,
+          ...shiftValues,
         });
       }
     }
-    return parsedRows;
+    final mergedRows = _mergeAttendanceRows(parsedRows);
+    return mergedRows
+        .map((row) => {
+              ...row,
+              'total_minutes_late': _finalAttendanceValue(row),
+            })
+        .toList();
   }
 
   Uint8List _convertRowsToXlsx(List<Map<String, String>> rows) {
@@ -1520,31 +1870,53 @@ class _AttendanceState extends State<Attendance> {
           ..cellStyle = normalDataStyle;
 
         sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: currentRow))
-          ..value = excel.TextCellValue(_formatDisplayValue('in_time', row['in_time'] ?? ''))
+          ..value = excel.TextCellValue(_formatDisplayValue('morning_in', row['morning_in'] ?? ''))
           ..cellStyle = normalDataStyle;
         sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: currentRow))
-          ..value = excel.TextCellValue(_formatDisplayValue('out_time', row['out_time'] ?? ''))
+          ..value = excel.TextCellValue(_formatDisplayValue('morning_out', row['morning_out'] ?? ''))
           ..cellStyle = normalDataStyle;
 
-        // Leave Afternoon/Overtime blank but styled
-        for (int c = 3; c <= 6; c++) {
-          sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: currentRow)).cellStyle = normalDataStyle;
-        }
-        
-        String note = row['note'] ?? '';
-        var noteCell = sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: currentRow));
-        noteCell.value = excel.TextCellValue(note);
-        noteCell.cellStyle = normalDataStyle;
+        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: currentRow))
+          ..value = excel.TextCellValue(_formatDisplayValue('afternoon_in', row['afternoon_in'] ?? ''))
+          ..cellStyle = normalDataStyle;
+        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: currentRow))
+          ..value = excel.TextCellValue(_formatDisplayValue('afternoon_out', row['afternoon_out'] ?? ''))
+          ..cellStyle = normalDataStyle;
+        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: currentRow))
+          ..value = excel.TextCellValue(_formatDisplayValue('overtime_in', row['overtime_in'] ?? ''))
+          ..cellStyle = normalDataStyle;
+        sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: currentRow))
+          ..value = excel.TextCellValue(_formatDisplayValue('overtime_out', row['overtime_out'] ?? ''))
+          ..cellStyle = normalDataStyle;
 
-        // Apply conditional formatting for absences and lateness
+        final finalValue = row['total_minutes_late'] ?? '';
+        final lateMinutes = int.tryParse(finalValue) ?? 0;
+        final isHalfDay = finalValue.toLowerCase().contains('half');
+        final lateCell = sheet.cell(
+          excel.CellIndex.indexByColumnRow(
+            columnIndex: 7,
+            rowIndex: currentRow,
+          ),
+        );
+        lateCell.value = excel.TextCellValue(
+          isHalfDay
+              ? 'Half Day'
+              : lateMinutes > 0
+              ? '$lateMinutes'
+              : '',
+        );
+        lateCell.cellStyle = lateMinutes > 0 || isHalfDay
+            ? redTextStyle
+            : normalDataStyle;
+
+        // Apply conditional formatting for absences.
+        String note = row['note'] ?? '';
         final noteLower = note.toLowerCase();
         if (noteLower.contains('whole day') || noteLower.contains('absent')) {
           for (int c = 0; c <= 7; c++) {
              sheet.cell(excel.CellIndex.indexByColumnRow(columnIndex: c, rowIndex: currentRow))
                .cellStyle = wholeDayStyle;
           }
-        } else if (noteLower.contains('half day') || noteLower.contains('late') || noteLower.contains('miss')) {
-          noteCell.cellStyle = redTextStyle;
         }
 
         currentRow++;
