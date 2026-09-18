@@ -1,7 +1,17 @@
 from flask import Blueprint, jsonify, request
+import re
 
 payroll_bp = Blueprint('payroll', __name__)
 supabase = None
+
+
+def _route_key(route_name):
+    return re.sub(r'\s+', ' ', str(route_name or '').strip()).lower()
+
+
+def _canonical_route_name(route_name):
+    clean_name = re.sub(r'\s+', ' ', str(route_name or '').strip())
+    return clean_name or 'Unspecified Route'
 
 
 @payroll_bp.route('/api/payroll/context', methods=['GET'])
@@ -48,19 +58,9 @@ def get_payroll_context():
             for destination in destinations
             if destination.get('route_id') is not None
         }
-        destinations_by_name = {
-            str(destination.get('route_name') or '').strip().lower(): destination
-            for destination in destinations
-            if destination.get('route_name')
-        }
-
         trips = []
         for trip in trips_res.data or []:
             destination = destinations_by_id.get(str(trip.get('route_id')))
-            if destination is None:
-                destination = destinations_by_name.get(
-                    str(trip.get('route_name') or '').strip().lower()
-                )
             trips.append({
                 **trip,
                 'destination_name': (destination or {}).get('route_name') or trip.get('route_name'),
@@ -73,6 +73,37 @@ def get_payroll_context():
             "attendance": attendance_res.data or [],
             "trips": trips,
             "destinations": destinations,
+        }), 200
+    except Exception as exc:
+        return jsonify({"success": False, "message": str(exc)}), 500
+
+
+@payroll_bp.route('/api/payroll/destinations/<int:route_id>', methods=['DELETE'])
+def delete_payroll_destination(route_id):
+    try:
+        trips = supabase.table('trip_schedule').select('trip_id').eq('route_id', route_id).limit(1).execute().data or []
+        if trips:
+            return jsonify({
+                "success": False,
+                "message": "This route is already used by trips and cannot be deleted.",
+            }), 409
+
+        destination = (
+            supabase.table('destination')
+            .select('route_id, route_name')
+            .eq('route_id', route_id)
+            .maybe_single()
+            .execute()
+        )
+        if not destination.data:
+            return jsonify({"success": False, "message": "Destination not found."}), 404
+
+        deleted = supabase.table('destination').delete().eq('route_id', route_id).execute()
+
+        return jsonify({
+            "success": True,
+            "deleted": deleted.data or [],
+            "message": "Destination deleted.",
         }), 200
     except Exception as exc:
         return jsonify({"success": False, "message": str(exc)}), 500
@@ -91,7 +122,7 @@ def update_payroll_destination_rates():
             if not isinstance(item, dict):
                 continue
             route_id = item.get('route_id')
-            route_name = str(item.get('route_name') or '').strip()
+            route_name = _canonical_route_name(item.get('route_name'))
             try:
                 price = float(item.get('price') or 0)
             except (TypeError, ValueError):
@@ -105,15 +136,110 @@ def update_payroll_destination_rates():
                     .execute()
                 )
             elif route_name:
-                result = (
-                    supabase.table('destination')
-                    .upsert({'route_name': route_name, 'price': price}, on_conflict='route_name')
-                    .execute()
-                )
+                all_destinations = supabase.table('destination').select('route_id, route_name').execute()
+                matched = None
+                for destination in all_destinations.data or []:
+                    if _route_key(destination.get('route_name')) == _route_key(route_name):
+                        matched = destination
+                        break
+                if matched:
+                    result = (
+                        supabase.table('destination')
+                        .update({'price': price})
+                        .eq('route_id', matched.get('route_id'))
+                        .execute()
+                    )
+                else:
+                    result = (
+                        supabase.table('destination')
+                        .insert({'route_name': route_name, 'price': price})
+                        .execute()
+                    )
             else:
                 continue
             saved.extend(result.data or [])
 
         return jsonify({"success": True, "saved": saved}), 200
+    except Exception as exc:
+        return jsonify({"success": False, "message": str(exc)}), 500
+
+
+@payroll_bp.route('/api/routes', methods=['GET'])
+def get_routes():
+    try:
+        destinations = (
+            supabase.table('destination')
+            .select('route_id, route_name, price')
+            .order('route_name', desc=False)
+            .execute()
+            .data or []
+        )
+        trips = supabase.table('trip_schedule').select('route_id').execute().data or []
+        trip_counts = {}
+        for trip in trips:
+            route_id = trip.get('route_id')
+            if route_id is not None:
+                trip_counts[str(route_id)] = trip_counts.get(str(route_id), 0) + 1
+        for destination in destinations:
+            destination['trip_count'] = trip_counts.get(str(destination.get('route_id')), 0)
+        return jsonify({"success": True, "data": destinations}), 200
+    except Exception as exc:
+        return jsonify({"success": False, "message": str(exc)}), 500
+
+
+@payroll_bp.route('/api/routes', methods=['POST'])
+def create_route():
+    try:
+        payload = request.get_json(silent=True) or {}
+        route_name = _canonical_route_name(payload.get('route_name'))
+        price = float(payload.get('price') or 0)
+
+        existing = supabase.table('destination').select('route_id, route_name').execute().data or []
+        for destination in existing:
+            if _route_key(destination.get('route_name')) == _route_key(route_name):
+                return jsonify({"success": False, "message": "Route already exists."}), 409
+
+        result = supabase.table('destination').insert({
+            'route_name': route_name,
+            'price': price,
+        }).execute()
+        return jsonify({"success": True, "data": result.data or []}), 201
+    except Exception as exc:
+        return jsonify({"success": False, "message": str(exc)}), 500
+
+
+@payroll_bp.route('/api/routes/<int:route_id>', methods=['PUT'])
+def update_route(route_id):
+    try:
+        payload = request.get_json(silent=True) or {}
+        route_name = _canonical_route_name(payload.get('route_name'))
+        price = float(payload.get('price') or 0)
+
+        existing = supabase.table('destination').select('route_id, route_name').execute().data or []
+        for destination in existing:
+            if int(destination.get('route_id')) != route_id and _route_key(destination.get('route_name')) == _route_key(route_name):
+                return jsonify({"success": False, "message": "Another route already uses that name."}), 409
+
+        result = supabase.table('destination').update({
+            'route_name': route_name,
+            'price': price,
+        }).eq('route_id', route_id).execute()
+        supabase.table('trip_schedule').update({'route_name': route_name}).eq('route_id', route_id).execute()
+        return jsonify({"success": True, "data": result.data or []}), 200
+    except Exception as exc:
+        return jsonify({"success": False, "message": str(exc)}), 500
+
+
+@payroll_bp.route('/api/routes/<int:route_id>', methods=['DELETE'])
+def delete_route(route_id):
+    try:
+        trips = supabase.table('trip_schedule').select('trip_id').eq('route_id', route_id).limit(1).execute().data or []
+        if trips:
+            return jsonify({
+                "success": False,
+                "message": "This route is already used by trips and cannot be deleted.",
+            }), 409
+        result = supabase.table('destination').delete().eq('route_id', route_id).execute()
+        return jsonify({"success": True, "data": result.data or []}), 200
     except Exception as exc:
         return jsonify({"success": False, "message": str(exc)}), 500

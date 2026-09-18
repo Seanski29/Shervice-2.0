@@ -102,6 +102,105 @@ def _legacy_summary_payload(payload):
         legacy_payload['bus_type'] = vehicle_type
     return legacy_payload
 
+def _record_exists(table, id_field, value):
+    if value in (None, ''):
+        return True
+    result = (
+        supabase.table(table)
+        .select(id_field)
+        .eq(id_field, value)
+        .limit(1)
+        .execute()
+    )
+    return bool(result.data)
+
+def _validate_trip_resources(payload):
+    vehicle_id = payload.get('vehicle_id')
+    driver_id = payload.get('driver_id')
+    if vehicle_id is not None and not _record_exists('vehicle', 'vehicle_id', vehicle_id):
+        return f"Vehicle ID {vehicle_id} does not exist."
+    if driver_id is not None and not _record_exists('driver_profile', 'driver_id', driver_id):
+        return f"Driver ID {driver_id} does not exist."
+    return None
+
+def _route_key(route_name):
+    return re.sub(r'\s+', ' ', str(route_name or '').strip()).lower()
+
+def _canonical_route_name(route_name):
+    clean_name = re.sub(r'\s+', ' ', str(route_name or '').strip())
+    return clean_name or 'Unspecified Route'
+
+def _destination_payload(route_id=None, route_name=None):
+    clean_name = _canonical_route_name(route_name)
+    clean_key = _route_key(clean_name)
+    if route_id:
+        destination = (
+            supabase.table('destination')
+            .select('route_id, route_name')
+            .eq('route_id', route_id)
+            .maybe_single()
+            .execute()
+        )
+        if destination.data:
+            return {
+                'route_id': destination.data.get('route_id'),
+                'route_name': destination.data.get('route_name') or clean_name,
+            }
+
+    existing = (
+        supabase.table('destination')
+        .select('route_id, route_name')
+        .ilike('route_name', clean_name)
+        .limit(1)
+        .execute()
+    )
+    if existing.data:
+        row = existing.data[0] if isinstance(existing.data, list) else existing.data
+        return {
+            'route_id': row.get('route_id'),
+            'route_name': row.get('route_name') or clean_name,
+        }
+
+    all_destinations = (
+        supabase.table('destination')
+        .select('route_id, route_name')
+        .execute()
+    )
+    for destination in all_destinations.data or []:
+        if _route_key(destination.get('route_name')) == clean_key:
+            return {
+                'route_id': destination.get('route_id'),
+                'route_name': destination.get('route_name') or clean_name,
+            }
+
+    try:
+        created = (
+            supabase.table('destination')
+            .insert({'route_name': clean_name, 'price': 0})
+            .execute()
+        )
+        row = (created.data or [{}])[0]
+    except Exception:
+        existing_after_insert = (
+            supabase.table('destination')
+            .select('route_id, route_name')
+            .ilike('route_name', clean_name)
+            .limit(1)
+            .execute()
+        )
+        row = (existing_after_insert.data or [{}])[0]
+
+    return {
+        'route_id': row.get('route_id'),
+        'route_name': row.get('route_name') or clean_name,
+    }
+
+def _apply_destination(payload, route_id=None, route_name=None):
+    destination = _destination_payload(route_id=route_id, route_name=route_name)
+    payload['route_id'] = destination.get('route_id')
+    payload['route_name'] = destination.get('route_name') or str(route_name or 'Unspecified Route').strip()
+    return payload
+
 def _insert_summary_rows(payloads):
     try:
         return supabase.table('trip_schedule').insert(payloads).execute()
@@ -149,7 +248,7 @@ def _trip_update_payload(data):
     update_payload = {}
     text_fields = [
         'summary_id', 'schedule_date', 'working_day', 'bus_type', 'vehicle_type',
-        'classification', 'ticket_no', 'route_name', 'departure_time',
+        'classification', 'ticket_no', 'departure_time',
         'estimated_arrival_time', 'remarks',
     ]
     for field in text_fields:
@@ -169,13 +268,19 @@ def _trip_update_payload(data):
         update_payload['passenger_count'] = passenger_count or 0
     if utilization_rate is not None:
         update_payload['utilization_rate'] = utilization_rate
+    if 'route_id' in data or 'route_name' in data or 'route' in data:
+        update_payload = _apply_destination(
+            update_payload,
+            route_id=_to_int(data.get('route_id')),
+            route_name=data.get('route_name') or data.get('route'),
+        )
 
     return update_payload
 
 def _trip_payload_changed(existing, update_payload):
     for field, incoming in update_payload.items():
         current = existing.get(field)
-        if field in ('vehicle_id', 'driver_id', 'company_id', 'seating_capacity', 'passenger_count'):
+        if field in ('vehicle_id', 'driver_id', 'company_id', 'seating_capacity', 'passenger_count', 'route_id'):
             if _to_int(current) != incoming:
                 return True
         elif field == 'utilization_rate':
@@ -386,6 +491,7 @@ def get_staff_options():
         query = supabase.table('user_account').select('user_id, full_name').eq('role', 'staff').execute()
         return jsonify({"success": True, "data": query.data}), 200
     except Exception as e:
+        current_app.logger.exception('Fetch staff options failed')
         return jsonify({"success": False, "message": str(e)}), 500
 
 @schedules_bp.route('/api/schedules/dispatch-options', methods=['GET'])
@@ -404,6 +510,7 @@ def get_dispatch_options():
             "blocked": False
         }), 200
     except Exception as e:
+        current_app.logger.exception('Fetch dispatch options failed')
         return jsonify({"success": False, "message": str(e)}), 500
 
 @schedules_bp.route('/api/schedules/driver/<string:driver_id>', methods=['GET'])
@@ -540,7 +647,7 @@ def create_staff_trip_summary(data=None, notify=True):
             if utilization_rate is None and seating_capacity:
                 utilization_rate = passenger_count / seating_capacity
 
-            payloads.append({
+            payload = {
                 "summary_id": summary_id,
                 "staff_id": staff_id,
                 "company_id": to_int(row.get('company_id') or data.get('company_id')),
@@ -553,13 +660,21 @@ def create_staff_trip_summary(data=None, notify=True):
                 "seating_capacity": seating_capacity,
                 "ticket_no": str(row.get('ticket_no') or '').strip() or None,
                 "driver_id": to_int(row.get('driver_id')),
-                "route_name": str(row.get('route_name') or row.get('route') or 'Unspecified Route').strip(),
                 "passenger_count": passenger_count,
                 "departure_time": row.get('departure_time'),
                 "estimated_arrival_time": row.get('estimated_arrival_time') or row.get('arrival_time'),
                 "utilization_rate": utilization_rate,
                 "remarks": row.get('remarks')
-            })
+            }
+            _apply_destination(
+                payload,
+                route_id=to_int(row.get('route_id')),
+                route_name=row.get('route_name') or row.get('route'),
+            )
+            resource_error = _validate_trip_resources(payload)
+            if resource_error:
+                return jsonify({"success": False, "message": resource_error}), 400
+            payloads.append(payload)
 
         if not payloads:
             return jsonify({"success": False, "message": "At least one trip summary row with a date is required."}), 400
@@ -624,6 +739,17 @@ def update_staff_trip_summary(trip_id, data=None, notify=True):
             update_payload['passenger_count'] = passenger_count or 0
         if utilization_rate is not None:
             update_payload['utilization_rate'] = utilization_rate
+
+        if 'route_id' in data or 'route_name' in data or 'route' in data:
+            _apply_destination(
+                update_payload,
+                route_id=to_int(data.get('route_id')),
+                route_name=data.get('route_name') or data.get('route'),
+            )
+
+        resource_error = _validate_trip_resources(update_payload)
+        if resource_error:
+            return jsonify({"success": False, "message": resource_error}), 400
 
         if not update_payload:
             return jsonify({"success": False, "message": "No trip summary fields to update."}), 400
