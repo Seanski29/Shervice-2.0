@@ -24,6 +24,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
 
   List<dynamic> _rawEvals = [];
   List<dynamic> _rawTrips = [];
+  List<dynamic> _rawAttendance = [];
 
   int? _selectedYear;
   int? _selectedMonth;
@@ -52,6 +53,11 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
   int _filteredEvaluationCount = 0;
   int _filteredTripCount = 0;
 
+  int _presentCount = 0;
+  int _halfDayCount = 0;
+  int _absentCount = 0;
+  int _totalMinutesLate = 0;
+
   String _mlClassification = 'Analyzing...';
   Color _mlBadgeColor = const Color(0xFF64748B);
   IconData _mlIcon = Icons.analytics_outlined;
@@ -79,7 +85,6 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
   Future<void> _fetchData() async {
     setState(() => _isLoading = true);
     try {
-      // 🔥 FIX: Reverted to /evaluate/driver/ because backendUrl already includes /api
       final evalRes = await http.get(
         Uri.parse('${widget.backendUrl}/evaluate/driver/${widget.driverId}'),
       );
@@ -87,6 +92,13 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
       final tripsRes = await http.get(
         Uri.parse('${widget.backendUrl}/schedules/driver/${widget.driverId}'),
       );
+
+      // Fetch Attendance Data
+      String attendanceUrl = widget.backendUrl.contains('/api')
+          ? '${widget.backendUrl}/admin/attendance'
+          : '${widget.backendUrl}/api/admin/attendance';
+
+      final attendanceRes = await http.get(Uri.parse(attendanceUrl));
 
       if (mounted) {
         if (evalRes.statusCode == 200) {
@@ -97,8 +109,17 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
           final data = jsonDecode(tripsRes.body);
           _rawTrips = data['data'] ?? [];
         }
+        if (attendanceRes.statusCode == 200) {
+          final data = jsonDecode(attendanceRes.body);
+          final allAttendance = data['data'] ?? data['attendance'] ?? [];
+          // Filter to only this driver's attendance
+          _rawAttendance = allAttendance
+              .where((a) => a['driver_id'].toString() == widget.driverId)
+              .toList();
+        }
 
         Set<int> years = {DateTime.now().year};
+
         for (var e in _rawEvals) {
           DateTime? dt = DateTime.tryParse(
             (e['submit_date'] ?? e['created_at'] ?? '').toString(),
@@ -108,6 +129,12 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
         for (var t in _rawTrips) {
           DateTime? dt = DateTime.tryParse(
             (t['schedule_date'] ?? t['date'] ?? '').toString(),
+          );
+          if (dt != null) years.add(dt.year);
+        }
+        for (var a in _rawAttendance) {
+          DateTime? dt = DateTime.tryParse(
+            (a['work_date'] ?? a['date'] ?? '').toString(),
           );
           if (dt != null) years.add(dt.year);
         }
@@ -129,10 +156,13 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
           Color badgeColor = const Color(0xFF64748B);
           IconData badgeIcon = Icons.info_outline;
 
-          if (classification == 'Consistent Performer') {
+          // Updated styling aligned with updated classifications
+          if (classification == 'Consistent Performer' ||
+              classification == 'Elite Performer') {
             badgeColor = const Color(0xFF10B981);
             badgeIcon = Icons.verified;
           } else if (classification == 'Aggressive Driving Risk' ||
+              classification == 'Safety Risk' ||
               classification == 'Needs Review') {
             badgeColor = const Color(0xFFEF4444);
             badgeIcon = Icons.warning_amber_rounded;
@@ -141,6 +171,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
             badgeColor = const Color(0xFFF97316);
             badgeIcon = Icons.access_time_filled;
           }
+
           setState(() {
             _mlClassification = classification;
             _mlBadgeColor = badgeColor;
@@ -151,15 +182,17 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
         if (mounted) setState(() => _mlClassification = 'Network Error');
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _errorMessage = 'Network error.';
           _isLoading = false;
         });
+      }
     }
   }
 
   void _recomputeForHorizon() {
+    // 1. Filter Evaluations
     List<dynamic> targetEvals = _rawEvals.where((e) {
       if (_selectedYear == null) return true;
       DateTime? dt = DateTime.tryParse(
@@ -170,6 +203,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
       return dt.year == _selectedYear && dt.month == _selectedMonth;
     }).toList();
 
+    // 2. Filter Trips
     _filteredTripCount = _rawTrips.where((t) {
       if (_selectedYear == null) return true;
       DateTime? dt = DateTime.tryParse(
@@ -179,6 +213,36 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
       if (_selectedMonth == null) return dt.year == _selectedYear;
       return dt.year == _selectedYear && dt.month == _selectedMonth;
     }).length;
+
+    // 3. Filter and Calculate Attendance
+    List<dynamic> targetAttendance = _rawAttendance.where((a) {
+      if (_selectedYear == null) return true;
+      DateTime? dt = DateTime.tryParse(
+        (a['work_date'] ?? a['date'] ?? '').toString(),
+      );
+      if (dt == null) return false;
+      if (_selectedMonth == null) return dt.year == _selectedYear;
+      return dt.year == _selectedYear && dt.month == _selectedMonth;
+    }).toList();
+
+    int tempPresent = 0;
+    int tempHalf = 0;
+    int tempAbsent = 0;
+    int tempLateMins = 0;
+
+    for (var a in targetAttendance) {
+      String note = (a['note'] ?? '').toString().toLowerCase();
+      int lateMins = (a['total_minutes_late'] as num?)?.toInt() ?? 0;
+      tempLateMins += lateMins;
+
+      if (note.contains('absent')) {
+        tempAbsent++;
+      } else if (note.contains('half day')) {
+        tempHalf++;
+      } else {
+        tempPresent++;
+      }
+    }
 
     _filteredEvaluationCount = targetEvals.length;
     double cumTotalScore = 0.0, cumPunct = 0.0, cumSafe = 0.0, cumProf = 0.0;
@@ -220,6 +284,11 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
       _professionalismAvg = _filteredEvaluationCount == 0
           ? 0.0
           : (cumProf / _filteredEvaluationCount);
+
+      _presentCount = tempPresent;
+      _halfDayCount = tempHalf;
+      _absentCount = tempAbsent;
+      _totalMinutesLate = tempLateMins;
 
       _processedEvals = compiledEvals;
       _currentPage = 0;
@@ -287,19 +356,64 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
   }
 
   void _nextPage() {
-    if (_currentPage < _totalPages - 1)
+    if (_currentPage < _totalPages - 1) {
       setState(() {
         _currentPage++;
         _expandedIndex = null;
       });
+    }
   }
 
   void _prevPage() {
-    if (_currentPage > 0)
+    if (_currentPage > 0) {
       setState(() {
         _currentPage--;
         _expandedIndex = null;
       });
+    }
+  }
+
+  Widget _buildAttendanceStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+    bool isDark,
+  ) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color: isDark ? color.withOpacity(0.1) : color.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 11,
+                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -561,6 +675,45 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
               ),
             ],
           ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // ATTENDANCE STATS ROW
+        Row(
+          children: [
+            _buildAttendanceStatCard(
+              'Present',
+              '$_presentCount',
+              Icons.check_circle_outline,
+              Colors.green,
+              isDark,
+            ),
+            const SizedBox(width: 12),
+            _buildAttendanceStatCard(
+              'Half Day',
+              '$_halfDayCount',
+              Icons.timelapse,
+              Colors.orange,
+              isDark,
+            ),
+            const SizedBox(width: 12),
+            _buildAttendanceStatCard(
+              'Absent',
+              '$_absentCount',
+              Icons.cancel_outlined,
+              Colors.red,
+              isDark,
+            ),
+            const SizedBox(width: 12),
+            _buildAttendanceStatCard(
+              'Mins Late',
+              '$_totalMinutesLate',
+              Icons.timer_off_outlined,
+              Colors.deepOrange,
+              isDark,
+            ),
+          ],
         ),
 
         const SizedBox(height: 20),

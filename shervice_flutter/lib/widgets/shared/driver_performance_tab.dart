@@ -23,6 +23,7 @@ class DriverPerformanceTab extends StatefulWidget {
 class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
   String _searchQuery = '';
   String _currentSort = 'Rating (High-Low)';
+  String _selectedClassification = 'All Classifications';
   int _currentPage = 0;
   final int _itemsPerPage = 6;
   int _selectedMonth = DateTime.now().month;
@@ -31,6 +32,15 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
   List<dynamic> _leaderboard = [];
   bool _isFetching = true;
   String? _errorMessage;
+
+  final List<String> _classificationOptions = [
+    'All Classifications',
+    'Elite Performer',
+    'Safety Risk',
+    'Tardiness Risk',
+    'Needs Review',
+    'Pending Sweep',
+  ];
 
   @override
   void initState() {
@@ -61,7 +71,6 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
         queryParameters['month'] = _selectedMonth.toString();
       }
 
-      // EXPLICITLY REQUEST ALL RECORDS SO THE LIST IS NOT TRUNCATED TO 10
       queryParameters['limit'] = 'all';
 
       final uri = Uri.parse(
@@ -104,8 +113,9 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
       final driversRes = await http
           .get(Uri.parse('${widget.backendUrl}/driver/all'))
           .timeout(const Duration(seconds: 10));
-      if (driversRes.statusCode != 200)
+      if (driversRes.statusCode != 200) {
         throw Exception("Failed to load drivers");
+      }
 
       final dynamic data = jsonDecode(driversRes.body);
       final List rawDrivers = data is Map
@@ -140,13 +150,12 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                 evalData['data'] ?? evalData['evaluations'] ?? [];
 
             final filteredEvals = evals.where((e) {
-              if (_selectedYear == 0) return true; // All Time
+              if (_selectedYear == 0) return true;
               final dt = DateTime.tryParse(
                 (e['submit_date'] ?? e['created_at'] ?? '').toString(),
               );
               if (dt == null) return false;
-              if (_selectedMonth == 0)
-                return dt.year == _selectedYear; // All Months
+              if (_selectedMonth == 0) return dt.year == _selectedYear;
               return dt.year == _selectedYear && dt.month == _selectedMonth;
             }).toList();
 
@@ -169,7 +178,6 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                     drv['full_name'] ?? drv['name'] ?? 'Driver $driverUuid',
                 'rating': avgTotal,
                 'review_count': count,
-                // 🔥 Ensure fallback gets the ML Classification & Status too
                 'ml_classification':
                     drv['ml_classification'] ?? 'Pending Sweep',
                 'employment_status': drv['employment_status'] ?? 'Active',
@@ -211,9 +219,16 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
 
   List<dynamic> get _processedDrivers {
     List<dynamic> tempD = _leaderboard.where((d) {
-      return (d['full_name'] ?? '').toString().toLowerCase().contains(
-        _searchQuery.toLowerCase(),
-      );
+      final matchesSearch = (d['full_name'] ?? '')
+          .toString()
+          .toLowerCase()
+          .contains(_searchQuery.toLowerCase());
+      final String classification = d['ml_classification'] ?? 'Pending Sweep';
+      final matchesClassification =
+          _selectedClassification == 'All Classifications' ||
+          classification == _selectedClassification;
+
+      return matchesSearch && matchesClassification;
     }).toList();
 
     tempD.sort((a, b) {
@@ -228,7 +243,6 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
       final bool aUnrated = countA == 0;
       final bool bUnrated = countB == 0;
 
-      // Force unrated drivers to the bottom
       if (aUnrated && !bUnrated) return 1;
       if (!aUnrated && bUnrated) return -1;
 
@@ -275,7 +289,6 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
     final drivers = _processedDrivers;
     final int totalPages = max(1, (drivers.length / _itemsPerPage).ceil());
 
-    // Ensure current page doesn't go out of bounds after filtering/refreshing
     if (_currentPage >= totalPages) {
       _currentPage = max(0, totalPages - 1);
     }
@@ -351,6 +364,61 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                 ),
               ),
             ),
+
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: isMobile ? double.infinity : 200,
+                minWidth: isMobile ? double.infinity : 150,
+              ),
+              child: SizedBox(
+                height: 42,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    border: Border.all(color: borderColor),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      isExpanded: true,
+                      value: _selectedClassification,
+                      dropdownColor: cardBg,
+                      icon: Icon(
+                        Icons.analytics_outlined,
+                        size: 18,
+                        color: Colors.grey.shade500,
+                      ),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: textColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      items: _classificationOptions
+                          .map(
+                            (value) => DropdownMenuItem(
+                              value: value,
+                              child: Text(
+                                value,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          setState(() {
+                            _selectedClassification = value;
+                            _currentPage = 0;
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
             DropdownButton<int>(
               value: _selectedMonth,
               items: [
@@ -398,7 +466,7 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
             ),
             ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: isMobile ? double.infinity : 350,
+                maxWidth: isMobile ? double.infinity : 280,
                 minWidth: isMobile ? double.infinity : 200,
               ),
               child: SizedBox(
@@ -523,7 +591,7 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'No records found.',
+                        'No drivers match the selected filters.',
                         style: TextStyle(color: Colors.grey.shade500),
                       ),
                     ],
@@ -556,9 +624,11 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                         driver['ml_classification'] ?? 'Pending Sweep';
                     Color badgeColor = const Color(0xFF64748B);
 
-                    if (classification == 'Consistent Performer') {
+                    if (classification == 'Consistent Performer' ||
+                        classification == 'Elite Performer') {
                       badgeColor = const Color(0xFF10B981);
                     } else if (classification == 'Aggressive Driving Risk' ||
+                        classification == 'Safety Risk' ||
                         classification == 'Needs Review') {
                       badgeColor = const Color(0xFFEF4444);
                     } else if (classification == 'Tardiness Risk' ||
@@ -697,7 +767,7 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                                             ),
                                             const SizedBox(width: 4),
                                             Text(
-                                              driver['license_no'] ?? 'N/A',
+                                              'ID: $driverId',
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 color: Colors.grey.shade500,
