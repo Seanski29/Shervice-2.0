@@ -264,26 +264,11 @@ def _save_attendance_rows(rows: List[Dict[str, Any]], source_file: str) -> List[
 @admin_bp.route('/driver/all', methods=['GET'])
 def diagnostic_database_check():
     try:
-        driver_query = supabase.table('driver_profile').select('*').limit(10000).execute()
+        driver_query = supabase.table('driver_profile').select(
+            'driver_id, full_name, birthday, phone_no, date_hired, '
+            'employment_status, is_backup, ml_classification'
+        ).limit(10000).execute()
         raw_data = driver_query.data or []
-
-        # driver_profile.user_id has no PostgREST relationship to user_account
-        # in every deployed schema, so fetch usernames separately and join by ID.
-        user_ids = list({
-            str(row['user_id']) for row in raw_data if row.get('user_id') is not None
-        })
-        usernames = {}
-        if user_ids:
-            try:
-                accounts = supabase.table('user_account').select(
-                    'user_id, username'
-                ).in_('user_id', user_ids).execute().data or []
-                usernames = {
-                    str(account['user_id']): account.get('username', '')
-                    for account in accounts if account.get('user_id') is not None
-                }
-            except Exception as account_error:
-                print(f"Driver username lookup skipped: {account_error}")
 
         evals_query = supabase.table('evaluation').select('driver_id, safety_score, punctuality_score, professionalism_score').limit(10000).execute()
         
@@ -302,7 +287,7 @@ def diagnostic_database_check():
 
         flattened_drivers = []
         for row in raw_data:
-            row['username'] = usernames.get(str(row.get('user_id')), '')
+            row['username'] = ''
             
             if not row.get('phone_no'):
                 row['phone_no'] = '09123456789'
@@ -428,7 +413,13 @@ def get_attendance_records():
     try:
         result = (
             supabase.table("attendance_record")
-            .select("*")
+            .select(
+                "attendance_id, driver_id, employee_id, employee_name, work_date, "
+                "raw_date, pay_period, day_label, morning_in, morning_out, afternoon_in, "
+                "afternoon_out, overtime_in, overtime_out, time_in, time_out, "
+                "work_time, daily_total, note, total_minutes_late, source_file, "
+                "created_at"
+            )
             .order("work_date", desc=True)
             .order("created_at", desc=True)
             .limit(10000)
@@ -505,6 +496,7 @@ def get_dashboard_metrics():
         alerts_log_query = supabase.table('maintenance_log')\
             .select('maintenance_id, description, vehicle_id, vehicle(plate_number)')\
             .order('repair_date', desc=True)\
+            .limit(100)\
             .execute()
 
         formatted_alerts = []
