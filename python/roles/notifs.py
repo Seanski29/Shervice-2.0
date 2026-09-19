@@ -62,7 +62,10 @@ def get_notifications():
         supabase_client = supabase or _create_supabase_client()
         response = _execute_supabase(
             lambda: supabase_client.table('app_notification')
-            .select('*')
+            .select(
+                'notification_id, title, message, created_at, related_trip_id, '
+                'source_tag, is_read, target_user_id, target_role, target_company'
+            )
             .order('created_at', desc=True)
             .execute()
         )
@@ -148,7 +151,10 @@ def mark_all_as_read():
         # Fetch unread notifications
         response = _execute_supabase(
             lambda: supabase_client.table('app_notification')
-            .select('*')
+            .select(
+                'notification_id, title, message, created_at, related_trip_id, '
+                'source_tag, is_read, target_user_id, target_role, target_company'
+            )
             .eq('is_read', False)
             .execute()
         )

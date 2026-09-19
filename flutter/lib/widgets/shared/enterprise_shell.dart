@@ -145,6 +145,8 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
                           child: Image.asset(
                             'assets/logo.jpg',
                             fit: BoxFit.cover,
+                            cacheWidth: 96,
+                            cacheHeight: 96,
                             errorBuilder: (_, _, _) => const Icon(
                               Icons.directions_bus,
                               color: EnterpriseColors.primary,
@@ -225,6 +227,8 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
                             child: Image.asset(
                               'assets/logo.jpg',
                               fit: BoxFit.cover,
+                              cacheWidth: 64,
+                              cacheHeight: 64,
                               errorBuilder: (_, _, _) => const Icon(
                                 Icons.directions_bus,
                                 color: Colors.white,

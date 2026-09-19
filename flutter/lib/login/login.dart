@@ -284,6 +284,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     width: 100,
                                     height: 100,
                                     fit: BoxFit.contain,
+                                    cacheWidth: 200,
+                                    cacheHeight: 200,
                                     errorBuilder: (_, _, _) => Icon(
                                       Icons.business,
                                       size: 50,
@@ -297,6 +299,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 'assets/shervice.jpg',
                                 height: 60,
                                 fit: BoxFit.contain,
+                                cacheWidth: 520,
+                                cacheHeight: 120,
                                 errorBuilder: (_, _, _) => Text(
                                   'SHERVICE',
                                   style: TextStyle(

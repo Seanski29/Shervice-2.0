@@ -12,15 +12,14 @@ class SessionManager {
     String company,
   ) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('role', role);
-    await prefs.setString('userId', userId);
-    await prefs.setString('userName', name);
-    await prefs.setString('companyName', company);
-    await prefs.setInt(
-      _sessionCreatedAtKey,
-      DateTime.now().millisecondsSinceEpoch,
-    );
-    await prefs.setBool('isLoggedIn', true);
+    await Future.wait([
+      prefs.setString('role', role),
+      prefs.setString('userId', userId),
+      prefs.setString('userName', name),
+      prefs.setString('companyName', company),
+      prefs.setInt(_sessionCreatedAtKey, DateTime.now().millisecondsSinceEpoch),
+      prefs.setBool('isLoggedIn', true),
+    ]);
   }
 
   // Check if someone is currently logged in
@@ -59,11 +58,13 @@ class SessionManager {
   // Clear session on logout
   static Future<void> clearSession() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('role');
-    await prefs.remove('userId');
-    await prefs.remove('userName');
-    await prefs.remove('companyName');
-    await prefs.remove('isLoggedIn');
-    await prefs.remove(_sessionCreatedAtKey);
+    await Future.wait([
+      prefs.remove('role'),
+      prefs.remove('userId'),
+      prefs.remove('userName'),
+      prefs.remove('companyName'),
+      prefs.remove('isLoggedIn'),
+      prefs.remove(_sessionCreatedAtKey),
+    ]);
   }
 }

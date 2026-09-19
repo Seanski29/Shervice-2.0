@@ -85,20 +85,28 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
   Future<void> _fetchData() async {
     setState(() => _isLoading = true);
     try {
-      final evalRes = await http.get(
-        Uri.parse('${widget.backendUrl}/evaluate/driver/${widget.driverId}'),
-      );
-
-      final tripsRes = await http.get(
-        Uri.parse('${widget.backendUrl}/schedules/driver/${widget.driverId}'),
-      );
-
       // Fetch Attendance Data
       String attendanceUrl = widget.backendUrl.contains('/api')
           ? '${widget.backendUrl}/admin/attendance'
           : '${widget.backendUrl}/api/admin/attendance';
+      final mlFuture = http.get(
+        Uri.parse(
+          '${widget.backendUrl}/drivers/classify/${widget.driverId}?cb=${DateTime.now().millisecondsSinceEpoch}',
+        ),
+      );
 
-      final attendanceRes = await http.get(Uri.parse(attendanceUrl));
+      final responses = await Future.wait([
+        http.get(
+          Uri.parse('${widget.backendUrl}/evaluate/driver/${widget.driverId}'),
+        ),
+        http.get(
+          Uri.parse('${widget.backendUrl}/schedules/driver/${widget.driverId}'),
+        ),
+        http.get(Uri.parse(attendanceUrl)),
+      ]);
+      final evalRes = responses[0];
+      final tripsRes = responses[1];
+      final attendanceRes = responses[2];
 
       if (mounted) {
         if (evalRes.statusCode == 200) {
@@ -144,11 +152,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
       }
 
       try {
-        final mlRes = await http.get(
-          Uri.parse(
-            '${widget.backendUrl}/drivers/classify/${widget.driverId}?cb=${DateTime.now().millisecondsSinceEpoch}',
-          ),
-        );
+        final mlRes = await mlFuture;
         if (mlRes.statusCode == 200 && mounted) {
           final mlData = jsonDecode(mlRes.body);
           final String classification =
