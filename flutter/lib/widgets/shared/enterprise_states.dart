@@ -381,8 +381,8 @@ class EnterpriseEmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
   final String message;
-  final String actionLabel;
-  final VoidCallback onAction;
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -421,8 +421,10 @@ class EnterpriseEmptyState extends StatelessWidget {
               style: theme.textTheme.bodySmall,
             ),
           ),
-          const SizedBox(height: 14),
-          FilledButton(onPressed: onAction, child: Text(actionLabel)),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 14),
+            FilledButton(onPressed: onAction, child: Text(actionLabel!)),
+          ],
         ],
       ),
     );

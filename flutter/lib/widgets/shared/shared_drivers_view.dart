@@ -65,8 +65,7 @@ class SharedDriversViewState extends State<SharedDriversView> {
       final matchesSearch =
           query.isEmpty ||
           driver.name.toLowerCase().contains(query) ||
-          driver.id.toString().toLowerCase().contains(query) ||
-          driver.email.toLowerCase().contains(query);
+          driver.id.toString().toLowerCase().contains(query);
       final matchesStatus =
           _selectedStatusFilter == 'All' ||
           driver.status.toLowerCase() == _selectedStatusFilter.toLowerCase();
@@ -128,14 +127,11 @@ class SharedDriversViewState extends State<SharedDriversView> {
   }
 
   Future<void> _exportDrivers(List<DriverProfileModel> drivers) async {
-    final buffer = StringBuffer(
-      'Driver ID,Name,Email,Phone,Status,Date Hired,Rating\n',
-    );
+    final buffer = StringBuffer('Driver ID,Name,Phone,Status,Date Hired\n');
     for (final driver in drivers) {
       buffer.writeln(
-        '${driver.id},"${_csv(driver.name)}","${_csv(driver.email)}",'
-        '"${_csv(driver.phoneNumber)}","${_csv(driver.status)}",'
-        '${driver.dateHired},${driver.rating.toStringAsFixed(1)}',
+        '${driver.id},"${_csv(driver.name)}","${_csv(driver.phoneNumber)}",'
+        '"${_csv(driver.status)}",${driver.dateHired}',
       );
     }
     await downloadFileBytes(
@@ -242,22 +238,9 @@ class SharedDriversViewState extends State<SharedDriversView> {
                   value: (driver) => driver.phoneNumber,
                 ),
                 EnterpriseGridColumn(
-                  label: 'Email',
-                  width: 240,
-                  value: (driver) =>
-                      driver.email.isEmpty ? 'Not provided' : driver.email,
-                ),
-                EnterpriseGridColumn(
                   label: 'Date hired',
                   width: 150,
                   value: (driver) => driver.dateHired,
-                ),
-                EnterpriseGridColumn(
-                  label: 'Rating',
-                  width: 120,
-                  value: (driver) => '⭐ ${driver.rating.toStringAsFixed(1)}',
-                  compare: (first, second) =>
-                      first.rating.compareTo(second.rating),
                 ),
                 EnterpriseGridColumn(
                   label: 'Record actions',
@@ -276,7 +259,7 @@ class SharedDriversViewState extends State<SharedDriversView> {
               ],
               filterFields: [
                 SizedBox(
-                  width: 260,
+                  width: 340,
                   child: TextField(
                     controller: _searchController,
                     onChanged: (value) {
@@ -293,16 +276,24 @@ class SharedDriversViewState extends State<SharedDriversView> {
                       );
                     },
                     decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search, size: 18),
-                      hintText: 'Filter driver, ID, or email',
+                      prefixIcon: Icon(Icons.search),
+                      labelText: 'Search driver ID or name',
+                      isDense: true,
+                      border: OutlineInputBorder(),
                     ),
                   ),
                 ),
                 SizedBox(
-                  width: 170,
+                  width: 190,
                   child: DropdownButtonFormField<String>(
                     initialValue: _selectedStatusFilter,
-                    decoration: const InputDecoration(labelText: 'Status'),
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.filter_list),
+                      labelText: 'Filter',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
                     items: const [
                       DropdownMenuItem(
                         value: 'All',
@@ -334,26 +325,16 @@ class SharedDriversViewState extends State<SharedDriversView> {
               ],
               emptyTitle: _drivers.isEmpty
                   ? 'Assign the first driver'
-                  : 'Adjust the active filters',
+                  : 'Nothing matches the current search or filters',
               emptyMessage: _drivers.isEmpty
                   ? 'Driver profiles are required before schedules and vehicle assignments can be completed.'
                   : 'No driver records match the current search and status filters.',
               emptyActionLabel: _drivers.isEmpty && widget.canManage
                   ? 'Add first driver'
-                  : 'Clear filters',
-              onEmptyAction: () {
-                if (_drivers.isEmpty && widget.canManage) {
-                  widget.onDriverTapped?.call(context, null);
-                } else {
-                  _searchDebounce?.cancel();
-                  _searchController.clear();
-                  setState(() {
-                    _searchQuery = '';
-                    _selectedStatusFilter = 'All';
-                    _rebuildFilteredDrivers();
-                  });
-                }
-              },
+                  : null,
+              onEmptyAction: _drivers.isEmpty && widget.canManage
+                  ? () => widget.onDriverTapped?.call(context, null)
+                  : null,
               onDelete: widget.canManage ? _deleteDriver : null,
               onBulkDelete: widget.canManage ? _bulkDelete : null,
               onExportSelection: _exportDrivers,

@@ -33,6 +33,7 @@ class VehicleFleetView extends StatefulWidget {
 }
 
 class _VehicleFleetViewState extends State<VehicleFleetView> {
+  final TextEditingController _searchController = TextEditingController();
   bool _isLoading = true;
   bool _isRefreshing = false;
   List<dynamic> _allVehicles = [];
@@ -56,6 +57,12 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
   void initState() {
     super.initState();
     _fetchLiveFleetData();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchLiveFleetData() async {
@@ -319,30 +326,30 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
           LayoutBuilder(
             builder: (context, constraints) {
               final cards = <Widget>[
-              if (_isLoading) ...[
-                const EnterpriseSummaryCardSkeleton(),
-                const EnterpriseSummaryCardSkeleton(),
-                const EnterpriseSummaryCardSkeleton(),
-              ] else ...[
-                EnterpriseSummaryCard(
-                  label: 'Total vehicles',
-                  value: '$_totalVehicles',
-                  icon: Icons.directions_bus_outlined,
-                  color: EnterpriseColors.information,
-                ),
-                EnterpriseSummaryCard(
-                  label: 'Available',
-                  value: '$_availableVehicles',
-                  icon: Icons.check_circle_outline,
-                  color: EnterpriseColors.success,
-                ),
-                EnterpriseSummaryCard(
-                  label: 'Needs maintenance',
-                  value: '$_maintenanceVehicles',
-                  icon: Icons.build_circle_outlined,
-                  color: EnterpriseColors.danger,
-                ),
-              ],
+                if (_isLoading) ...[
+                  const EnterpriseSummaryCardSkeleton(),
+                  const EnterpriseSummaryCardSkeleton(),
+                  const EnterpriseSummaryCardSkeleton(),
+                ] else ...[
+                  EnterpriseSummaryCard(
+                    label: 'Total vehicles',
+                    value: '$_totalVehicles',
+                    icon: Icons.directions_bus_outlined,
+                    color: EnterpriseColors.information,
+                  ),
+                  EnterpriseSummaryCard(
+                    label: 'Available',
+                    value: '$_availableVehicles',
+                    icon: Icons.check_circle_outline,
+                    color: EnterpriseColors.success,
+                  ),
+                  EnterpriseSummaryCard(
+                    label: 'Needs maintenance',
+                    value: '$_maintenanceVehicles',
+                    icon: Icons.build_circle_outlined,
+                    color: EnterpriseColors.danger,
+                  ),
+                ],
               ];
               final action = _isAdmin
                   ? FilledButton.icon(
@@ -355,10 +362,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                 return Row(
                   children: [
                     for (final card in cards) Expanded(child: card),
-                    if (action != null) ...[
-                      const SizedBox(width: 12),
-                      action,
-                    ],
+                    if (action != null) ...[const SizedBox(width: 12), action],
                   ],
                 );
               }
@@ -366,10 +370,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                 spacing: 8,
                 runSpacing: 8,
                 alignment: WrapAlignment.center,
-                children: [
-                  ...cards,
-                  if (action != null) action,
-                ],
+                children: [...cards, if (action != null) action],
               );
             },
           ),
@@ -446,14 +447,20 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
               ],
               filterFields: [
                 SizedBox(
-                  width: 250,
+                  width: 340,
                   child: TextField(
+                    controller: _searchController,
                     decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search, size: 18),
-                      hintText: 'Filter plate or vehicle type',
+                      prefixIcon: Icon(Icons.search),
+                      labelText: 'Search plate or vehicle type',
+                      isDense: true,
+                      border: OutlineInputBorder(),
                     ),
                     onChanged: (value) {
                       _searchQuery = value;
+                      if (value.trim().isEmpty) {
+                        _statusFilter = 'All';
+                      }
                       _applyFiltersAndSort();
                     },
                   ),
@@ -462,7 +469,13 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                   width: 190,
                   child: DropdownButtonFormField<String>(
                     initialValue: _statusFilter,
-                    decoration: const InputDecoration(labelText: 'Status'),
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.filter_list),
+                      labelText: 'Filter',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
                     items: const [
                       DropdownMenuItem(
                         value: 'All',
@@ -491,22 +504,16 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
               ],
               emptyTitle: _allVehicles.isEmpty
                   ? 'Register the first vehicle'
-                  : 'Adjust the active filters',
+                  : 'Nothing matches the current search or filters',
               emptyMessage: _allVehicles.isEmpty
                   ? 'Vehicle records are required before fleet assignments and maintenance can be tracked.'
                   : 'No vehicle records match the current plate, type, and status filters.',
               emptyActionLabel: _allVehicles.isEmpty && _isAdmin
                   ? 'Add first vehicle'
-                  : 'Clear filters',
-              onEmptyAction: () {
-                if (_allVehicles.isEmpty && _isAdmin) {
-                  _showVehicleModal(context);
-                } else {
-                  _searchQuery = '';
-                  _statusFilter = 'All';
-                  _applyFiltersAndSort();
-                }
-              },
+                  : null,
+              onEmptyAction: _allVehicles.isEmpty && _isAdmin
+                  ? () => _showVehicleModal(context)
+                  : null,
               onDelete: _isAdmin ? _purgeVehicleDirect : null,
               onBulkDelete: _isAdmin ? _bulkPurgeVehicles : null,
               onExportSelection: _exportVehicles,
