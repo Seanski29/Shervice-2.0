@@ -183,18 +183,24 @@ class _RouteDirectoryState extends State<RouteDirectory> {
 
   Future<void> _deleteRoute(Map<String, dynamic> route) async {
     if (_tripCount(route) > 0) {
-      EnterpriseToasts.warning(
-        context,
-        'Routes assigned to trips cannot be deleted.',
-      );
-      return;
+      throw Exception('This route has assigned trips and cannot be deleted.');
     }
     final routeId = route['route_id'];
     final response = await http.delete(
       Uri.parse('$backendUrl/routes/$routeId'),
     );
     if (response.statusCode != 200) {
-      final decoded = jsonDecode(response.body);
+      Map<String, dynamic> decoded = {};
+      try {
+        final body = jsonDecode(response.body);
+        if (body is Map) decoded = Map<String, dynamic>.from(body);
+      } catch (_) {}
+      if (response.statusCode == 409) {
+        throw Exception(
+          decoded['message'] ??
+              'This route has assigned trips and cannot be deleted.',
+        );
+      }
       throw Exception(decoded['message'] ?? 'Unable to delete route.');
     }
     await _loadRoutes();
@@ -202,14 +208,15 @@ class _RouteDirectoryState extends State<RouteDirectory> {
 
   Future<void> _bulkDelete(List<Map<String, dynamic>> routes) async {
     final blocked = routes.where((route) => _tripCount(route) > 0).length;
+    if (blocked > 0) {
+      throw Exception(
+        blocked == 1
+            ? 'This route has existing trips and cannot be deleted.'
+            : '$blocked selected routes have existing trips and cannot be deleted.',
+      );
+    }
     for (final route in routes.where((route) => _tripCount(route) == 0)) {
       await _deleteRoute(route);
-    }
-    if (blocked > 0 && mounted) {
-      EnterpriseToasts.warning(
-        context,
-        '$blocked selected route${blocked == 1 ? ' was' : 's were'} retained because trips use them.',
-      );
     }
   }
 
@@ -393,12 +400,14 @@ class _RouteDirectoryState extends State<RouteDirectory> {
             ],
             filterFields: [
               SizedBox(
-                width: 260,
+                width: 340,
                 child: TextField(
                   controller: _searchController,
                   decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search, size: 18),
-                    hintText: 'Filter route or ID',
+                    prefixIcon: Icon(Icons.search),
+                    labelText: 'Search route or ID',
+                    isDense: true,
+                    border: OutlineInputBorder(),
                   ),
                   onChanged: (value) => setState(() => _search = value),
                 ),
@@ -409,15 +418,21 @@ class _RouteDirectoryState extends State<RouteDirectory> {
                 label: const Text('Refresh'),
               ),
             ],
-            emptyTitle: 'Create the first route',
-            emptyMessage:
-                'Routes connect trip assignments, rates, payroll, and operational reporting.',
-            emptyActionLabel: 'Add first route',
-            onEmptyAction: () => _nameController.selection = TextSelection(
-              baseOffset: 0,
-              extentOffset: _nameController.text.length,
-            ),
+            emptyTitle: _routes.isEmpty
+                ? 'Create the first route'
+                : 'Nothing matches the current search or filters',
+            emptyMessage: _routes.isEmpty
+                ? 'Routes connect trip assignments, rates, payroll, and operational reporting.'
+                : 'No route records match the current search.',
+            emptyActionLabel: _routes.isEmpty ? 'Add first route' : null,
+            onEmptyAction: _routes.isEmpty
+                ? () => _nameController.selection = TextSelection(
+                    baseOffset: 0,
+                    extentOffset: _nameController.text.length,
+                  )
+                : null,
             onDelete: _deleteRoute,
+            canDelete: (route) => _tripCount(route) == 0,
             onBulkDelete: _bulkDelete,
             onExportSelection: _exportRoutes,
           ),

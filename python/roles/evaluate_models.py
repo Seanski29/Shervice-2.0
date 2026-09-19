@@ -1,8 +1,10 @@
 import os
+import pandas as pd
+import numpy as np
 from datetime import datetime
 from dotenv import load_dotenv
-import numpy as np
 from sklearn.cluster import KMeans
+from sklearn.linear_model import LinearRegression
 from sklearn.metrics import (
     accuracy_score,
     classification_report,
@@ -19,7 +21,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 from supabase import create_client
-from sklearn.linear_model import LinearRegression, Ridge
 
 load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -30,105 +31,117 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# --- Bootstrapping rule for KNN matching driver_ml.py ---
+def generate_ground_truth_labels(row):
+    safety = row['safety_score']
+    punctuality = row['punctuality_score']
+    professionalism = row['professionalism_score']
+    late_mins = row['total_minutes_late']
+    absences = row['absent_count']
+    present = row['present_count']
+    
+    if absences >= 3 or late_mins > 60 or punctuality < 3.0:
+        return 'Tardiness Risk'
+    elif safety < 3.5:
+        return 'Safety Risk'
+    elif safety >= 4.5 and punctuality >= 4.5 and professionalism >= 4.0 and late_mins <= 15 and absences == 0 and present > 0:
+        return 'Elite Performer'
+    else:
+        return 'Needs Review'
 
 def evaluate_objective_3_1_knn():
     print("\n=======================================================")
     print("OBJECTIVE 3.1: DRIVER CLASSIFICATION (KNN) EVALUATION")
     print("=======================================================")
 
-    drivers_res = supabase.table('driver_profile').select('user_id, full_name').execute()
-    evals_res = supabase.table('passenger_evaluation').select(
-        'trip_id, safety_score, punctuality_score, professionalism_score'
-    ).execute()
-    trips_res = supabase.table('trip_schedule').select('trip_id, user_id, trip_status').execute()
+    drivers_res = supabase.table('driver_profile').select('driver_id').execute()
+    drivers_df = pd.DataFrame(drivers_res.data or [])
+    
+    evals_res = supabase.table('evaluation').select('driver_id, safety_score, punctuality_score, professionalism_score').execute()
+    evals_df = pd.DataFrame(evals_res.data or [])
+    
+    if not evals_df.empty:
+        evals_agg = evals_df.groupby('driver_id').mean().reset_index()
+    else:
+        evals_agg = pd.DataFrame(columns=['driver_id', 'safety_score', 'punctuality_score', 'professionalism_score'])
 
-    trip_driver_map = {t['trip_id']: t['user_id'] for t in (trips_res.data or []) if t.get('user_id')}
+    trips_res = supabase.table('trip_schedule').select('driver_id, trip_id').execute()
+    trips_df = pd.DataFrame(trips_res.data or [])
+    
+    if not trips_df.empty:
+        trips_agg = trips_df.groupby('driver_id').size().reset_index(name='trips_amount')
+    else:
+        trips_agg = pd.DataFrame(columns=['driver_id', 'trips_amount'])
 
-    driver_stats = {}
-    for d in (drivers_res.data or []):
-        driver_stats[d['user_id']] = {'scores': [], 'completed': 0, 'total': 0}
+    att_res = supabase.table('attendance_record').select('driver_id, total_minutes_late, note').execute()
+    att_df = pd.DataFrame(att_res.data or [])
+    
+    if not att_df.empty:
+        att_df['note'] = att_df['note'].fillna('').astype(str).str.lower()
+        att_df['absent_count'] = att_df['note'].str.contains('absent').astype(int)
+        att_df['half_day_count'] = att_df['note'].str.contains('half day').astype(int)
+        att_df['present_count'] = ((att_df['absent_count'] == 0) & (att_df['half_day_count'] == 0)).astype(int)
+        
+        att_agg = att_df.groupby('driver_id').agg({
+            'total_minutes_late': 'sum',
+            'present_count': 'sum',
+            'half_day_count': 'sum',
+            'absent_count': 'sum'
+        }).reset_index()
+    else:
+        att_agg = pd.DataFrame(columns=['driver_id', 'total_minutes_late', 'present_count', 'half_day_count', 'absent_count'])
 
-    for t in (trips_res.data or []):
-        uid = t.get('user_id')
-        if uid in driver_stats:
-            driver_stats[uid]['total'] += 1
-            if t.get('trip_status') == 'Completed':
-                driver_stats[uid]['completed'] += 1
+    df = drivers_df.merge(evals_agg, on='driver_id', how='left')
+    df = df.merge(trips_agg, on='driver_id', how='left')
+    df = df.merge(att_agg, on='driver_id', how='left')
 
-    for ev in (evals_res.data or []):
-        uid = trip_driver_map.get(ev.get('trip_id'))
-        if uid and uid in driver_stats:
-            s = float(ev.get('safety_score') or 0.0)
-            p = float(ev.get('punctuality_score') or 0.0)
-            pr = float(ev.get('professionalism_score') or 0.0)
-            driver_stats[uid]['scores'].append((s + p + pr) / 3.0)
+    df.fillna({
+        'safety_score': 5.0,
+        'punctuality_score': 5.0,
+        'professionalism_score': 5.0,
+        'trips_amount': 0,
+        'total_minutes_late': 0,
+        'present_count': 0,
+        'half_day_count': 0,
+        'absent_count': 0
+    }, inplace=True)
 
-    # Calculate Tertiles (33rd and 66th percentiles) to dynamically balance classes
-    np.random.seed(42)
-    raw_ratings = []
-    for stats in driver_stats.values():
-        val = np.mean(stats['scores']) if stats['scores'] else 4.0
-        # Add microscopic noise to break ties if all ratings are exactly 4.0
-        raw_ratings.append(val + np.random.uniform(-0.05, 0.05)) 
-
-    p33 = np.percentile(raw_ratings, 33)
-    p66 = np.percentile(raw_ratings, 66)
-
-    X_list = []
-    y_list = []
-
-    for i, (uid, stats) in enumerate(driver_stats.items()):
-        avg_rating = raw_ratings[i]
-        completion_rate = (stats['completed'] / stats['total']) if stats['total'] > 0 else 1.0
-
-        X_list.append([avg_rating, completion_rate])
-
-        # Assign classes based on dynamic dataset distribution
-        if avg_rating >= p66:
-            y_list.append(0)  # Top Performer (Top 33%)
-        elif avg_rating >= p33:
-            y_list.append(1)  # Average (Middle 33%)
-        else:
-            y_list.append(2)  # At Risk (Bottom 33%)
-
-    X = np.array(X_list)
-    y = np.array(y_list)
-
-    if len(X) < 5:
+    if len(df) < 5:
         print("Insufficient driver records to perform split validation.")
         return
 
-    # Standardize features for KNN distance math
+    df['target_label'] = df.apply(generate_ground_truth_labels, axis=1)
+
+    feature_cols = [
+        'safety_score', 'punctuality_score', 'professionalism_score', 
+        'trips_amount', 'total_minutes_late', 'present_count', 
+        'half_day_count', 'absent_count'
+    ]
+    
+    X = df[feature_cols].values
+    y = df['target_label'].values
+
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X_scaled, y, test_size=0.25, random_state=42, stratify=y
+        X_scaled, y, test_size=0.20, random_state=42
     )
 
     k_val = min(3, len(X_train))
-    knn = KNeighborsClassifier(n_neighbors=k_val)
+    knn = KNeighborsClassifier(n_neighbors=k_val, weights='distance')
     knn.fit(X_train, y_train)
     y_pred = knn.predict(X_test)
 
     print(f"Dataset Split: {len(X_train)} Train | {len(X_test)} Test")
+    print(f"Features: {feature_cols}")
     print(f"Accuracy  : {accuracy_score(y_test, y_pred) * 100:.2f}%")
     print(f"Precision : {precision_score(y_test, y_pred, average='weighted', zero_division=0):.4f}")
     print(f"Recall    : {recall_score(y_test, y_pred, average='weighted', zero_division=0):.4f}")
     print(f"F1-Score  : {f1_score(y_test, y_pred, average='weighted', zero_division=0):.4f}")
 
-    print("\nConfusion Matrix (Rows=Actual, Cols=Predicted):")
-    print("[0=Top Performer, 1=Average, 2=At Risk]")
-    print(confusion_matrix(y_test, y_pred, labels=[0, 1, 2]))
-
     print("\nClassification Report:")
-    print(classification_report(
-        y_test,
-        y_pred,
-        labels=[0, 1, 2],
-        target_names=['Top Performer', 'Average', 'At Risk'],
-        zero_division=0
-    ))
+    print(classification_report(y_test, y_pred, zero_division=0))
 
 
 def evaluate_objective_3_2_mlr():
@@ -136,53 +149,21 @@ def evaluate_objective_3_2_mlr():
     print("OBJECTIVE 3.2: MAINTENANCE FORECASTING (MLR) EVALUATION")
     print("=======================================================")
 
-    vehicles_res = supabase.table('vehicle').select('vehicle_id, model_year').execute()
-    trips_res = supabase.table('trip_schedule').select('vehicle_id, route_distance').eq('trip_status', 'Completed').execute()
-
-    veh_age_map = {}
-    current_year = datetime.now().year
-    for v in (vehicles_res.data or []):
-        year = int(v.get('model_year') or 2018)
-        veh_age_map[v['vehicle_id']] = max(1, current_year - year)
-
-    veh_dist_map = {}
-    for t in (trips_res.data or []):
-        vid = t.get('vehicle_id')
-        dist = float(t.get('route_distance') or 0.0)
-        veh_dist_map[vid] = veh_dist_map.get(vid, 0.0) + dist
-
-    X_list = []
-    y_list = []
-
-    np.random.seed(42)
-    for v in (vehicles_res.data or []):
-        vid = v.get('vehicle_id')
-        age = float(veh_age_map.get(vid, 5))
-        recent_distance = float(veh_dist_map.get(vid, 50.0))
-        
-        # 1. Calculate continuous lifetime mileage
-        lifetime_distance = (age * 18000) + recent_distance
-        
-        # 2. Synthesize a continuous linear target (Repairs) based on wear-and-tear math
-        # Formula: 1 repair per 2.5 years + 1 repair per 40,000 km + realistic noise
-        base_repairs = (age * 0.4) + (lifetime_distance / 40000)
-        noise = np.random.normal(0, 0.5) 
-        repair_frequency = max(0.0, round(base_repairs + noise, 2))
-
-        X_list.append([age, lifetime_distance])
-        y_list.append(repair_frequency)
-
-    X = np.array(X_list)
-    y = np.array(y_list)
-
-    if len(X) < 6:
-        print("Insufficient vehicles to perform split validation.")
-        return
+    # Based identically on the predictive_ml.py baseline training matrix
+    X = np.array([
+        [8, 120, 14], [1, 15, 1], [5, 95, 8], [2, 40, 2], [9, 180, 22], 
+        [1, 8, 0], [6, 110, 11], [3, 55, 3], [10, 0, 0], [8, 60, 4]     
+    ])
+    
+    y = np.array([
+        12.0, 310.0, 45.0, 240.0, 2.0, 350.0, 25.0, 180.0, 280.0, 140.0  
+    ])
 
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
-    X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.25, random_state=42)
+    # 80/20 split based on the baseline matrix
+    X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.20, random_state=42)
 
     mlr = LinearRegression()
     mlr.fit(X_train, y_train)
@@ -197,66 +178,70 @@ def evaluate_objective_3_2_mlr():
         r2 = 0.0
 
     print(f"Dataset Split: {len(X_train)} Train | {len(X_test)} Test")
-    print("Target Variable                 : Total Maintenance Interventions")
-    print(f"Mean Absolute Error (MAE)       : {mae:.2f} repairs")
-    print(f"Root Mean Squared Error (RMSE)  : {rmse:.2f} repairs")
+    print("Features                        : [Vehicle Age (Years), Trip Count, Past Repair Count]")
+    print("Target Variable                 : Days until structural maintenance required")
+    print(f"Mean Absolute Error (MAE)       : {mae:.2f} Days")
+    print(f"Root Mean Squared Error (RMSE)  : {rmse:.2f} Days")
     print(f"Coefficient of Determination (R²): {r2:.4f}")
+
 
 def evaluate_objective_3_3_kmeans():
     print("\n=======================================================")
-    print("OBJECTIVE 3.3: ROUTE DELAY CLUSTERING (K-MEANS) EVALUATION")
+    print("OBJECTIVE 3.3: DESTINATION DEMAND (K-MEANS) EVALUATION")
     print("=======================================================")
 
-    trips_res = supabase.table('trip_schedule').select(
-        'schedule_date, departure_time, estimated_arrival_time, actual_start_time, actual_end_time'
-    ).eq('trip_status', 'Completed').not_.is_('actual_start_time', 'null').not_.is_('actual_end_time', 'null').execute()
-
+    # Replicates route_ml_2.py feature extraction
+    trips_res = supabase.table('trip_schedule').select('route_name, passenger_count, vehicle_id').execute()
     raw_trips = trips_res.data or []
-    features = []
 
+    route_stats = {}
     for t in raw_trips:
-        date_str = str(t.get('schedule_date')).split('T')[0]
+        r = str(t.get('route_name') or 'Unknown').strip()
+        if r not in route_stats:
+            route_stats[r] = {'trips': 0, 'passengers': 0, 'vehicles': set()}
+        
+        route_stats[r]['trips'] += 1
+        pax = t.get('passenger_count')
         try:
-            sched_dep = datetime.strptime(f"{date_str} {str(t.get('departure_time'))[:8]}", "%Y-%m-%d %H:%M:%S")
-            sched_arr = datetime.strptime(f"{date_str} {str(t.get('estimated_arrival_time'))[:8]}", "%Y-%m-%d %H:%M:%S")
+            route_stats[r]['passengers'] += max(0, int(pax or 0))
+        except (TypeError, ValueError):
+            pass
+        v_id = t.get('vehicle_id')
+        if v_id:
+            route_stats[r]['vehicles'].add(v_id)
 
-            clean_s = str(t.get('actual_start_time')).replace('T', ' ').split('.')[0].split('+')[0].replace('Z', '')
-            clean_e = str(t.get('actual_end_time')).replace('T', ' ').split('.')[0].split('+')[0].replace('Z', '')
-
-            act_dep = datetime.strptime(clean_s, "%Y-%m-%d %H:%M:%S")
-            act_arr = datetime.strptime(clean_e, "%Y-%m-%d %H:%M:%S")
-
-            dep_delay = (act_dep - sched_dep).total_seconds() / 60.0
-            arr_delay = (act_arr - sched_arr).total_seconds() / 60.0
-            duration = (act_arr - act_dep).total_seconds() / 60.0
-
-            if duration > 0:
-                features.append([dep_delay, arr_delay, duration])
-        except Exception:
-            continue
+    features = []
+    for r, stats in route_stats.items():
+        features.append([stats['passengers'], stats['trips'], len(stats['vehicles'])])
 
     if len(features) < 3:
-        print("Insufficient trip records to evaluate clustering.")
+        print("Insufficient unique destinations to evaluate clustering.")
         return
 
     X = np.array(features)
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
-    kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+    k_val = min(3, len(X))
+    kmeans = KMeans(n_clusters=k_val, random_state=42, n_init=10)
     labels = kmeans.fit_predict(X_scaled)
 
-    score = silhouette_score(X_scaled, labels)
+    try:
+        score = silhouette_score(X_scaled, labels)
+    except ValueError:
+        score = 0.0
 
-    print(f"Total Completed Trips Analyzed: {len(X)}")
-    print("Number of Clusters (k)        : 3")
+    print(f"Total Unique Destinations Analyzed: {len(X)}")
+    print(f"Features                      : [passenger_volume, trip_frequency, assigned_vehicle_count]")
+    print(f"Number of Clusters (k)        : {k_val}")
     print(f"Silhouette Coefficient        : {score:.4f}")
+    
     if score > 0.50:
-        print("Interpretation                : Strong structural separation between delay clusters.")
+        print("Interpretation                : Strong structural separation. Routes have distinct volume profiles.")
     elif score > 0.25:
-        print("Interpretation                : Moderate separation; clusters capture real delay trends.")
+        print("Interpretation                : Moderate separation; clusters capture real demand trends.")
     else:
-        print("Interpretation                : Overlapping variance profiles.")
+        print("Interpretation                : Overlapping variance profiles; route demands are highly homogenous.")
 
 
 if __name__ == '__main__':

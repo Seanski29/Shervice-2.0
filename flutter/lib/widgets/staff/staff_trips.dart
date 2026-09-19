@@ -417,7 +417,8 @@ class _StaffTripsState extends State<StaffTrips> {
               _selectedDate = createdDate;
               _filterMonth = null;
               _filterYear = null;
-              _resetPagination();
+              _currentTripPage = 0;
+              _currentSummaryPage = 0;
             });
             await _fetchTripSummary();
             if (mounted) {
@@ -468,7 +469,8 @@ class _StaffTripsState extends State<StaffTrips> {
       _selectedDate = createdDate;
       _filterMonth = null;
       _filterYear = null;
-      _resetPagination();
+      _currentTripPage = 0;
+      _currentSummaryPage = 0;
     });
     await _fetchTripSummary();
     if (!mounted) return;
@@ -1396,10 +1398,8 @@ class _StaffTripsState extends State<StaffTrips> {
                     return InkWell(
                       onTap: () => setState(() {
                         _selectedDate = isSelected ? null : date;
-                        if (_selectedDate != null) {
-                          _filterMonth = null;
-                          _filterYear = null;
-                        }
+                        _filterMonth = date.month;
+                        _filterYear = date.year;
                         _resetPagination();
                       }),
                       borderRadius: BorderRadius.circular(4),
@@ -1561,13 +1561,8 @@ class _StaffTripsState extends State<StaffTrips> {
       emptyTitle: 'No trips match these filters',
       emptyMessage:
           'Clear the current date and status filters to restore the trip ledger.',
-      emptyActionLabel: 'Clear filters',
-      onEmptyAction: () => setState(() {
-        _selectedDate = null;
-        _filterMonth = null;
-        _filterYear = null;
-        _currentTripPage = 0;
-      }),
+      emptyActionLabel: null,
+      onEmptyAction: null,
     );
   }
 
@@ -1834,13 +1829,8 @@ class _StaffTripsState extends State<StaffTrips> {
       emptyTitle: 'No summaries match these filters',
       emptyMessage:
           'Clear the selected reporting period to restore summary batches.',
-      emptyActionLabel: 'Clear filters',
-      onEmptyAction: () => setState(() {
-        _selectedDate = null;
-        _filterMonth = null;
-        _filterYear = null;
-        _currentSummaryPage = 0;
-      }),
+      emptyActionLabel: null,
+      onEmptyAction: null,
     );
   }
 

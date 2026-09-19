@@ -35,7 +35,7 @@ class _PayrollState extends State<Payroll> {
   String _searchQuery = '';
   String _payrollFilter = 'All';
   int _currentPage = 0;
-  final int _rowsPerPage = 8;
+  static const int _rowsPerPage = 10;
   DateTime _payDate = _currentPayThursday(DateTime.now());
   List<Map<String, dynamic>> _drivers = [];
   List<Map<String, dynamic>> _attendance = [];
@@ -805,6 +805,7 @@ class _PayrollState extends State<Payroll> {
   Widget _buildPayrollTable(List<_PayrollRow> rows, bool isDark) {
     return EnterpriseDataGrid<_PayrollRow>(
       rows: rows,
+      paginate: false,
       rowKey: (row) => row.driverId,
       height: 500,
       showDateRange: false,

@@ -59,6 +59,7 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
   }
 
   Future<void> _fetchClusterData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       String queryParams = 'filter=$_timeFilter';
@@ -75,9 +76,9 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
           : widget.backendUrl;
 
       // The shared backend URL already contains the API prefix.
-      final res = await http.get(
-        Uri.parse('$baseUrl/routes/cluster?$queryParams'),
-      );
+      final res = await http
+          .get(Uri.parse('$baseUrl/routes/cluster?$queryParams'))
+          .timeout(const Duration(seconds: 15));
 
       if (res.statusCode == 200 && mounted) {
         setState(() {

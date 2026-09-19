@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:skeletonizer/skeletonizer.dart';
 import 'route_optimization_tab.dart';
 import '../../../constant.dart';
 
@@ -36,7 +35,17 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
     _fetchGlobalAnalyticsPayload();
   }
 
+  Future<http.Response?> _fetchAnalyticsEndpoint(Uri uri) async {
+    try {
+      return await http.get(uri).timeout(const Duration(seconds: 15));
+    } catch (error) {
+      debugPrint('Analytics request failed for $uri: $error');
+      return null;
+    }
+  }
+
   Future<void> _fetchGlobalAnalyticsPayload() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final cleanBaseUrl = backendUrl.endsWith('/')
@@ -45,21 +54,15 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
 
       // 1. Fetch all primary endpoints concurrently
       final results = await Future.wait([
-        http
-            .get(Uri.parse('$cleanBaseUrl/test-db'))
-            .timeout(const Duration(seconds: 10)),
-        http
-            .get(Uri.parse('$cleanBaseUrl/schedules/staff-summary/all'))
-            .timeout(const Duration(seconds: 10)),
-        http
-            .get(Uri.parse('$cleanBaseUrl/vehicles/maintenance'))
-            .timeout(const Duration(seconds: 10)),
-        http
-            .get(Uri.parse('$cleanBaseUrl/vehicles'))
-            .timeout(const Duration(seconds: 10)),
-        http
-            .get(Uri.parse('$cleanBaseUrl/dashboard/metrics'))
-            .timeout(const Duration(seconds: 10)),
+        _fetchAnalyticsEndpoint(Uri.parse('$cleanBaseUrl/test-db')),
+        _fetchAnalyticsEndpoint(
+          Uri.parse('$cleanBaseUrl/schedules/staff-summary/all'),
+        ),
+        _fetchAnalyticsEndpoint(
+          Uri.parse('$cleanBaseUrl/vehicles/maintenance'),
+        ),
+        _fetchAnalyticsEndpoint(Uri.parse('$cleanBaseUrl/vehicles')),
+        _fetchAnalyticsEndpoint(Uri.parse('$cleanBaseUrl/dashboard/metrics')),
       ]);
 
       final dRes = results[0];
@@ -68,7 +71,7 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
       final vRes = results[3];
       // 2. Parse Trip Summary rows
       List<dynamic> trips = [];
-      if (tRes.statusCode == 200) {
+      if (tRes != null && tRes.statusCode == 200) {
         final tData = jsonDecode(tRes.body);
         trips = tData is List
             ? tData
@@ -80,13 +83,13 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
       }
 
       // 3. Parse Maintenance Logs
-      if (mRes.statusCode == 200) {
+      if (mRes != null && mRes.statusCode == 200) {
         final mData = jsonDecode(mRes.body);
         _allMaintenanceLogs = mData['data'] ?? mData['logs'] ?? [];
       }
 
       // 4. Parse Vehicles
-      if (vRes.statusCode == 200) {
+      if (vRes != null && vRes.statusCode == 200) {
         List<dynamic> vehicles = jsonDecode(vRes.body)['data'] ?? [];
         for (var v in vehicles) {
           v['live_risk_score'] =
@@ -99,7 +102,7 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
       }
 
       // 5. Parse Drivers & Compute True Rating from Completed Trips
-      if (dRes.statusCode == 200) {
+      if (dRes != null && dRes.statusCode == 200) {
         List<dynamic> rawDrivers =
             jsonDecode(dRes.body)['sample_data_payload'] ?? [];
 
@@ -108,7 +111,8 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
         final Map<String, List<double>> ratingTotalsByDriver = {};
         final Set<String> driversWithTrips = {};
         for (final trip in trips) {
-          final driverId = (trip['driver_id'] ?? trip['user_id'] ?? '').toString();
+          final driverId = (trip['driver_id'] ?? trip['user_id'] ?? '')
+              .toString();
           if (driverId.isEmpty) continue;
           driversWithTrips.add(driverId);
           final rating = double.tryParse(
@@ -125,7 +129,8 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
         }
 
         for (var d in rawDrivers) {
-          final String dUid = (d['driver_id'] ?? d['user_id'] ?? d['id'] ?? '').toString();
+          final String dUid = (d['driver_id'] ?? d['user_id'] ?? d['id'] ?? '')
+              .toString();
 
           // Check if driver has an existing rating in payload
           double existingRating =
@@ -183,7 +188,8 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
 
       await Future.wait(
         chunk.map((d) async {
-          final String dId = (d['driver_id'] ?? d['user_id'] ?? d['id'] ?? '').toString();
+          final String dId = (d['driver_id'] ?? d['user_id'] ?? d['id'] ?? '')
+              .toString();
           if (dId.isEmpty) return;
           try {
             final res = await http
@@ -251,7 +257,9 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
                           decoration: BoxDecoration(
                             color: Theme.of(context).cardColor,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Theme.of(context).dividerColor),
+                            border: Border.all(
+                              color: Theme.of(context).dividerColor,
+                            ),
                           ),
                         ),
                       ),
@@ -262,7 +270,9 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
                         decoration: BoxDecoration(
                           color: Theme.of(context).cardColor,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Theme.of(context).dividerColor),
+                          border: Border.all(
+                            color: Theme.of(context).dividerColor,
+                          ),
                         ),
                       ),
                     ],

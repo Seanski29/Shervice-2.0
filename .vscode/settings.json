@@ -42,5 +42,6 @@
         "activityBar.activeBorder": "#e7e7e7",
         "activityBarTop.activeBorder": "#e7e7e7"
     },
-    "peacock.color": "#000000"
+    "peacock.color": "#000000",
+    "editor.rename.enablePreview": false
 }

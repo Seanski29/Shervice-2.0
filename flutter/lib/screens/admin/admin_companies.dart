@@ -37,6 +37,7 @@ class _CompanyMetadata extends StatelessWidget {
 
 class _AdminCompaniesState extends State<AdminCompanies> {
   static const int _itemsPerPage = 10;
+  final TextEditingController _searchController = TextEditingController();
   bool _isLoading = true;
   List<dynamic> _companies = [];
   String _searchQuery = '';
@@ -46,6 +47,12 @@ class _AdminCompaniesState extends State<AdminCompanies> {
   void initState() {
     super.initState();
     _fetchCompanies();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchCompanies() async {
@@ -574,13 +581,16 @@ class _AdminCompaniesState extends State<AdminCompanies> {
               ],
               filterFields: [
                 SizedBox(
-                  width: 300,
+                  width: 340,
                   child: TextField(
-                    onChanged: (value) => setState(() => _searchQuery = value),
+                    controller: _searchController,
                     decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search, size: 18),
-                      hintText: 'Filter company name',
+                      prefixIcon: Icon(Icons.search),
+                      labelText: 'Search company name',
+                      isDense: true,
+                      border: OutlineInputBorder(),
                     ),
+                    onChanged: (value) => setState(() => _searchQuery = value),
                   ),
                 ),
                 OutlinedButton.icon(
@@ -591,20 +601,12 @@ class _AdminCompaniesState extends State<AdminCompanies> {
               ],
               emptyTitle: _companies.isEmpty
                   ? 'Add the first partner company'
-                  : 'Adjust the company filter',
+                  : 'Nothing matches the current search or filters',
               emptyMessage: _companies.isEmpty
                   ? 'Company records connect users, destinations, trips, and client reporting.'
                   : 'No company records match the current search query.',
-              emptyActionLabel: _companies.isEmpty
-                  ? 'Add first company'
-                  : 'Clear filter',
-              onEmptyAction: () {
-                if (_companies.isEmpty) {
-                  _addCompanyDialog();
-                } else {
-                  setState(() => _searchQuery = '');
-                }
-              },
+              emptyActionLabel: _companies.isEmpty ? 'Add first company' : null,
+              onEmptyAction: _companies.isEmpty ? _addCompanyDialog : null,
               onDelete: _deleteCompanyDirect,
               canDelete: (company) =>
                   !_isInternalCompany(company) &&

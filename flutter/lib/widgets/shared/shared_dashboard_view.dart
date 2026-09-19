@@ -63,6 +63,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
   int _selectedMaintenanceYear = DateTime.now().year;
   bool _isRatingLoading = false;
   bool _isMaintenanceLoading = false;
+  int _selectedMonthTripTotal = 0;
 
   double _averageDriverRating = 0.0;
   int _ratedDriverCount = 0;
@@ -205,6 +206,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
             _companyTrips = companyList
                 .map((json) => CompanyTripMetric.fromJson(json))
                 .toList();
+            _selectedMonthTripTotal = _parseInt(metricsMap['totalTrips']);
             _metricDetails = detailsMap.map(
               (key, value) =>
                   MapEntry(key, value is List ? value : <dynamic>[]),
@@ -245,7 +247,8 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
               ? 2
               : 1;
           final spacing = 16.0;
-          final cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+          final cardWidth =
+              (constraints.maxWidth - (spacing * (columns - 1))) / columns;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -269,7 +272,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                       decoration: BoxDecoration(
                         color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Theme.of(context).dividerColor),
+                        border: Border.all(
+                          color: Theme.of(context).dividerColor,
+                        ),
                       ),
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -279,7 +284,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                             width: 150,
                             height: 14,
                             decoration: BoxDecoration(
-                              color: Theme.of(context).brightness == Brightness.dark
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
                                   ? EnterpriseColors.darkSurfaceMuted
                                   : const Color(0xFFE4E7EC),
                               borderRadius: BorderRadius.circular(8),
@@ -289,7 +296,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                           Expanded(
                             child: Container(
                               decoration: BoxDecoration(
-                                color: Theme.of(context).brightness == Brightness.dark
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
                                     ? EnterpriseColors.darkSurfaceMuted
                                     : const Color(0xFFE4E7EC),
                                 borderRadius: BorderRadius.circular(16),
@@ -307,7 +316,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                       decoration: BoxDecoration(
                         color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Theme.of(context).dividerColor),
+                        border: Border.all(
+                          color: Theme.of(context).dividerColor,
+                        ),
                       ),
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -317,7 +328,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                             width: 120,
                             height: 14,
                             decoration: BoxDecoration(
-                              color: Theme.of(context).brightness == Brightness.dark
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
                                   ? EnterpriseColors.darkSurfaceMuted
                                   : const Color(0xFFE4E7EC),
                               borderRadius: BorderRadius.circular(8),
@@ -327,7 +340,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                           Expanded(
                             child: Container(
                               decoration: BoxDecoration(
-                                color: Theme.of(context).brightness == Brightness.dark
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
                                     ? EnterpriseColors.darkSurfaceMuted
                                     : const Color(0xFFE4E7EC),
                                 borderRadius: BorderRadius.circular(16),
@@ -387,9 +402,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
             children: [
               _DashboardMetadata(
                 icon: Icons.sync_outlined,
-                label: _isLoading
-                    ? 'Synchronizing operational data'
-                    : 'Live',
+                label: _isLoading ? 'Synchronizing operational data' : 'Live',
               ),
               _DashboardMetadata(
                 icon: Icons.star_outline,
@@ -1663,6 +1676,12 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
   Widget _buildClientTripsCard({bool compact = false}) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final totalTrips = _selectedMonthTripTotal > 0
+        ? _selectedMonthTripTotal
+        : _companyTrips.fold<int>(
+            0,
+            (total, company) => total + company.tripCount,
+          );
     return InkWell(
       onTap: _showClientTripDetails,
       borderRadius: BorderRadius.circular(4),
@@ -1732,6 +1751,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                       itemBuilder: (context, index) {
                         final item = _companyTrips[index];
                         final Color color = _proceduralColorAssigner(index);
+                        final share = totalTrips > 0
+                            ? (item.tripCount / totalTrips).clamp(0.0, 1.0)
+                            : 0.0;
                         return Row(
                           children: [
                             Container(
@@ -1769,7 +1791,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                                             2,
                                           ),
                                           child: LinearProgressIndicator(
-                                            value: item.utilization,
+                                            value: share,
                                             backgroundColor: theme
                                                 .colorScheme
                                                 .surfaceContainerHighest,
@@ -1783,7 +1805,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                                       ),
                                       const SizedBox(width: 6),
                                       Text(
-                                        '${item.tripCount}',
+                                        '${item.tripCount}/$totalTrips',
                                         style: TextStyle(
                                           fontSize: _captionTextSize,
                                           fontWeight: FontWeight.bold,
@@ -2106,6 +2128,10 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                   ),
                 )
                 .toList();
+            final metrics = decoded is Map ? decoded['metrics'] : null;
+            if (metrics is Map) {
+              _selectedMonthTripTotal = _parseInt(metrics['totalTrips']);
+            }
           });
         }
       }
