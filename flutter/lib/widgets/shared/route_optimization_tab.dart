@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:skeletonizer/skeletonizer.dart';
 import 'enterprise_states.dart';
+import '../../theme/enterprise_theme.dart';
 
 class RouteOptimizationTab extends StatefulWidget {
   final String backendUrl;
@@ -138,102 +139,181 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
       return dateA.compareTo(dateB);
     });
 
-    return Skeletonizer(
-      enabled: _isLoading,
-      child: SingleChildScrollView(
+    if (_isLoading) {
+      return SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: 32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            isMobile
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildRouteHeader(textColor, isDark),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: IconButton.filledTonal(
-                          onPressed: _fetchClusterData,
-                          icon: const Icon(Icons.sync, size: 20),
-                          tooltip: 'Recalculate Model',
+            // Header skeleton
+            Container(
+              height: 24,
+              width: 220,
+              margin: const EdgeInsets.only(bottom: 18),
+              decoration: BoxDecoration(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? EnterpriseColors.darkSurfaceMuted
+                    : const Color(0xFFE4E7EC),
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
+            _buildFilterToolbar(isDark, cardBg),
+            const SizedBox(height: 24),
+            // Cluster cards skeleton
+            SizedBox(
+              height: 140,
+              child: Row(
+                children: List.generate(
+                  3,
+                  (_) => Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Theme.of(context).dividerColor,
+                          ),
+                        ),
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 120,
+                              height: 12,
+                              decoration: BoxDecoration(
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? EnterpriseColors.darkSurfaceMuted
+                                    : const Color(0xFFE4E7EC),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color:
+                                      Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? EnterpriseColors.darkSurfaceMuted
+                                      : const Color(0xFFE4E7EC),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(child: _buildRouteHeader(textColor, isDark)),
-                      IconButton.filledTonal(
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+            const Text("Actionable Dispatch Recommendations"),
+            const SizedBox(height: 12),
+            EnterpriseTableSkeleton(columns: 6, rows: 7),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          isMobile
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildRouteHeader(textColor, isDark),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: IconButton.filledTonal(
                         onPressed: _fetchClusterData,
                         icon: const Icon(Icons.sync, size: 20),
                         tooltip: 'Recalculate Model',
                       ),
-                    ],
-                  ),
-            const SizedBox(height: 20),
+                    ),
+                  ],
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(child: _buildRouteHeader(textColor, isDark)),
+                    IconButton.filledTonal(
+                      onPressed: _fetchClusterData,
+                      icon: const Icon(Icons.sync, size: 20),
+                      tooltip: 'Recalculate Model',
+                    ),
+                  ],
+                ),
+          const SizedBox(height: 20),
 
-            _buildFilterToolbar(isDark, cardBg),
-            const SizedBox(height: 24),
+          _buildFilterToolbar(isDark, cardBg),
+          const SizedBox(height: 24),
 
-            if (!_isLoading &&
-                (_mlPayload == null ||
-                    _mlPayload!['status'] == 'Insufficient Data'))
-              _buildInsufficientDataCard(cardBg, textColor)
-            else ...[
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isMobile = constraints.maxWidth < 900;
-                  return isMobile
-                      ? Column(
-                          children: clusters
-                              .map<Widget>(
-                                (c) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
+          if (!_isLoading &&
+              (_mlPayload == null ||
+                  _mlPayload!['status'] == 'Insufficient Data'))
+            _buildInsufficientDataCard(cardBg, textColor)
+          else ...[
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isMobile = constraints.maxWidth < 900;
+                return isMobile
+                    ? Column(
+                        children: clusters
+                            .map<Widget>(
+                              (c) => Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: _buildClusterCard(c, isDark),
+                              ),
+                            )
+                            .toList(),
+                      )
+                    : Row(
+                        children: clusters
+                            .map<Widget>(
+                              (c) => Expanded(
+                                child: Padding(
+                                  padding: EdgeInsets.only(
+                                    right: c == clusters.last ? 0 : 16,
+                                  ),
                                   child: _buildClusterCard(c, isDark),
                                 ),
-                              )
-                              .toList(),
-                        )
-                      : Row(
-                          children: clusters
-                              .map<Widget>(
-                                (c) => Expanded(
-                                  child: Padding(
-                                    padding: EdgeInsets.only(
-                                      right: c == clusters.last ? 0 : 16,
-                                    ),
-                                    child: _buildClusterCard(c, isDark),
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        );
-                },
-              ),
-              const SizedBox(height: 32),
+                              ),
+                            )
+                            .toList(),
+                      );
+              },
+            ),
+            const SizedBox(height: 32),
 
-              Text(
-                "Actionable Dispatch Recommendations",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                ),
+            Text(
+              'Actionable Dispatch Recommendations',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: textColor,
               ),
-              const SizedBox(height: 12),
-              _buildRecommendationsView(recommendations, isDark, cardBg),
-              const SizedBox(height: 32),
-
-              _buildTripBreakdownSection(
-                filteredTrips,
-                isDark,
-                cardBg,
-                textColor,
-              ),
-            ],
+            ),
+            const SizedBox(height: 12),
+            _buildRecommendationsView(recommendations, isDark, cardBg),
+            const SizedBox(height: 32),
+            _buildTripBreakdownSection(
+              filteredTrips,
+              isDark,
+              cardBg,
+              textColor,
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -544,7 +624,9 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF451A03) : const Color(0xFFFFFBEB),
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
+            border: Border.all(
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
+            ),
           ),
           child: Row(
             children: [

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -34,10 +35,12 @@ class SharedDriversView extends StatefulWidget {
 
 class SharedDriversViewState extends State<SharedDriversView> {
   final TextEditingController _searchController = TextEditingController();
+  Timer? _searchDebounce;
   bool _isLoading = true;
   String _searchQuery = '';
   String _selectedStatusFilter = 'All';
   List<DriverProfileModel> _drivers = [];
+  List<DriverProfileModel> _filteredDriversCache = [];
 
   @override
   void initState() {
@@ -47,15 +50,18 @@ class SharedDriversViewState extends State<SharedDriversView> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   void refreshData() => _fetchDrivers();
 
-  List<DriverProfileModel> get _filteredDrivers {
+  List<DriverProfileModel> get _filteredDrivers => _filteredDriversCache;
+
+  void _rebuildFilteredDrivers() {
     final query = _searchQuery.trim().toLowerCase();
-    return _drivers.where((driver) {
+    _filteredDriversCache = _drivers.where((driver) {
       final matchesSearch =
           query.isEmpty ||
           driver.name.toLowerCase().contains(query) ||
@@ -83,14 +89,17 @@ class SharedDriversViewState extends State<SharedDriversView> {
       }
       final rawList = data['sample_data_payload'] as List<dynamic>? ?? [];
       if (!mounted) return;
+      final drivers = rawList
+          .whereType<Map>()
+          .map(
+            (json) =>
+                DriverProfileModel.fromJson(Map<String, dynamic>.from(json)),
+          )
+          .toList();
+      if (!mounted) return;
       setState(() {
-        _drivers = rawList
-            .whereType<Map>()
-            .map(
-              (json) =>
-                  DriverProfileModel.fromJson(Map<String, dynamic>.from(json)),
-            )
-            .toList();
+        _drivers = drivers;
+        _rebuildFilteredDrivers();
       });
     } catch (error) {
       if (mounted) {
@@ -102,9 +111,9 @@ class SharedDriversViewState extends State<SharedDriversView> {
   }
 
   Future<void> _deleteDriver(DriverProfileModel driver) async {
-    final response = await http.delete(
-      Uri.parse('$backendUrl/auth/delete-driver/${driver.id}'),
-    );
+    final response = await http
+        .delete(Uri.parse('$backendUrl/auth/delete-driver/${driver.id}'))
+        .timeout(const Duration(seconds: 10));
     final data = jsonDecode(response.body);
     if (response.statusCode != 200 || data['success'] != true) {
       throw Exception(data['message'] ?? 'Unable to delete driver.');
@@ -155,30 +164,30 @@ class SharedDriversViewState extends State<SharedDriversView> {
           LayoutBuilder(
             builder: (context, constraints) {
               final cards = <Widget>[
-              if (_isLoading) ...[
-                const EnterpriseSummaryCardSkeleton(),
-                const EnterpriseSummaryCardSkeleton(),
-                const EnterpriseSummaryCardSkeleton(),
-              ] else ...[
-                EnterpriseSummaryCard(
-                  label: 'Total drivers',
-                  value: '${_drivers.length}',
-                  icon: Icons.badge_outlined,
-                  color: EnterpriseColors.information,
-                ),
-                EnterpriseSummaryCard(
-                  label: 'Active drivers',
-                  value: '$active',
-                  icon: Icons.check_circle_outline,
-                  color: EnterpriseColors.success,
-                ),
-                EnterpriseSummaryCard(
-                  label: 'Unavailable',
-                  value: '$unavailable',
-                  icon: Icons.pause_circle_outline,
-                  color: EnterpriseColors.warning,
-                ),
-              ],
+                if (_isLoading) ...[
+                  const EnterpriseSummaryCardSkeleton(),
+                  const EnterpriseSummaryCardSkeleton(),
+                  const EnterpriseSummaryCardSkeleton(),
+                ] else ...[
+                  EnterpriseSummaryCard(
+                    label: 'Total drivers',
+                    value: '${_drivers.length}',
+                    icon: Icons.badge_outlined,
+                    color: EnterpriseColors.information,
+                  ),
+                  EnterpriseSummaryCard(
+                    label: 'Active drivers',
+                    value: '$active',
+                    icon: Icons.check_circle_outline,
+                    color: EnterpriseColors.success,
+                  ),
+                  EnterpriseSummaryCard(
+                    label: 'Unavailable',
+                    value: '$unavailable',
+                    icon: Icons.pause_circle_outline,
+                    color: EnterpriseColors.warning,
+                  ),
+                ],
               ];
               if (constraints.maxWidth >= 900) {
                 return Row(
@@ -270,7 +279,19 @@ class SharedDriversViewState extends State<SharedDriversView> {
                   width: 260,
                   child: TextField(
                     controller: _searchController,
-                    onChanged: (value) => setState(() => _searchQuery = value),
+                    onChanged: (value) {
+                      _searchDebounce?.cancel();
+                      _searchDebounce = Timer(
+                        const Duration(milliseconds: 180),
+                        () {
+                          if (!mounted) return;
+                          setState(() {
+                            _searchQuery = value;
+                            _rebuildFilteredDrivers();
+                          });
+                        },
+                      );
+                    },
                     decoration: const InputDecoration(
                       prefixIcon: Icon(Icons.search, size: 18),
                       hintText: 'Filter driver, ID, or email',
@@ -297,8 +318,12 @@ class SharedDriversViewState extends State<SharedDriversView> {
                         child: Text('Suspended'),
                       ),
                     ],
-                    onChanged: (value) =>
-                        setState(() => _selectedStatusFilter = value ?? 'All'),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedStatusFilter = value ?? 'All';
+                        _rebuildFilteredDrivers();
+                      });
+                    },
                   ),
                 ),
                 OutlinedButton.icon(
@@ -320,10 +345,12 @@ class SharedDriversViewState extends State<SharedDriversView> {
                 if (_drivers.isEmpty && widget.canManage) {
                   widget.onDriverTapped?.call(context, null);
                 } else {
+                  _searchDebounce?.cancel();
                   _searchController.clear();
                   setState(() {
                     _searchQuery = '';
                     _selectedStatusFilter = 'All';
+                    _rebuildFilteredDrivers();
                   });
                 }
               },
@@ -336,7 +363,6 @@ class SharedDriversViewState extends State<SharedDriversView> {
       ),
     );
   }
-
 }
 
 class _StatusLabel extends StatelessWidget {

@@ -11,8 +11,8 @@ class AdminDriver extends StatefulWidget {
 }
 
 class _AdminDriverState extends State<AdminDriver> {
-  // Changing string seed forces an absolute UI state redraw on data operations
-  String _refreshSeed = DateTime.now().millisecondsSinceEpoch.toString();
+  final GlobalKey<SharedDriversViewState> _driversKey =
+      GlobalKey<SharedDriversViewState>();
 
   void _showDriverModal(BuildContext context, DriverProfileModel? driver) {
     if (driver == null) {
@@ -41,11 +41,7 @@ class _AdminDriverState extends State<AdminDriver> {
   }
 
   void _triggerInstantRefresh() {
-    if (mounted) {
-      setState(() {
-        _refreshSeed = DateTime.now().millisecondsSinceEpoch.toString();
-      });
-    }
+    _driversKey.currentState?.refreshData();
   }
 
   @override
@@ -53,7 +49,7 @@ class _AdminDriverState extends State<AdminDriver> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SharedDriversView(
-        key: ValueKey('admin_drivers_list_$_refreshSeed'),
+        key: _driversKey,
         canManage: true,
         onDriverTapped: (ctx, model) => _showDriverModal(ctx, model),
 

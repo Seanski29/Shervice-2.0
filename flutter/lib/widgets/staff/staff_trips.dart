@@ -8,6 +8,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart' as xlsx;
 import '../../constant.dart';
 import '../shared/enterprise_data_grid.dart';
+import '../shared/enterprise_states.dart';
+import '../../theme/enterprise_theme.dart';
 import 'trip_summary_editor_page.dart';
 
 String _summaryDateKey(DateTime date) {
@@ -682,53 +684,124 @@ class _StaffTripsState extends State<StaffTrips> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: RefreshIndicator(
         onRefresh: _fetchTripSummary,
-        child: Skeletonizer(
-          enabled: _isLoading,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final stackHeader = constraints.maxWidth < 1650;
-              return SingleChildScrollView(
+        child: _isLoading
+            ? SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHeader(isDark, stackHeader, isNarrow),
-                    const SizedBox(height: 18),
-                    _buildSummaryCards(isDark, isNarrow),
+                    // Top summary skeletons
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      children: List.generate(
+                        5,
+                        (_) => SizedBox(
+                          width: 220,
+                          child: const EnterpriseSummaryCardSkeleton(),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 20),
-                    isNarrow
-                        ? Column(
-                            children: [
-                              _isCalendarExpanded
-                                  ? _buildCalendar(isDark, isNarrow)
-                                  : _buildCollapsedCalendarBar(isDark, true),
-                              const SizedBox(height: 18),
-                              _buildTripWorkspace(isDark),
-                            ],
-                          )
-                        : Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 220),
-                                child: _isCalendarExpanded
-                                    ? SizedBox(
-                                        width: 360,
-                                        child: _buildCalendar(isDark, isNarrow),
-                                      )
-                                    : _buildCollapsedCalendarBar(isDark, false),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 360,
+                          child: Container(
+                            height: 420,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).cardColor,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Theme.of(context).dividerColor,
                               ),
-                              const SizedBox(width: 20),
-                              Expanded(child: _buildTripWorkspace(isDark)),
-                            ],
+                            ),
+                            child: GridView.count(
+                              physics: const NeverScrollableScrollPhysics(),
+                              crossAxisCount: 6,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                              children: List.generate(
+                                36,
+                                (_) => Container(
+                                  decoration: BoxDecoration(
+                                    color:
+                                        Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? EnterpriseColors.darkSurfaceMuted
+                                        : EnterpriseColors.lightSurfaceMuted,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
+                        ),
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: EnterpriseTableSkeleton(columns: 8, rows: 8),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-              );
-            },
-          ),
-        ),
+              )
+            : LayoutBuilder(
+                builder: (context, constraints) {
+                  final stackHeader = constraints.maxWidth < 1650;
+                  return SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(isDark, stackHeader, isNarrow),
+                        const SizedBox(height: 18),
+                        _buildSummaryCards(isDark, isNarrow),
+                        const SizedBox(height: 20),
+                        isNarrow
+                            ? Column(
+                                children: [
+                                  _isCalendarExpanded
+                                      ? _buildCalendar(isDark, isNarrow)
+                                      : _buildCollapsedCalendarBar(
+                                          isDark,
+                                          true,
+                                        ),
+                                  const SizedBox(height: 18),
+                                  _buildTripWorkspace(isDark),
+                                ],
+                              )
+                            : Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 220),
+                                    child: _isCalendarExpanded
+                                        ? SizedBox(
+                                            width: 360,
+                                            child: _buildCalendar(
+                                              isDark,
+                                              isNarrow,
+                                            ),
+                                          )
+                                        : _buildCollapsedCalendarBar(
+                                            isDark,
+                                            false,
+                                          ),
+                                  ),
+                                  const SizedBox(width: 20),
+                                  Expanded(child: _buildTripWorkspace(isDark)),
+                                ],
+                              ),
+                      ],
+                    ),
+                  );
+                },
+              ),
       ),
     );
   }

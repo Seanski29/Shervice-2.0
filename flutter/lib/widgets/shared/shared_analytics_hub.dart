@@ -10,6 +10,7 @@ import 'fleet_overview_tab.dart';
 import 'driver_performance_tab.dart';
 import 'vehicle_ml_tab.dart';
 import 'company_analytics_tab.dart';
+import 'enterprise_states.dart';
 
 class SharedAnalyticsHub extends StatefulWidget {
   const SharedAnalyticsHub({super.key});
@@ -235,70 +236,114 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Skeletonizer(
-        enabled: _isLoading && _allVehicles.isEmpty,
-        child: Padding(
-          padding: EdgeInsets.all(isMobile ? 12.0 : 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+      body: _isLoading && _allVehicles.isEmpty
+          ? Padding(
+              padding: EdgeInsets.all(isMobile ? 12.0 : 24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(child: _buildNavigationTabs(isDark)),
-                  const SizedBox(width: 12),
-                  _buildSweepButton(),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardColor,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Theme.of(context).dividerColor),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        width: 140,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Theme.of(context).dividerColor),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Summary skeletons
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: List.generate(
+                      3,
+                      (_) => SizedBox(
+                        width: 220,
+                        child: const EnterpriseSummaryCardSkeleton(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(child: EnterpriseTableSkeleton(columns: 6, rows: 8)),
                 ],
               ),
-              const SizedBox(height: 8),
+            )
+          : Padding(
+              padding: EdgeInsets.all(isMobile ? 12.0 : 24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(child: _buildNavigationTabs(isDark)),
+                      const SizedBox(width: 12),
+                      _buildSweepButton(),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
 
-              Expanded(
-                child: _isLoading && _allVehicles.isEmpty
-                    ? const Center(child: CircularProgressIndicator())
-                    : IndexedStack(
-                        index: _activeTab,
-                        children: [
-                          FleetOverviewTab(
-                            vehicles: _allVehicles,
-                            drivers: _allDrivers,
-                            trips: _allTrips,
-                            maintenanceLogs: _allMaintenanceLogs,
-                            onSyncAction: _handleManualSync,
-                            onReload: _fetchGlobalAnalyticsPayload,
-                          ),
-                          _visitedTabs.contains(1)
-                              ? DriverPerformanceTab(
-                                  drivers: _allDrivers,
-                                  backendUrl: backendUrl,
-                                  onSyncAction: _handleManualSync,
-                                )
-                              : const SizedBox.shrink(),
-                          _visitedTabs.contains(2)
-                              ? VehicleMlTab(
-                                  vehicles: _allVehicles,
-                                  backendUrl: backendUrl,
-                                  onSyncAction: _handleManualSync,
-                                )
-                              : const SizedBox.shrink(),
-                          _visitedTabs.contains(3)
-                              ? RouteOptimizationTab(
-                                  backendUrl: backendUrl,
-                                  onSyncAction: _handleManualSync,
-                                )
-                              : const SizedBox.shrink(),
-                          _visitedTabs.contains(4)
-                              ? CompanyAnalyticsTab(
-                                  trips: _allTrips,
-                                  drivers: _allDrivers,
-                                )
-                              : const SizedBox.shrink(),
-                        ],
-                      ),
+                  Expanded(
+                    child: IndexedStack(
+                      index: _activeTab,
+                      children: [
+                        FleetOverviewTab(
+                          vehicles: _allVehicles,
+                          drivers: _allDrivers,
+                          trips: _allTrips,
+                          maintenanceLogs: _allMaintenanceLogs,
+                          onSyncAction: _handleManualSync,
+                          onReload: _fetchGlobalAnalyticsPayload,
+                        ),
+                        _visitedTabs.contains(1)
+                            ? DriverPerformanceTab(
+                                drivers: _allDrivers,
+                                backendUrl: backendUrl,
+                                onSyncAction: _handleManualSync,
+                              )
+                            : const SizedBox.shrink(),
+                        _visitedTabs.contains(2)
+                            ? VehicleMlTab(
+                                vehicles: _allVehicles,
+                                backendUrl: backendUrl,
+                                onSyncAction: _handleManualSync,
+                              )
+                            : const SizedBox.shrink(),
+                        _visitedTabs.contains(3)
+                            ? RouteOptimizationTab(
+                                backendUrl: backendUrl,
+                                onSyncAction: _handleManualSync,
+                              )
+                            : const SizedBox.shrink(),
+                        _visitedTabs.contains(4)
+                            ? CompanyAnalyticsTab(
+                                trips: _allTrips,
+                                drivers: _allDrivers,
+                              )
+                            : const SizedBox.shrink(),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 

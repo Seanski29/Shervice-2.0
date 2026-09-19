@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import '../../widgets/shared/enterprise_states.dart';
+import '../../theme/enterprise_theme.dart';
 
 // ============================================================================
 // STAFF ATTENDANCE WIDGET
@@ -112,13 +114,63 @@ class _StaffAttendanceState extends State<StaffAttendance> {
     final isDark = theme.brightness == Brightness.dark;
     final filteredLogs = _displayLogs;
 
-    return Skeletonizer(
-      enabled: _isLoading,
-      child: SingleChildScrollView(
+    if (_isLoading) {
+      return Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 260,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? EnterpriseColors.darkSurfaceMuted
+                            : const Color(0xFFE4E7EC),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Container(
+                      width: 200,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? EnterpriseColors.darkSurfaceMuted
+                            : const Color(0xFFE4E7EC),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    SizedBox(width: 120, child: const EnterpriseSummaryCardSkeleton()),
+                    const SizedBox(width: 16),
+                    SizedBox(width: 120, child: const EnterpriseSummaryCardSkeleton()),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            EnterpriseTableSkeleton(columns: 6, rows: 8),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

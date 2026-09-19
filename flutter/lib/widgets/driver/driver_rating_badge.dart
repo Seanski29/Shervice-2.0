@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shervice_flutter/theme/enterprise_theme.dart';
 import 'package:http/http.dart' as http;
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -76,35 +77,61 @@ class _DriverRatingBadgeState extends State<DriverRatingBadge> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Skeletonizer(
-      enabled: _isLoading,
-      child: Row(
+    if (_isLoading) {
+      return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            _totalReviews == 0 ? Icons.star_border : Icons.star,
-            color: Colors.amber.shade600,
-            size: 16,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            _totalReviews == 0 ? 'New' : _averageRating.toStringAsFixed(1),
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurface,
-              fontSize: 14,
+          Container(
+            width: 16,
+            height: 16,
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? EnterpriseColors.darkSurfaceMuted
+                  : const Color(0xFFE4E7EC),
+              borderRadius: BorderRadius.circular(4),
             ),
           ),
-          if (_totalReviews > 0)
-            Text(
-              ' ($_totalReviews)',
-              style: TextStyle(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontSize: 12,
-              ),
+          const SizedBox(width: 6),
+          Container(
+            width: 34,
+            height: 12,
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? EnterpriseColors.darkSurfaceMuted
+                  : const Color(0xFFE4E7EC),
+              borderRadius: BorderRadius.circular(4),
             ),
+          ),
         ],
-      ),
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          _totalReviews == 0 ? Icons.star_border : Icons.star,
+          color: Colors.amber.shade600,
+          size: 16,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          _totalReviews == 0 ? 'New' : _averageRating.toStringAsFixed(1),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onSurface,
+            fontSize: 14,
+          ),
+        ),
+        if (_totalReviews > 0)
+          Text(
+            ' ($_totalReviews)',
+            style: TextStyle(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontSize: 12,
+            ),
+          ),
+      ],
     );
   }
 }
