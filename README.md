@@ -99,6 +99,6 @@ python app.py
 
 ```bash
 cd flutter
-flutter run -d chrome --web-port 8080
+flutter run -d chrome --web-port 8080 --no-web-resources-cdn
 
 ```

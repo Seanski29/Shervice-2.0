@@ -494,7 +494,6 @@ class _StaffAttendanceState extends State<StaffAttendance> {
             ),
           ],
         ),
-      ),
     );
   }
 

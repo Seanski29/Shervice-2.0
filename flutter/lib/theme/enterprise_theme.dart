@@ -72,43 +72,43 @@ abstract final class EnterpriseTheme {
         ? ThemeData.dark().textTheme
         : ThemeData.light().textTheme;
     final textTheme = baseTextTheme
-        .apply(fontFamily: 'Roboto', bodyColor: text, displayColor: text)
+        .apply(fontFamily: 'Arial', bodyColor: text, displayColor: text)
         .copyWith(
           headlineSmall: TextStyle(
-            fontFamily: 'Roboto',
+            fontFamily: 'Arial',
             fontSize: 20,
             height: 1.25,
             fontWeight: FontWeight.w700,
             color: text,
           ),
           titleLarge: TextStyle(
-            fontFamily: 'Roboto',
+            fontFamily: 'Arial',
             fontSize: 16,
             height: 1.25,
             fontWeight: FontWeight.w700,
             color: text,
           ),
           titleMedium: TextStyle(
-            fontFamily: 'Roboto',
+            fontFamily: 'Arial',
             fontSize: 14,
             height: 1.3,
             fontWeight: FontWeight.w600,
             color: text,
           ),
           bodyMedium: TextStyle(
-            fontFamily: 'Roboto',
+            fontFamily: 'Arial',
             fontSize: 13,
             height: 1.35,
             color: text,
           ),
           bodySmall: TextStyle(
-            fontFamily: 'Roboto',
+            fontFamily: 'Arial',
             fontSize: 12,
             height: 1.3,
             color: muted,
           ),
           labelLarge: const TextStyle(
-            fontFamily: 'Roboto',
+            fontFamily: 'Arial',
             fontSize: 13,
             height: 1.2,
             fontWeight: FontWeight.w600,
@@ -124,7 +124,7 @@ abstract final class EnterpriseTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
-      fontFamily: 'Roboto',
+      fontFamily: 'Arial',
       colorScheme: colorScheme,
       scaffoldBackgroundColor: canvas,
       cardColor: surface,
