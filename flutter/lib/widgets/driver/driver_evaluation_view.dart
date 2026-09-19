@@ -65,7 +65,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
   List<Map<String, dynamic>> _processedEvals = [];
 
   int _currentPage = 0;
-  final int _itemsPerPage = 5;
+  static const int _itemsPerPage = 10;
   String _currentSort = 'Date (Newest)';
   final List<String> _sortOptions = [
     'Date (Newest)',

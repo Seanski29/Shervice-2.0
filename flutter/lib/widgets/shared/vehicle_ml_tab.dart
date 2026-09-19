@@ -23,7 +23,7 @@ class _VehicleMlTabState extends State<VehicleMlTab> {
   String _searchQuery = '';
   String _currentSort = 'Needs Attention first';
   int _currentPage = 0;
-  final int _itemsPerPage = 6;
+  static const int _itemsPerPage = 10;
 
   List<dynamic> get _processedVehicles {
     List<dynamic> tempV = widget.vehicles.where((v) {

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../theme/enterprise_theme.dart';
 import 'enterprise_states.dart';
+import 'universal_pagination.dart';
 
 typedef EnterpriseCellChanged<T> = Future<void> Function(T row, String value);
 
@@ -34,8 +35,8 @@ class EnterpriseDataGrid<T> extends StatefulWidget {
     required this.rowKey,
     required this.emptyTitle,
     required this.emptyMessage,
-    required this.emptyActionLabel,
-    required this.onEmptyAction,
+    this.emptyActionLabel,
+    this.onEmptyAction,
     this.loading = false,
     this.onDelete,
     this.canDelete,
@@ -44,6 +45,7 @@ class EnterpriseDataGrid<T> extends StatefulWidget {
     this.filterFields = const [],
     this.showDateRange = true,
     this.height = 560,
+    this.paginate = true,
   });
 
   final List<T> rows;
@@ -52,8 +54,8 @@ class EnterpriseDataGrid<T> extends StatefulWidget {
   final bool loading;
   final String emptyTitle;
   final String emptyMessage;
-  final String emptyActionLabel;
-  final VoidCallback onEmptyAction;
+  final String? emptyActionLabel;
+  final VoidCallback? onEmptyAction;
   final Future<void> Function(T row)? onDelete;
   final bool Function(T row)? canDelete;
   final Future<void> Function(List<T> rows)? onExportSelection;
@@ -61,6 +63,10 @@ class EnterpriseDataGrid<T> extends StatefulWidget {
   final List<Widget> filterFields;
   final bool showDateRange;
   final double height;
+
+  /// Tables show at most ten rows by default. Set false when the caller
+  /// already supplies a paginated page and renders its own pager.
+  final bool paginate;
 
   @override
   State<EnterpriseDataGrid<T>> createState() => _EnterpriseDataGridState<T>();
@@ -78,8 +84,13 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
   int? _sortColumn;
   bool _sortAscending = true;
   DateTimeRange? _dateRange;
+  int _currentPage = 0;
+  static const int _rowsPerPage = 10;
 
-  double _columnWidth(EnterpriseGridColumn<T> column) => column.width * _zoom;
+  double _columnWidth(
+    EnterpriseGridColumn<T> column, {
+    double extraWidth = 0,
+  }) => (column.width * _zoom) + extraWidth;
 
   List<T> get _sortedRows {
     final rows = [...widget.rows];
@@ -93,6 +104,30 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
       return _sortAscending ? result : -result;
     });
     return rows;
+  }
+
+  List<T> _visibleRows(List<T> rows) {
+    if (!widget.paginate) return rows;
+    final totalPages = (rows.length / _rowsPerPage).ceil();
+    if (totalPages == 0) return const [];
+    if (_currentPage >= totalPages) _currentPage = totalPages - 1;
+    final start = _currentPage * _rowsPerPage;
+    final end = (start + _rowsPerPage).clamp(0, rows.length);
+    return rows.sublist(start, end);
+  }
+
+  @override
+  void didUpdateWidget(covariant EnterpriseDataGrid<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.rows.length != widget.rows.length ||
+        oldWidget.paginate != widget.paginate) {
+      final totalPages = (widget.rows.length / _rowsPerPage).ceil();
+      if (totalPages == 0) {
+        _currentPage = 0;
+      } else if (_currentPage >= totalPages) {
+        _currentPage = totalPages - 1;
+      }
+    }
   }
 
   @override
@@ -110,19 +145,11 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
     if (widget.loading) {
       return EnterpriseTableSkeleton(columns: widget.columns.length + 1);
     }
-    if (widget.rows.isEmpty) {
-      return EnterpriseEmptyState(
-        icon: Icons.table_rows_outlined,
-        title: widget.emptyTitle,
-        message: widget.emptyMessage,
-        actionLabel: widget.emptyActionLabel,
-        onAction: widget.onEmptyAction,
-      );
-    }
 
     final theme = Theme.of(context);
-    final rows = _sortedRows;
-    final selectedRows = rows
+    final allRows = _sortedRows;
+    final rows = _visibleRows(allRows);
+    final selectedRows = allRows
         .where((row) => _selectedKeys.contains(widget.rowKey(row)))
         .toList();
     final totalWidth =
@@ -132,20 +159,30 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
           (sum, column) => sum + _columnWidth(column),
         );
     final totalHeight = 40.0 + (rows.length * 42.0);
+    final footerHeight = widget.paginate && allRows.isNotEmpty ? 60.0 : 36.0;
+    final tableHeight = widget.rows.isEmpty
+        ? (widget.height.isFinite ? widget.height : 260.0)
+        : widget.height.isFinite
+        ? widget.height
+        : 46.0 + totalHeight + footerHeight;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final viewportWidth = constraints.maxWidth.isFinite
             ? constraints.maxWidth
             : totalWidth;
-        final contentWidth = totalWidth < viewportWidth
-            ? viewportWidth
-            : totalWidth;
+        final contentWidth = totalWidth > viewportWidth
+            ? totalWidth
+            : viewportWidth;
+        final extraColumnWidth = widget.columns.isEmpty
+            ? 0.0
+            : (contentWidth - totalWidth) / widget.columns.length;
         return Stack(
           clipBehavior: Clip.none,
           children: [
             Container(
-              height: widget.height,
+              width: contentWidth,
+              height: tableHeight,
               decoration: BoxDecoration(
                 color: theme.cardColor,
                 border: Border.all(color: theme.dividerColor),
@@ -155,47 +192,61 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
                 children: [
                   _buildToolbar(theme),
                   Expanded(
-                    child: Scrollbar(
-                      controller: _verticalController,
-                      thumbVisibility: true,
-                      child: SingleChildScrollView(
-                        controller: _verticalController,
-                        child: Scrollbar(
-                          controller: _horizontalController,
-                          thumbVisibility: true,
-                          trackVisibility: true,
-                          interactive: true,
-                          notificationPredicate: (notification) =>
-                              notification.metrics.axis == Axis.horizontal,
-                          child: SingleChildScrollView(
-                            controller: _horizontalController,
-                            scrollDirection: Axis.horizontal,
-                            child: SizedBox(
-                              width: contentWidth,
-                              height: totalHeight,
-                              child: Column(
-                                children: [
-                                  _buildHeader(theme, contentWidth),
-                                  for (
-                                    var rowIndex = 0;
-                                    rowIndex < rows.length;
-                                    rowIndex++
-                                  )
-                                    _buildRow(
-                                      theme,
-                                      rows[rowIndex],
-                                      rowIndex,
-                                      contentWidth,
+                    child: widget.rows.isEmpty
+                        ? EnterpriseEmptyState(
+                            icon: Icons.table_rows_outlined,
+                            title: widget.emptyTitle,
+                            message: widget.emptyMessage,
+                            actionLabel: widget.emptyActionLabel,
+                            onAction: widget.onEmptyAction,
+                          )
+                        : Scrollbar(
+                            controller: _verticalController,
+                            thumbVisibility: true,
+                            child: SingleChildScrollView(
+                              controller: _verticalController,
+                              child: Scrollbar(
+                                controller: _horizontalController,
+                                thumbVisibility: true,
+                                trackVisibility: true,
+                                interactive: true,
+                                notificationPredicate: (notification) =>
+                                    notification.metrics.axis ==
+                                    Axis.horizontal,
+                                child: SingleChildScrollView(
+                                  controller: _horizontalController,
+                                  scrollDirection: Axis.horizontal,
+                                  child: SizedBox(
+                                    width: contentWidth,
+                                    height: totalHeight,
+                                    child: Column(
+                                      children: [
+                                        _buildHeader(
+                                          theme,
+                                          contentWidth,
+                                          extraColumnWidth,
+                                        ),
+                                        for (
+                                          var rowIndex = 0;
+                                          rowIndex < rows.length;
+                                          rowIndex++
+                                        )
+                                          _buildRow(
+                                            theme,
+                                            rows[rowIndex],
+                                            rowIndex,
+                                            contentWidth,
+                                            extraColumnWidth,
+                                          ),
+                                      ],
                                     ),
-                                ],
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                    ),
                   ),
-                  _buildFooter(rows.length),
+                  if (widget.rows.isNotEmpty) _buildFooter(allRows.length),
                 ],
               ),
             ),
@@ -301,7 +352,11 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
     );
   }
 
-  Widget _buildHeader(ThemeData theme, double totalWidth) {
+  Widget _buildHeader(
+    ThemeData theme,
+    double totalWidth,
+    double extraColumnWidth,
+  ) {
     final allSelected = _selectedKeys.length == widget.rows.length;
     return Container(
       width: totalWidth,
@@ -324,7 +379,6 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
                       if (value == true) {
                         _selectedKeys.addAll(widget.rows.map(widget.rowKey));
                       }
-
                     });
                   },
                 ),
@@ -338,7 +392,10 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
               child: Material(
                 color: Colors.transparent,
                 child: Container(
-                  width: _columnWidth(widget.columns[index]),
+                  width: _columnWidth(
+                    widget.columns[index],
+                    extraWidth: extraColumnWidth,
+                  ),
                   height: 40,
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   decoration: BoxDecoration(
@@ -374,7 +431,13 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
     );
   }
 
-  Widget _buildRow(ThemeData theme, T row, int rowIndex, double totalWidth) {
+  Widget _buildRow(
+    ThemeData theme,
+    T row,
+    int rowIndex,
+    double totalWidth,
+    double extraColumnWidth,
+  ) {
     final key = widget.rowKey(row);
     final selected = _selectedKeys.contains(key);
     return Container(
@@ -409,13 +472,19 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
             columnIndex < widget.columns.length;
             columnIndex++
           )
-            _buildCell(theme, row, rowIndex, columnIndex),
+            _buildCell(theme, row, rowIndex, columnIndex, extraColumnWidth),
         ],
       ),
     );
   }
 
-  Widget _buildCell(ThemeData theme, T row, int rowIndex, int columnIndex) {
+  Widget _buildCell(
+    ThemeData theme,
+    T row,
+    int rowIndex,
+    int columnIndex,
+    double extraColumnWidth,
+  ) {
     final column = widget.columns[columnIndex];
     final node = _focusNodes.putIfAbsent(
       '$rowIndex:$columnIndex',
@@ -456,7 +525,7 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
             onTap: node.requestFocus,
             onDoubleTap: column.editable ? () => _editCell(row, column) : null,
             child: Container(
-              width: _columnWidth(column),
+              width: _columnWidth(column, extraWidth: extraColumnWidth),
               height: 42,
               padding: const EdgeInsets.symmetric(horizontal: 10),
               decoration: BoxDecoration(
@@ -507,16 +576,37 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
   }
 
   Widget _buildFooter(int rowCount) {
+    final totalPages = (rowCount / _rowsPerPage).ceil();
     return Container(
-      height: 36,
+      constraints: const BoxConstraints(minHeight: 36),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
       ),
       child: Row(
         children: [
-          Text('$rowCount rows', style: Theme.of(context).textTheme.bodySmall),
-          const Spacer(),
+          if (widget.paginate && rowCount > 0)
+            Expanded(
+              child: UniversalPagination(
+                currentPage: _currentPage,
+                totalPages: totalPages,
+                totalItems: rowCount,
+                itemsPerPage: _rowsPerPage,
+                itemName: 'rows',
+                onPrevPage: _currentPage > 0
+                    ? () => setState(() => _currentPage--)
+                    : null,
+                onNextPage: _currentPage < totalPages - 1
+                    ? () => setState(() => _currentPage++)
+                    : null,
+              ),
+            )
+          else
+            Text(
+              '$rowCount rows',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          if (!widget.paginate || rowCount == 0) const Spacer(),
           Text(
             'Arrow keys move cells | Tab advances | F2 edits',
             style: Theme.of(context).textTheme.bodySmall,
@@ -641,10 +731,8 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
       if (mounted) EnterpriseToasts.success(context, 'Record deleted.');
     } catch (error) {
       if (mounted) {
-        EnterpriseToasts.error(
-          context,
-          'The record could not be deleted. ${error.toString()}',
-        );
+        final message = error.toString().replaceFirst('Exception: ', '');
+        EnterpriseToasts.error(context, 'Delete failed: $message');
       }
     }
   }

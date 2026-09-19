@@ -25,7 +25,7 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
   String _currentSort = 'Rating (High-Low)';
   String _selectedClassification = 'All Classifications';
   int _currentPage = 0;
-  final int _itemsPerPage = 6;
+  static const int _itemsPerPage = 10;
   int _selectedMonth = DateTime.now().month;
   int _selectedYear = DateTime.now().year;
 
@@ -91,7 +91,7 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                 "Backend Error: ${decoded['error'] ?? 'Unknown'}",
           );
         }
-      } else {
+      } else if (mounted) {
         setState(
           () => _errorMessage =
               "Server crashed (Status ${response.statusCode}). Check Python console.",
@@ -99,10 +99,12 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
         _recomputeDashboardRatingsLocally();
       }
     } catch (e) {
-      setState(
-        () => _errorMessage = "Network Error: Cannot connect to backend.\n$e",
-      );
-      _recomputeDashboardRatingsLocally();
+      if (mounted) {
+        setState(
+          () => _errorMessage = "Network Error: Cannot connect to backend.\n$e",
+        );
+        _recomputeDashboardRatingsLocally();
+      }
     } finally {
       if (mounted) setState(() => _isFetching = false);
     }

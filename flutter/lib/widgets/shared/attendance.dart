@@ -11,7 +11,6 @@ import 'package:excel/excel.dart' as excel;
 import '../../constant.dart';
 import '../../utils/file_download.dart';
 import 'enterprise_data_grid.dart';
-import 'universal_pagination.dart';
 
 class Attendance extends StatefulWidget {
   final String userRole;
@@ -28,8 +27,6 @@ class _AttendanceState extends State<Attendance> {
   String _sourceFileName = 'No file selected';
   String? _selectedSourceFile;
 
-  int _rowsPerPage = 10;
-  int _currentPage = 0;
   bool _sortDateAscending = false;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
@@ -166,7 +163,6 @@ class _AttendanceState extends State<Attendance> {
   Future<void> _loadAttendanceData() async {
     setState(() {
       _isLoadingSystemData = true;
-      _currentPage = 0;
       _selectedRange = 'Today';
       _customDateRange = null;
     });
@@ -317,7 +313,6 @@ class _AttendanceState extends State<Attendance> {
         _sourceFileName = file.name;
         _columns = _attendanceColumns;
         _rows = importedRows;
-        _currentPage = 0;
         _selectedRange = 'Today';
         _customDateRange = null;
       });
@@ -718,7 +713,6 @@ class _AttendanceState extends State<Attendance> {
                               setState(() {
                                 _selectedRange = val;
                                 _customDateRange = picked;
-                                _currentPage = 0;
                               });
                             }
                           } else if (val == 'Month') {
@@ -758,14 +752,12 @@ class _AttendanceState extends State<Attendance> {
                                   start: start,
                                   end: end,
                                 );
-                                _currentPage = 0;
                               });
                             }
                           } else {
                             setState(() {
                               _selectedRange = val;
                               _customDateRange = null;
-                              _currentPage = 0;
                             });
                           }
                         },
@@ -799,7 +791,6 @@ class _AttendanceState extends State<Attendance> {
                         controller: _searchController,
                         onChanged: (val) => setState(() {
                           _searchQuery = val;
-                          _currentPage = 0;
                         }),
                         style: const TextStyle(fontSize: 14),
                         decoration: InputDecoration(
@@ -812,7 +803,6 @@ class _AttendanceState extends State<Attendance> {
                                     _searchController.clear();
                                     setState(() {
                                       _searchQuery = '';
-                                      _currentPage = 0;
                                     });
                                   },
                                 )
@@ -865,7 +855,6 @@ class _AttendanceState extends State<Attendance> {
                         child: InkWell(
                           onTap: () => setState(() {
                             _sortDateAscending = !_sortDateAscending;
-                            _currentPage = 0;
                           }),
                           borderRadius: BorderRadius.circular(4),
                           child: Center(
@@ -894,26 +883,14 @@ class _AttendanceState extends State<Attendance> {
                         icon: Icons.fact_check_outlined,
                         title: _rows.isEmpty
                             ? 'Import the first attendance file'
-                            : 'Adjust the attendance filters',
+                            : 'Nothing matches the current search or filters',
                         message: _rows.isEmpty
                             ? 'Import a biometric workbook to establish the attendance register for payroll and workforce reporting.'
                             : 'No attendance records match the current date range and search query.',
                         actionLabel: _rows.isEmpty
                             ? 'Import attendance file'
-                            : 'Clear filters',
-                        onAction: () {
-                          if (_rows.isEmpty) {
-                            _pickExcelFile();
-                          } else {
-                            _searchController.clear();
-                            setState(() {
-                              _searchQuery = '';
-                              _selectedRange = 'This Week';
-                              _customDateRange = null;
-                              _currentPage = 0;
-                            });
-                          }
-                        },
+                            : null,
+                        onAction: _rows.isEmpty ? _pickExcelFile : null,
                       )
                     : EnterpriseDataGrid<Map<String, String>>(
                         rows: activeData,

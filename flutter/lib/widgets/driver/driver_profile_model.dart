@@ -7,8 +7,6 @@ class DriverProfileModel {
   final String dateHired;
   final String status;
   final String isBackup;
-  final double rating;
-  final String email;
   final String? mlClassification;
 
   DriverProfileModel({
@@ -20,8 +18,6 @@ class DriverProfileModel {
     required this.dateHired,
     required this.status,
     this.isBackup = 'No',
-    this.rating = 0.0,
-    this.email = '',
     this.mlClassification,
   });
 
@@ -38,10 +34,6 @@ class DriverProfileModel {
       dateHired: json['date_hired']?.toString() ?? '2024-01-01',
       status: json['employment_status'] ?? json['status'] ?? 'Active',
       isBackup: json['is_backup'] ?? 'No',
-      rating: (json['rating'] is num)
-          ? (json['rating'] as num).toDouble()
-          : double.tryParse(json['rating']?.toString() ?? '0.0') ?? 0.0,
-      email: json['username'] ?? json['email'] ?? '',
       mlClassification: json['ml_classification']?.toString(),
     );
   }
@@ -56,8 +48,6 @@ class DriverProfileModel {
       'date_hired': dateHired,
       'employment_status': status,
       'is_backup': isBackup,
-      'email': email,
-      'rating': rating,
       'ml_classification': mlClassification,
     };
   }

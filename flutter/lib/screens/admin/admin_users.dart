@@ -21,6 +21,7 @@ class AdminUsers extends StatefulWidget {
 
 class _AdminUsersState extends State<AdminUsers> {
   // --- State Variables ---
+  final TextEditingController _searchController = TextEditingController();
   bool _isLoading = true;
   List<dynamic> _allUsers = [];
   List<dynamic> _filteredUsers = [];
@@ -38,6 +39,12 @@ class _AdminUsersState extends State<AdminUsers> {
   void initState() {
     super.initState();
     _fetchSystemUsers();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchSystemUsers() async {
@@ -304,23 +311,32 @@ class _AdminUsersState extends State<AdminUsers> {
               ],
               filterFields: [
                 SizedBox(
-                  width: 270,
+                  width: 340,
                   child: TextField(
+                    controller: _searchController,
                     onChanged: (value) {
                       _searchQuery = value;
                       _applyFiltersAndSort();
                     },
                     decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search, size: 18),
-                      hintText: 'Filter name, email, or company',
+                      prefixIcon: Icon(Icons.search),
+                      labelText: 'Search user name, email, or company',
+                      isDense: true,
+                      border: OutlineInputBorder(),
                     ),
                   ),
                 ),
                 SizedBox(
-                  width: 170,
+                  width: 190,
                   child: DropdownButtonFormField<String>(
                     initialValue: _currentSort,
-                    decoration: const InputDecoration(labelText: 'Sort'),
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.filter_list),
+                      labelText: 'Filter',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
                     items: _sortOptions
                         .map(
                           (option) => DropdownMenuItem(
@@ -343,22 +359,16 @@ class _AdminUsersState extends State<AdminUsers> {
               ],
               emptyTitle: _allUsers.isEmpty
                   ? 'Register the first user'
-                  : 'Adjust the user filters',
+                  : 'Nothing matches the current search or filters',
               emptyMessage: _allUsers.isEmpty
                   ? 'Create an account to establish role-based access to Shervice.'
                   : 'No user accounts match the current search and sort criteria.',
               emptyActionLabel: _allUsers.isEmpty
                   ? 'Register first user'
-                  : 'Clear filters',
-              onEmptyAction: () {
-                if (_allUsers.isEmpty) {
-                  _showUserModal(context);
-                } else {
-                  _searchQuery = '';
-                  _currentSort = 'Name (A to Z)';
-                  _applyFiltersAndSort();
-                }
-              },
+                  : null,
+              onEmptyAction: _allUsers.isEmpty
+                  ? () => _showUserModal(context)
+                  : null,
               onDelete: _deleteUserDirect,
               onBulkDelete: _deleteUsers,
               onExportSelection: _exportUsers,
