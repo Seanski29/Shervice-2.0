@@ -69,28 +69,32 @@ class _KpiCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accent = _accentColor;
+    final isDark = theme.brightness == Brightness.dark;
+    final fill = Color.lerp(theme.cardColor, accent, isDark ? 0.18 : 0.07)!;
+    final muted = isDark
+        ? Colors.white.withValues(alpha: 0.72)
+        : EnterpriseColors.substitute;
     return Card(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       elevation: 0,
       shadowColor: accent.withValues(alpha: 0.18),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: theme.dividerColor),
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: accent.withValues(alpha: 0.38)),
       ),
       child: InkWell(
         onTap: onTap,
         child: Container(
           height: 116,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: theme.cardColor,
-            border: Border(left: BorderSide(color: accent, width: 4)),
+            color: fill,
             boxShadow: [
               BoxShadow(
-                color: accent.withValues(alpha: 0.12),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
+                color: accent.withValues(alpha: 0.14),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
@@ -98,35 +102,45 @@ class _KpiCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                metric.icon,
-                size: 22,
-                color: theme.brightness == Brightness.dark
-                    ? accent
-                    : EnterpriseColors.main,
+              Row(
+                children: [
+                  Icon(metric.icon, size: 20, color: accent),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      metric.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: muted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: GoogleFonts.montserrat().fontFamily,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 6),
-              Text(
-                metric.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.w700,
-                  fontFamily: GoogleFonts.montserrat().fontFamily,
+              const SizedBox(height: 12),
+              Flexible(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      metric.value,
+                      maxLines: 1,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                metric.value,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: theme.colorScheme.onSurface,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
               Text(
                 metric.subTitle,
                 maxLines: 1,

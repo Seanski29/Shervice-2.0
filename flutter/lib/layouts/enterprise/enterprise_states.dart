@@ -20,62 +20,69 @@ class EnterpriseSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final foreground = isDark ? EnterpriseColors.white : EnterpriseColors.main;
+    final mutedForeground = isDark
+        ? EnterpriseColors.white.withValues(alpha: 0.72)
+        : EnterpriseColors.substitute;
+    final cardFill = Color.lerp(theme.cardColor, color, isDark ? 0.18 : 0.07)!;
     return Container(
-      constraints: const BoxConstraints(minWidth: 176, maxWidth: 260),
-      padding: const EdgeInsets.all(16),
+      height: 108,
+      constraints: const BoxConstraints(minWidth: 176),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border(
-          top: BorderSide(color: theme.dividerColor),
-          right: BorderSide(color: theme.dividerColor),
-          bottom: BorderSide(color: theme.dividerColor),
-          left: BorderSide(color: color, width: 4),
+        color: cardFill,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: color.withValues(alpha: isDark ? 0.45 : 0.38),
         ),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: 0.12),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: color.withValues(alpha: isDark ? 0.2 : 0.14),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: EnterpriseColors.main, size: 21),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    color: theme.colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
+          Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.montserrat(
-                    fontSize: 12,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
+                    color: mutedForeground,
                   ),
                 ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Flexible(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    color: foreground,
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -89,16 +96,20 @@ class EnterpriseSummaryCardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).brightness == Brightness.dark
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = isDark
         ? EnterpriseColors.darkSurfaceMuted
-        : const Color(0xFFE4E7EC);
+        : const Color(0xFFD8DEE8);
     return Container(
-      constraints: const BoxConstraints(minWidth: 176, maxWidth: 260),
-      height: 76,
+      constraints: const BoxConstraints(minWidth: 176),
+      height: 92,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(18),
+        color: isDark ? color.withValues(alpha: 0.7) : const Color(0xFFF1F4F8),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark ? EnterpriseColors.darkBorder : const Color(0xFFD0D5DD),
+        ),
       ),
       child: Row(
         children: [

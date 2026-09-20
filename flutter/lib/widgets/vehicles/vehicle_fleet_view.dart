@@ -104,6 +104,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
   }
 
   void _applyFiltersAndSort() {
+    if (!mounted) return;
     List<dynamic> temp = _allVehicles.where((v) {
       final plate = (v['plate_number'] ?? '').toString().toLowerCase();
       final type = (v['bus_type'] ?? '').toString().toLowerCase();
@@ -705,6 +706,12 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
 
     Widget buildCard(Map<String, dynamic> stat) {
       final isSelected = _statusFilter == stat['filter'];
+      final color = stat['color'] as Color;
+      final fill = Color.lerp(
+        isDark ? const Color(0xFF1E293B) : Colors.white,
+        color,
+        isDark ? 0.18 : 0.07,
+      )!;
       return InkWell(
         onTap: () {
           setState(() {
@@ -712,45 +719,68 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
             _applyFiltersAndSort();
           });
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          height: 108,
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: isSelected
-                ? stat['color'].withValues(alpha: 0.1)
-                : (isDark ? const Color(0xFF1E293B) : Colors.white),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: EnterpriseColors.substitute, width: 1.2),
+            color: fill,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: color.withValues(alpha: isSelected ? 0.75 : 0.38),
+              width: isSelected ? 2.0 : 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.14),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-          child: Row(
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(stat['icon'], color: EnterpriseColors.main, size: 28),
-              const SizedBox(width: 12),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
+              Row(
                 children: [
-                  Text(
-                    stat['value'],
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      color: EnterpriseColors.main,
-                      height: 1.1,
-                    ),
-                  ),
-                  Text(
-                    stat['label'],
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark
-                          ? Colors.grey.shade400
-                          : const Color(0xFF64748B),
-                      fontWeight: FontWeight.w600,
+                  Icon(stat['icon'], color: color, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      stat['label'],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.72)
+                            : const Color(0xFF64748B),
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              Flexible(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      stat['value'],
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: isDark ? Colors.white : EnterpriseColors.main,
+                        height: 1.1,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -1008,10 +1038,8 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
-        border: Border(
-          top: BorderSide(
-            color: isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0),
-          ),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0),
         ),
       ),
       child: UniversalPagination(

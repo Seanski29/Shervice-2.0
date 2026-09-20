@@ -1171,58 +1171,72 @@ class _StaffTripsState extends State<StaffTrips> {
         children: cards.asMap().entries.map((entry) {
           final index = entry.key;
           final card = entry.value;
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          final fill = Color.lerp(
+            Theme.of(context).cardColor,
+            card.$4,
+            isDark ? 0.18 : 0.07,
+          )!;
           return Container(
+            height: 108,
             width: cardWidth,
             margin: EdgeInsets.only(right: index == cards.length - 1 ? 0 : 14),
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              border: Border(
-                top: BorderSide(color: card.$4.withValues(alpha: 0.35)),
-                right: BorderSide(color: card.$4.withValues(alpha: 0.35)),
-                bottom: BorderSide(color: card.$4.withValues(alpha: 0.35)),
-                left: BorderSide(color: card.$4, width: 4),
-              ),
+              color: fill,
+              border: Border.all(color: card.$4.withValues(alpha: 0.38)),
               boxShadow: [
                 BoxShadow(
-                  color: card.$4.withValues(alpha: 0.12),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
+                  color: card.$4.withValues(alpha: 0.14),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
                 ),
               ],
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  card.$3,
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? card.$4
-                      : EnterpriseColors.main,
-                  size: 22,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  card.$2,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 24,
-                  ),
-                ),
-                Text(
-                  card.$1,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface.withValues(
-                      alpha: 0.72,
+                Row(
+                  children: [
+                    Icon(card.$3, color: card.$4, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        card.$1,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: isDark
+                              ? EnterpriseColors.white.withValues(alpha: 0.72)
+                              : EnterpriseColors.substitute,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        card.$2,
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: isDark
+                              ? EnterpriseColors.white
+                              : EnterpriseColors.main,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 28,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],

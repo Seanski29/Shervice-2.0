@@ -215,7 +215,10 @@ class _StaffAttendanceState extends State<StaffAttendance> {
                   ),
                 ],
               ),
-              Row(
+              Wrap(
+                spacing: 16,
+                runSpacing: 12,
+                alignment: WrapAlignment.end,
                 children: [
                   _buildQuickStatCard(
                     'Cleared for Duty',
@@ -224,7 +227,6 @@ class _StaffAttendanceState extends State<StaffAttendance> {
                     Colors.green.shade600,
                     isDark,
                   ),
-                  const SizedBox(width: 16),
                   _buildQuickStatCard(
                     'High Fatigue',
                     _isLoading ? '0' : '3',
@@ -255,9 +257,7 @@ class _StaffAttendanceState extends State<StaffAttendance> {
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(11),
                     ),
-                    border: Border(
-                      bottom: BorderSide(color: theme.dividerColor),
-                    ),
+                    border: Border.all(color: theme.dividerColor),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -505,47 +505,75 @@ class _StaffAttendanceState extends State<StaffAttendance> {
     Color valueColor,
     bool isDark,
   ) {
+    final fill = Color.lerp(
+      Theme.of(context).cardColor,
+      valueColor,
+      isDark ? 0.18 : 0.07,
+    )!;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      width: 190,
+      height: 108,
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: EnterpriseColors.substitute, width: 1.2),
+        color: fill,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: valueColor.withValues(alpha: 0.38)),
+        boxShadow: [
+          BoxShadow(
+            color: valueColor.withValues(alpha: 0.14),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            title.toUpperCase(),
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: EnterpriseColors.main,
-              letterSpacing: 0.5,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.72)
+                  : EnterpriseColors.substitute,
             ),
           ),
-          const SizedBox(height: 4),
-          RichText(
-            text: TextSpan(
-              text: mainValue,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                color: EnterpriseColors.main,
-              ),
-              children: [
-                if (subValue.isNotEmpty)
-                  TextSpan(
-                    text: subValue,
+          const SizedBox(height: 12),
+          Flexible(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: RichText(
+                  maxLines: 1,
+                  text: TextSpan(
+                    text: mainValue,
                     style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: isDark
-                          ? Colors.grey.shade400
-                          : Colors.grey.shade400,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      color: isDark ? Colors.white : EnterpriseColors.main,
                     ),
+                    children: [
+                      if (subValue.isNotEmpty)
+                        TextSpan(
+                          text: subValue,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.66)
+                                : EnterpriseColors.substitute,
+                          ),
+                        ),
+                    ],
                   ),
-              ],
+                ),
+              ),
             ),
           ),
         ],
