@@ -188,17 +188,21 @@ class SharedDriversViewState extends State<SharedDriversView> {
               if (constraints.maxWidth >= 900) {
                 return Row(
                   children: [
-                    for (final card in cards) Expanded(child: card),
+                    for (var index = 0; index < cards.length; index++) ...[
+                      Expanded(child: cards[index]),
+                      if (index != cards.length - 1)
+                        const SizedBox(width: EnterpriseSpacing.md),
+                    ],
                     if (widget.actionWidget != null) ...[
-                      const SizedBox(width: 12),
+                      const SizedBox(width: EnterpriseSpacing.md),
                       widget.actionWidget!,
                     ],
                   ],
                 );
               }
               return Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: EnterpriseSpacing.md,
+                runSpacing: EnterpriseSpacing.md,
                 alignment: WrapAlignment.center,
                 children: [
                   ...cards,
@@ -248,11 +252,10 @@ class SharedDriversViewState extends State<SharedDriversView> {
                   value: (_) => '',
                   cellBuilder: (context, driver) => Align(
                     alignment: Alignment.centerLeft,
-                    child: TextButton.icon(
+                    child: OutlinedButton(
                       onPressed: () =>
                           widget.onDriverTapped?.call(context, driver),
-                      icon: const Icon(Icons.open_in_new, size: 15),
-                      label: Text(widget.canManage ? 'Open / edit' : 'Open'),
+                      child: Text(widget.canManage ? 'Edit' : 'View'),
                     ),
                   ),
                 ),

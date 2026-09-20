@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:math';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:skeletonizer/skeletonizer.dart';
 import '../../constant.dart';
 import '../../theme/enterprise_theme.dart';
 import '../../utils/file_download.dart';
@@ -361,8 +360,15 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
               if (constraints.maxWidth >= 900) {
                 return Row(
                   children: [
-                    for (final card in cards) Expanded(child: card),
-                    if (action != null) ...[const SizedBox(width: 12), action],
+                    for (var index = 0; index < cards.length; index++) ...[
+                      Expanded(child: cards[index]),
+                      if (index != cards.length - 1)
+                        const SizedBox(width: EnterpriseSpacing.md),
+                    ],
+                    if (action != null) ...[
+                      const SizedBox(width: EnterpriseSpacing.md),
+                      action,
+                    ],
                   ],
                 );
               }
@@ -416,13 +422,12 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                   value: (_) => '',
                   cellBuilder: (context, vehicle) => Row(
                     children: [
-                      TextButton.icon(
+                      OutlinedButton(
                         onPressed: () =>
                             _showVehicleModal(context, vehicle: vehicle),
-                        icon: const Icon(Icons.open_in_new, size: 15),
-                        label: Text(_isAdmin ? 'Open / edit' : 'Open'),
+                        child: Text(_isAdmin ? 'Edit' : 'View'),
                       ),
-                      TextButton.icon(
+                      OutlinedButton(
                         onPressed: () async {
                           final vehicleId =
                               int.tryParse(
@@ -438,8 +443,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                             );
                           }
                         },
-                        icon: const Icon(Icons.build_outlined, size: 15),
-                        label: const Text('Maintenance'),
+                        child: const Text('Maintenance'),
                       ),
                     ],
                   ),
@@ -726,25 +730,20 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
             _applyFiltersAndSort();
           });
         },
-        borderRadius: BorderRadius.circular(40),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: isSelected
                 ? stat['color'].withValues(alpha: 0.1)
                 : (isDark ? const Color(0xFF1E293B) : Colors.white),
-            borderRadius: BorderRadius.circular(40),
-            border: Border.all(
-              color: isSelected
-                  ? stat['color']
-                  : (isDark ? Colors.grey.shade800 : Colors.grey.shade300),
-              width: isSelected ? 2.0 : 1.0,
-            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: EnterpriseColors.substitute, width: 1.2),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(stat['icon'], color: stat['color'], size: 28),
+              Icon(stat['icon'], color: EnterpriseColors.main, size: 28),
               const SizedBox(width: 12),
               Column(
                 mainAxisSize: MainAxisSize.min,
@@ -753,9 +752,9 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                   Text(
                     stat['value'],
                     style: TextStyle(
-                      fontSize: 22,
+                      fontSize: 24,
                       fontWeight: FontWeight.w900,
-                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      color: EnterpriseColors.main,
                       height: 1.1,
                     ),
                   ),

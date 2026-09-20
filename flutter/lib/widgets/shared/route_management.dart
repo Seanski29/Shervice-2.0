@@ -390,10 +390,9 @@ class _RouteDirectoryState extends State<RouteDirectory> {
                 value: (_) => '',
                 cellBuilder: (context, route) => Align(
                   alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
+                  child: OutlinedButton(
                     onPressed: () => _editRoute(route),
-                    icon: const Icon(Icons.edit_outlined, size: 15),
-                    label: const Text('Edit'),
+                    child: const Text('Edit'),
                   ),
                 ),
               ),

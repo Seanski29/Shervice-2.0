@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../theme/enterprise_theme.dart';
+import '../../theme/theme_manager.dart';
 import '../../utils/network_status_monitor.dart';
 
 class EnterpriseNavigationItem {
@@ -94,9 +96,40 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
                           _buildTopBar(compact: compact),
                           const _NetworkStatusBanner(),
                           Expanded(
-                            child: KeyedSubtree(
-                              key: ValueKey(_selected.label),
-                              child: _selected.screen,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      24,
+                                      18,
+                                      24,
+                                      4,
+                                    ),
+                                    child: Text(
+                                      _selected.label,
+                                      textAlign: TextAlign.right,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .headlineSmall
+                                          ?.copyWith(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: KeyedSubtree(
+                                    key: ValueKey(_selected.label),
+                                    child: _selected.screen,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -112,9 +145,89 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
     );
   }
 
+  // ─── BRANDING HEADER INSIDE THE SIDEBAR ───
+  // ─── BRANDING HEADER INSIDE THE SIDEBAR ───
+  Widget _buildSidebarHeader(bool expanded) {
+    return Container(
+      padding: const EdgeInsets.only(top: 16, bottom: 16),
+      child: expanded
+          ? SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const NeverScrollableScrollPhysics(),
+              child: SizedBox(
+                width: 260, // Anchored width prevents CLS jumping
+                child: Row(
+                  children: [
+                    const SizedBox(width: 12),
+                    // 1. Hamburger Toggle
+                    IconButton(
+                      icon: const Icon(Icons.menu, color: Colors.white),
+                      onPressed: () =>
+                          setState(() => _sidebarExpanded = !_sidebarExpanded),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 12),
+                    // 2. Circular Truck Logo
+                    Container(
+                      width: 41,
+                      height: 40,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: Image.asset(
+                        'assets/logo.jpg',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.directions_car,
+                          color: Colors.blue,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // 3. Shervice Text Logo
+                    Expanded(
+                      child: Image.asset(
+                        'assets/shervice - white.jpg',
+                        height: 50,
+                        alignment: Alignment.centerLeft,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => Text(
+                          'SHERVICE',
+                          style: GoogleFonts.montserrat(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                  ],
+                ),
+              ),
+            )
+          : Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // 1. Hamburger Toggle ONLY (Collapsed)
+                IconButton(
+                  icon: const Icon(Icons.menu, color: Colors.white),
+                  onPressed: () =>
+                      setState(() => _sidebarExpanded = !_sidebarExpanded),
+                ),
+                // The circular logo Container has been completely removed from here
+              ],
+            ),
+    );
+  }
+
   Widget _buildSidebar({bool forceExpanded = false}) {
     final expanded = forceExpanded || _sidebarExpanded;
-    const sidebarBackground = Color(0xFF1E293B);
+    const sidebarBackground = EnterpriseColors.sidebar;
     final width = expanded ? 260.0 : 76.0;
     final sections = <String>[];
     for (final item in widget.navigationItems) {
@@ -127,149 +240,16 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
       color: sidebarBackground,
       child: Column(
         children: [
-          SizedBox(
-            height: 76,
-            child: expanded
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: Image.asset(
-                            'assets/logo.jpg',
-                            fit: BoxFit.cover,
-                            cacheWidth: 96,
-                            cacheHeight: 96,
-                            errorBuilder: (_, _, _) => const Icon(
-                              Icons.directions_bus,
-                              color: EnterpriseColors.primary,
-                              size: 24,
-                            ),
-                          ),
-                        ),
-                        if (expanded) ...[
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Image.asset(
-                                  'assets/shervice - white.jpg',
-                                  height: 25,
-                                  fit: BoxFit.contain,
-                                  alignment: Alignment.centerLeft,
-                                  errorBuilder: (_, _, _) => const Text(
-                                    'SHERVICE',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 0.8,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  '${widget.role} Portal',
-                                  style: const TextStyle(
-                                    color: Color(0xFF98A2B3),
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (!forceExpanded)
-                            IconButton(
-                              onPressed: () => setState(
-                                () => _sidebarExpanded = !_sidebarExpanded,
-                              ),
-                              tooltip: 'Toggle navigation',
-                              icon: const Icon(
-                                Icons.menu,
-                                color: Color(0xFFD0D5DD),
-                                size: 22,
-                              ),
-                            ),
-                        ],
-                        if (!expanded && !forceExpanded)
-                          IconButton(
-                            onPressed: () => setState(
-                              () => _sidebarExpanded = !_sidebarExpanded,
-                            ),
-                            tooltip: 'Toggle navigation',
-                            icon: const Icon(
-                              Icons.menu,
-                              color: Color(0xFFD0D5DD),
-                              size: 22,
-                            ),
-                          ),
-                      ],
-                    ),
-                  )
-                : Stack(
-                    children: [
-                      Positioned(
-                        left: 8,
-                        top: 16,
-                        child: SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: ClipOval(
-                            child: Image.asset(
-                              'assets/logo.jpg',
-                              fit: BoxFit.cover,
-                              cacheWidth: 64,
-                              cacheHeight: 64,
-                              errorBuilder: (_, _, _) => const Icon(
-                                Icons.directions_bus,
-                                color: Colors.white,
-                                size: 22,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        right: 0,
-                        top: 14,
-                        child: IconButton(
-                          onPressed: () => setState(
-                            () => _sidebarExpanded = !_sidebarExpanded,
-                          ),
-                          tooltip: 'Expand navigation',
-                          icon: const Icon(
-                            Icons.menu,
-                            color: Color(0xFFD0D5DD),
-                            size: 22,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
+          // Dynamic Header replaces the empty SizedBox
+          _buildSidebarHeader(expanded),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.only(top: 20, bottom: 8),
+              padding: const EdgeInsets.only(top: 8, bottom: 8),
               children: [
                 for (final section in sections)
                   _buildNavigationSection(section, expanded),
               ],
             ),
-          ),
-          _SidebarAction(
-            icon: Icons.logout,
-            label: 'Log out',
-            expanded: expanded,
-            onTap: _confirmLogout,
           ),
         ],
       ),
@@ -352,50 +332,133 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
     );
   }
 
+  // ─── TOP NAVIGATION CLEARED OF LOGOS ───
   Widget _buildTopBar({required bool compact}) {
     final theme = Theme.of(context);
+    final topBarColor = theme.brightness == Brightness.dark
+        ? EnterpriseColors.darkSurface
+        : EnterpriseColors.topNavigation;
     return Container(
       height: 64,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: theme.cardColor,
+        color: topBarColor,
         border: Border(bottom: BorderSide(color: theme.dividerColor)),
       ),
       child: Row(
         children: [
+          // Only show Hamburger in TopBar if on a small screen (mobile/tablet) to open drawer
           if (compact) ...[
             IconButton(
               onPressed: () => _scaffoldKey.currentState?.openDrawer(),
               tooltip: 'Open navigation',
               icon: const Icon(Icons.menu),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 16),
           ],
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _selected.label,
-                  style: theme.textTheme.headlineSmall,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
+
+          const Spacer(),
           IconButton(
             onPressed: _showCommandPalette,
             tooltip: 'Search views and actions',
-            icon: const Icon(Icons.search, size: 23),
+            icon: Icon(
+              Icons.search,
+              size: 23,
+              color: theme.colorScheme.onSurface,
+            ),
           ),
           const SizedBox(width: 8),
           widget.notification,
           const SizedBox(width: 6),
-          widget.profile,
+          _buildProfileMenu(),
         ],
       ),
     );
+  }
+
+  Widget _buildProfileMenu() {
+    final displayName = widget.userName.trim().isEmpty
+        ? widget.role
+        : widget.userName.trim();
+    final initial = displayName.substring(0, 1).toUpperCase();
+    return MenuAnchor(
+      alignmentOffset: const Offset(0, 8),
+      menuChildren: [
+        SizedBox(
+          width: 260,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: EnterpriseColors.main,
+                  foregroundColor: Colors.white,
+                  child: Text(initial),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(displayName, overflow: TextOverflow.ellipsis),
+                      Text(
+                        widget.role,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const Divider(height: 1),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.dark_mode_outlined),
+          trailingIcon: ValueListenableBuilder<ThemeMode>(
+            valueListenable: ThemeManager.themeNotifier,
+            builder: (context, mode, _) => Switch(
+              value: mode == ThemeMode.dark,
+              onChanged: ThemeManager.setDarkMode,
+            ),
+          ),
+          onPressed: ThemeManager.toggleTheme,
+          child: const Text('Dark mode'),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.settings_outlined),
+          onPressed: _openSettings,
+          child: const Text('Settings'),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(Icons.logout_outlined),
+          onPressed: _confirmLogout,
+          child: const Text('Log out'),
+        ),
+      ],
+      builder: (context, controller, child) => Tooltip(
+        message: 'Open profile menu',
+        child: IconButton(
+          onPressed: () =>
+              controller.isOpen ? controller.close() : controller.open(),
+          icon: CircleAvatar(
+            radius: 16,
+            backgroundColor: EnterpriseColors.main,
+            foregroundColor: Colors.white,
+            child: Text(initial),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openSettings() {
+    final settingsIndex = widget.navigationItems.indexWhere(
+      (item) => item.label.toLowerCase() == 'settings',
+    );
+    if (settingsIndex >= 0) {
+      setState(() => _selectedIndex = settingsIndex);
+    }
   }
 
   Widget _buildContextDrawer() {
@@ -680,55 +743,6 @@ class _PaletteHeader extends StatelessWidget {
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
           fontWeight: FontWeight.w700,
           letterSpacing: 0.7,
-        ),
-      ),
-    );
-  }
-}
-
-class _SidebarAction extends StatelessWidget {
-  const _SidebarAction({
-    required this.icon,
-    required this.label,
-    required this.expanded,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool expanded;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: expanded ? '' : label,
-      child: InkWell(
-        onTap: onTap,
-        child: SizedBox(
-          height: 42,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            child: Row(
-              mainAxisAlignment: expanded
-                  ? MainAxisAlignment.start
-                  : MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: const Color(0xFFD0D5DD), size: 18),
-                if (expanded) ...[
-                  const SizedBox(width: 10),
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      color: Color(0xFFD0D5DD),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
         ),
       ),
     );

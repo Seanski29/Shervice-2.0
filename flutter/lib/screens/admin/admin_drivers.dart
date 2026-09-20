@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/enterprise_theme.dart';
 import '../../widgets/shared/shared_drivers_view.dart';
 import '../../widgets/driver/driver_form_dialog.dart';
 import '../../widgets/driver/driver_profile_model.dart';
@@ -70,7 +71,7 @@ class _AdminDriverState extends State<AdminDriver> {
             ),
           ),
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF3B82F6),
+            backgroundColor: EnterpriseColors.generativeAction,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(4),

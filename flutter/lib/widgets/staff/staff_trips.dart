@@ -3,7 +3,6 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:skeletonizer/skeletonizer.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart' as xlsx;
 import '../../constant.dart';
@@ -1034,7 +1033,7 @@ class _StaffTripsState extends State<StaffTrips> {
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Add Trip Summary'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2563EB),
+                backgroundColor: EnterpriseColors.generativeAction,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 14),
                 shape: RoundedRectangleBorder(
@@ -1166,56 +1165,41 @@ class _StaffTripsState extends State<StaffTrips> {
         children: cards.asMap().entries.map((entry) {
           final index = entry.key;
           final card = entry.value;
-          final isPrimary = index == 0;
           return Container(
             width: cardWidth,
             margin: EdgeInsets.only(right: index == cards.length - 1 ? 0 : 14),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              gradient: EnterpriseGradients.fadingToWhite(card.$4),
               border: Border.all(
-                color: isPrimary
-                    ? (isDark ? Colors.grey.shade300 : const Color(0xFF475569))
-                    : (isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0)),
-                width: isPrimary ? 2 : 1,
+                color: EnterpriseColors.substitute,
+                width: 1.2,
               ),
-              borderRadius: BorderRadius.circular(999),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(card.$3, color: card.$4, size: 22),
-                const SizedBox(width: 10),
-                Flexible(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        card.$2,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: isDark
-                              ? Colors.white
-                              : const Color(0xFF0F172A),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18,
-                        ),
-                      ),
-                      Text(
-                        card.$1,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: isDark
-                              ? Colors.grey.shade400
-                              : const Color(0xFF64748B),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
+                Icon(card.$3, color: EnterpriseColors.main, size: 22),
+                const SizedBox(height: 8),
+                Text(
+                  card.$2,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: EnterpriseColors.main,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 24,
+                  ),
+                ),
+                Text(
+                  card.$1,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: EnterpriseColors.main.withValues(alpha: 0.72),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
@@ -1550,10 +1534,9 @@ class _StaffTripsState extends State<StaffTrips> {
           label: 'Action',
           width: 105,
           value: (_) => 'Open',
-          cellBuilder: (context, trip) => TextButton.icon(
+          cellBuilder: (context, trip) => OutlinedButton(
             onPressed: () => _showTripDetails(trip),
-            icon: const Icon(Icons.open_in_new, size: 15),
-            label: const Text('Open'),
+            child: const Text('View'),
           ),
         ),
       ],
@@ -1818,10 +1801,9 @@ class _StaffTripsState extends State<StaffTrips> {
           label: 'Action',
           width: 110,
           value: (_) => 'Open',
-          cellBuilder: (context, summary) => TextButton.icon(
+          cellBuilder: (context, summary) => OutlinedButton(
             onPressed: () => _showSummaryGroupDetails(summary),
-            icon: const Icon(Icons.table_view_outlined, size: 15),
-            label: const Text('Open'),
+            child: const Text('View'),
           ),
         ),
       ],

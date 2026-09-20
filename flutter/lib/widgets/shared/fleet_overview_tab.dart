@@ -1,5 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../theme/enterprise_theme.dart';
 
 class FleetOverviewTab extends StatefulWidget {
   final List<dynamic> vehicles;
@@ -519,10 +521,10 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        gradient: EnterpriseGradients.fadingToWhite(color),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+          color: color.withValues(alpha: 0.18),
         ),
       ),
       child: Column(
@@ -538,7 +540,8 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                    color: EnterpriseColors.main.withValues(alpha: 0.72),
+                    fontFamily: GoogleFonts.montserrat().fontFamily,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

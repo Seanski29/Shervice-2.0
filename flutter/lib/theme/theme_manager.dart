@@ -11,7 +11,7 @@ class ThemeManager {
   static String? _activeUserId;
 
   static final ValueNotifier<ThemeMode> themeNotifier =
-      ValueNotifier<ThemeMode>(ThemeMode.dark);
+      ValueNotifier<ThemeMode>(ThemeMode.light);
 
   static ThemeMode get themeMode => themeNotifier.value;
 
@@ -44,7 +44,9 @@ class ThemeManager {
       }
     }
 
-    savedMode ??= true;
+    // Light mode is the safe default for first-time users. An explicit saved
+    // preference still takes precedence for returning users.
+    savedMode ??= false;
     themeNotifier.value = savedMode ? ThemeMode.dark : ThemeMode.light;
   }
 

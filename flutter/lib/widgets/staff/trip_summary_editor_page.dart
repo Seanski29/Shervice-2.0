@@ -4,6 +4,7 @@ import '../shared/enterprise_states.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import '../../constant.dart';
+import '../../theme/enterprise_theme.dart';
 
 typedef SaveSummaryRow =
     Future<bool> Function(
@@ -620,7 +621,7 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
             padding: const EdgeInsets.only(right: 16),
             child: FilledButton.icon(
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF2563EB),
+                backgroundColor: EnterpriseColors.generativeAction,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(4),

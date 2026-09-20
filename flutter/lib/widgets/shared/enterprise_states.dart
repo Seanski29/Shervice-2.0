@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../theme/enterprise_theme.dart';
 
@@ -19,20 +20,14 @@ class EnterpriseSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final gradient = EnterpriseGradients.fadingToWhite(color);
     return Container(
-      constraints: const BoxConstraints(minWidth: 160, maxWidth: 240),
+      constraints: const BoxConstraints(minWidth: 176, maxWidth: 260),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: theme.dividerColor),
-        boxShadow: [
-          BoxShadow(
-            color: theme.shadowColor.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: EnterpriseColors.substitute, width: 1.2),
       ),
       child: Row(
         children: [
@@ -43,7 +38,7 @@ class EnterpriseSummaryCard extends StatelessWidget {
               color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(icon, color: color, size: 21),
+            child: Icon(icon, color: EnterpriseColors.main, size: 21),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -53,7 +48,9 @@ class EnterpriseSummaryCard extends StatelessWidget {
                 Text(
                   value,
                   style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    color: EnterpriseColors.main,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -61,7 +58,11 @@ class EnterpriseSummaryCard extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
+                  style: GoogleFonts.montserrat(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: EnterpriseColors.main.withValues(alpha: 0.72),
+                  ),
                 ),
               ],
             ),
@@ -81,7 +82,7 @@ class EnterpriseSummaryCardSkeleton extends StatelessWidget {
         ? EnterpriseColors.darkSurfaceMuted
         : const Color(0xFFE4E7EC);
     return Container(
-      constraints: const BoxConstraints(minWidth: 160, maxWidth: 240),
+      constraints: const BoxConstraints(minWidth: 176, maxWidth: 260),
       height: 76,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

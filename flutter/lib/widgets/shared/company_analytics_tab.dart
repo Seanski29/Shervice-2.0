@@ -1,5 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../theme/enterprise_theme.dart';
 
 class CompanyAnalyticsTab extends StatefulWidget {
   final List<dynamic> trips;
@@ -433,9 +435,9 @@ class _CompanyAnalyticsTabState extends State<CompanyAnalyticsTab> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: cardColor,
+          gradient: EnterpriseGradients.fadingToWhite(color),
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: mutedColor.withValues(alpha: 0.2)),
+          border: Border.all(color: color.withValues(alpha: 0.18)),
         ),
         child: Row(
           children: [
@@ -452,7 +454,14 @@ class _CompanyAnalyticsTabState extends State<CompanyAnalyticsTab> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                Text(label, style: TextStyle(color: mutedColor, fontSize: 12)),
+                Text(
+                  label,
+                  style: GoogleFonts.montserrat(
+                    color: EnterpriseColors.main.withValues(alpha: 0.72),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
           ],

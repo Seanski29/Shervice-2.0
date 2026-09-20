@@ -302,10 +302,9 @@ class _AdminUsersState extends State<AdminUsers> {
                   label: 'Record actions',
                   width: 170,
                   value: (_) => '',
-                  cellBuilder: (context, user) => TextButton.icon(
+                  cellBuilder: (context, user) => OutlinedButton(
                     onPressed: () => _showUserModal(context, user: user),
-                    icon: const Icon(Icons.open_in_new, size: 15),
-                    label: const Text('Open / edit'),
+                    child: const Text('Edit'),
                   ),
                 ),
               ],

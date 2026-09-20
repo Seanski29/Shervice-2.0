@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../../theme/enterprise_theme.dart';
 import 'package:http/http.dart' as http;
 
 class VehicleMlTab extends StatefulWidget {
@@ -785,16 +786,14 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0F172A) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0),
-        ),
+        border: Border.all(color: EnterpriseColors.substitute, width: 1.2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 14, color: color),
+              Icon(icon, size: 18, color: EnterpriseColors.main),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -802,7 +801,7 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: isDark
                         ? Colors.grey.shade400
@@ -819,9 +818,9 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
             child: Text(
               value,
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 24,
                 fontWeight: FontWeight.w900,
-                color: color,
+                color: EnterpriseColors.main,
               ),
             ),
           ),

@@ -135,7 +135,7 @@ class _AdminCompaniesState extends State<AdminCompanies> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B82F6),
+              backgroundColor: EnterpriseColors.generativeAction,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(4),
               ),
@@ -331,7 +331,7 @@ class _AdminCompaniesState extends State<AdminCompanies> {
         actions: [
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF3B82F6),
+              backgroundColor: EnterpriseColors.generativeAction,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(4),
               ),
@@ -382,7 +382,7 @@ class _AdminCompaniesState extends State<AdminCompanies> {
         style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF3B82F6),
+        backgroundColor: EnterpriseColors.generativeAction,
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       ),
@@ -572,10 +572,9 @@ class _AdminCompaniesState extends State<AdminCompanies> {
                   value: (_) => '',
                   cellBuilder: (context, company) => _isInternalCompany(company)
                       ? const Text('Protected')
-                      : TextButton.icon(
+                      : OutlinedButton(
                           onPressed: () => _editCompanyDialog(company),
-                          icon: const Icon(Icons.edit_outlined, size: 15),
-                          label: const Text('Edit'),
+                          child: const Text('Edit'),
                         ),
                 ),
               ],

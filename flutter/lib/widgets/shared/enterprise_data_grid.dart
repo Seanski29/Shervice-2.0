@@ -273,6 +273,7 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
       child: Wrap(
         spacing: 6,
         runSpacing: 6,
+        alignment: WrapAlignment.end,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           ...widget.filterFields,
@@ -361,9 +362,7 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
     return Container(
       width: totalWidth,
       height: 40,
-      color: theme.brightness == Brightness.dark
-          ? EnterpriseColors.darkSurfaceMuted
-          : EnterpriseColors.lightSurfaceMuted,
+      color: EnterpriseColors.main,
       child: Row(
         children: [
           SizedBox(
@@ -382,7 +381,7 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
                     });
                   },
                 ),
-                const Text('#'),
+                const Text('#', style: TextStyle(color: Colors.white)),
               ],
             ),
           ),
@@ -406,7 +405,10 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
                       Expanded(
                         child: Text(
                           widget.columns[index].label,
-                          style: theme.textTheme.labelLarge,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -419,7 +421,7 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
                         size: 14,
                         color: _sortColumn == index
                             ? EnterpriseColors.primary
-                            : theme.textTheme.bodySmall?.color,
+                            : Colors.white70,
                       ),
                     ],
                   ),

@@ -1,26 +1,71 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 abstract final class EnterpriseColors {
-  static const primary = Color(0xFF155EEF);
-  static const primaryHover = Color(0xFF004EEB);
-  static const success = Color(0xFF067647);
-  static const warning = Color(0xFFB54708);
-  static const danger = Color(0xFFB42318);
-  static const information = Color(0xFF175CD3);
+  static const main = Color(0xFF010736);
+  static const sidebar = Color(0xFF0D1C42);
+  static const substitute = Color(0xFF22396F);
+  // Cool white-gray keeps the top pane distinct from the white canvas without
+  // introducing a competing accent color.
+  static const topNavigation = Color(0xFFF4F6FA);
+  static const white = Color(0xFFFFFFFF);
 
-  static const lightCanvas = Color(0xFFF6F7F9);
-  static const lightSurface = Color(0xFFFFFFFF);
-  static const lightSurfaceMuted = Color(0xFFF2F4F7);
-  static const lightBorder = Color(0xFFD0D5DD);
-  static const lightText = Color(0xFF101828);
-  static const lightTextMuted = Color(0xFF475467);
+  static const generativeAction = Color(0xFF4C8CE4);
+  static const danger = Color(0xFFBE1A1A);
+  static const success = Color(0xFF48A111);
+  static const warning = Color(0xFFF2B50B);
 
-  static const darkCanvas = Color(0xFF0C111D);
-  static const darkSurface = Color(0xFF161B26);
-  static const darkSurfaceMuted = Color(0xFF1F2633);
-  static const darkBorder = Color(0xFF344054);
-  static const darkText = Color(0xFFF2F4F7);
-  static const darkTextMuted = Color(0xFF98A2B3);
+  static const fleetHealth = Color(0xFF7DC462);
+  static const baseVolume = Color(0xFF0D95D0);
+  static const driverAlerts = Color(0xFFE72F52);
+  static const kMeansClusters = Color(0xFF774FA0);
+  static const payroll = Color(0xFFEFB734);
+  static const maintenanceAlerts = Color(0xFFD44627);
+
+  // Compatibility aliases for existing widgets while they migrate to tokens.
+  static const primary = main;
+  static const primaryHover = generativeAction;
+  static const information = generativeAction;
+  static const lightCanvas = white;
+  static const lightSurface = white;
+  static const lightSurfaceMuted = Color(0xFFF9F9F9);
+  static const lightBorder = substitute;
+  static const lightText = main;
+  static const lightTextMuted = substitute;
+  static const darkCanvas = main;
+  static const darkSurface = sidebar;
+  static const darkSurfaceMuted = substitute;
+  static const darkBorder = substitute;
+  static const darkText = white;
+  static const darkTextMuted = white;
+}
+
+abstract final class EnterpriseGradients {
+  static LinearGradient fadingToWhite(Color color) => LinearGradient(
+    colors: [
+      color,
+      Color.lerp(color, EnterpriseColors.white, 0.42)!,
+      EnterpriseColors.white,
+    ],
+    stops: const [0, 0.58, 1],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static final fleetHealth = fadingToWhite(EnterpriseColors.fleetHealth);
+  static final baseVolume = fadingToWhite(EnterpriseColors.baseVolume);
+  static final driverAlerts = fadingToWhite(EnterpriseColors.driverAlerts);
+  static final kMeansClusters = fadingToWhite(EnterpriseColors.kMeansClusters);
+  static final payroll = fadingToWhite(EnterpriseColors.payroll);
+  static final maintenanceAlerts = fadingToWhite(
+    EnterpriseColors.maintenanceAlerts,
+  );
+}
+
+abstract final class EnterpriseIcons {
+  static const double strokeWidth = 1.5;
+  static const double size = 20;
+  static const double smallSize = 18;
 }
 
 abstract final class EnterpriseSpacing {
@@ -59,56 +104,48 @@ abstract final class EnterpriseTheme {
     final colorScheme = ColorScheme(
       brightness: brightness,
       primary: EnterpriseColors.primary,
-      onPrimary: Colors.white,
+      onPrimary: EnterpriseColors.white,
       secondary: EnterpriseColors.information,
-      onSecondary: Colors.white,
+      onSecondary: EnterpriseColors.white,
       error: EnterpriseColors.danger,
-      onError: Colors.white,
+      onError: EnterpriseColors.white,
       surface: surface,
       onSurface: text,
     );
 
-    final baseTextTheme = brightness == Brightness.dark
-        ? ThemeData.dark().textTheme
-        : ThemeData.light().textTheme;
-    final textTheme = baseTextTheme
-        .apply(fontFamily: 'Arial', bodyColor: text, displayColor: text)
+    final bodyTextTheme = GoogleFonts.interTextTheme(
+      brightness == Brightness.dark
+          ? ThemeData.dark().textTheme
+          : ThemeData.light().textTheme,
+    );
+    final textTheme = bodyTextTheme
+        .apply(bodyColor: text, displayColor: text)
         .copyWith(
-          headlineSmall: TextStyle(
-            fontFamily: 'Arial',
+          headlineSmall: GoogleFonts.montserrat(
             fontSize: 20,
             height: 1.25,
             fontWeight: FontWeight.w700,
             color: text,
           ),
-          titleLarge: TextStyle(
-            fontFamily: 'Arial',
+          titleLarge: GoogleFonts.montserrat(
             fontSize: 16,
             height: 1.25,
             fontWeight: FontWeight.w700,
             color: text,
           ),
-          titleMedium: TextStyle(
-            fontFamily: 'Arial',
+          titleMedium: GoogleFonts.montserrat(
             fontSize: 14,
             height: 1.3,
             fontWeight: FontWeight.w600,
             color: text,
           ),
-          bodyMedium: TextStyle(
-            fontFamily: 'Arial',
+          bodyMedium: GoogleFonts.inter(
             fontSize: 13,
             height: 1.35,
             color: text,
           ),
-          bodySmall: TextStyle(
-            fontFamily: 'Arial',
-            fontSize: 12,
-            height: 1.3,
-            color: muted,
-          ),
-          labelLarge: const TextStyle(
-            fontFamily: 'Arial',
+          bodySmall: GoogleFonts.inter(fontSize: 12, height: 1.3, color: muted),
+          labelLarge: GoogleFonts.inter(
             fontSize: 13,
             height: 1.2,
             fontWeight: FontWeight.w600,
@@ -124,7 +161,7 @@ abstract final class EnterpriseTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
-      fontFamily: 'Arial',
+      fontFamily: GoogleFonts.inter().fontFamily,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: canvas,
       cardColor: surface,
@@ -132,14 +169,33 @@ abstract final class EnterpriseTheme {
       visualDensity: denseVisualDensity,
       textTheme: textTheme,
       splashFactory: InkRipple.splashFactory,
+      iconTheme: IconThemeData(
+        color: text,
+        size: EnterpriseIcons.size,
+        weight: EnterpriseIcons.strokeWidth,
+        fill: 0,
+      ),
+      primaryIconTheme: const IconThemeData(
+        color: EnterpriseColors.white,
+        size: EnterpriseIcons.size,
+        weight: EnterpriseIcons.strokeWidth,
+        fill: 0,
+      ),
       appBarTheme: AppBarTheme(
-        backgroundColor: surface,
+        backgroundColor: isDark
+            ? EnterpriseColors.darkSurface
+            : EnterpriseColors.topNavigation,
         foregroundColor: text,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
         shape: Border(bottom: BorderSide(color: border)),
-        titleTextStyle: textTheme.titleLarge,
+        titleTextStyle: GoogleFonts.inter(
+          fontSize: 16,
+          height: 1.25,
+          fontWeight: FontWeight.w600,
+          color: text,
+        ),
       ),
       cardTheme: CardThemeData(
         color: surface,
@@ -185,7 +241,7 @@ abstract final class EnterpriseTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           elevation: 0,
-          backgroundColor: EnterpriseColors.primary,
+          backgroundColor: EnterpriseColors.generativeAction,
           foregroundColor: Colors.white,
           minimumSize: const Size(0, 36),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
@@ -196,6 +252,8 @@ abstract final class EnterpriseTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           elevation: 0,
+          backgroundColor: EnterpriseColors.generativeAction,
+          foregroundColor: Colors.white,
           minimumSize: const Size(0, 36),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
@@ -264,6 +322,7 @@ abstract final class EnterpriseTheme {
           color: isDark
               ? EnterpriseColors.lightText
               : EnterpriseColors.darkText,
+          fontFamily: GoogleFonts.inter().fontFamily,
           fontSize: 12,
         ),
       ),
