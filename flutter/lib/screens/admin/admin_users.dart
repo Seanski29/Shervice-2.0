@@ -2,14 +2,14 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import '../../widgets/shared/enterprise_states.dart';
-import '../../widgets/shared/enterprise_data_grid.dart';
+import '../../layouts/enterprise/enterprise_states.dart';
+import '../../layouts/enterprise/enterprise_data_grid.dart';
 import 'package:http/http.dart' as http;
 import 'package:skeletonizer/skeletonizer.dart';
 import '../../constant.dart';
 import '../../utils/file_download.dart';
 import '../../theme/enterprise_theme.dart';
-import '../../widgets/shared/universal_pagination.dart';
+import '../../widgets/interface/universal_pagination.dart';
 
 // --- MAIN DASHBOARD COMPONENT ---
 class AdminUsers extends StatefulWidget {
@@ -304,7 +304,7 @@ class _AdminUsersState extends State<AdminUsers> {
                   value: (_) => '',
                   cellBuilder: (context, user) => OutlinedButton(
                     onPressed: () => _showUserModal(context, user: user),
-                    child: const Text('Edit'),
+                    child: const Text('Update'),
                   ),
                 ),
               ],

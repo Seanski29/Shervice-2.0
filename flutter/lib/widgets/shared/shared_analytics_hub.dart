@@ -2,14 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'route_optimization_tab.dart';
+import '../routes/route_optimization_tab.dart';
 import '../../../constant.dart';
 
-import 'fleet_overview_tab.dart';
-import 'driver_performance_tab.dart';
-import 'vehicle_ml_tab.dart';
+import '../vehicles/fleet_overview_tab.dart';
+import '../driver/driver_performance_tab.dart';
+import '../vehicles/vehicle_ml_tab.dart';
 import 'company_analytics_tab.dart';
-import 'enterprise_states.dart';
+import '../../layouts/enterprise/enterprise_states.dart';
 
 class SharedAnalyticsHub extends StatefulWidget {
   const SharedAnalyticsHub({super.key});

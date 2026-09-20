@@ -435,9 +435,21 @@ class _CompanyAnalyticsTabState extends State<CompanyAnalyticsTab> {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          gradient: EnterpriseGradients.fadingToWhite(color),
+          color: cardColor,
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: color.withValues(alpha: 0.18)),
+          border: Border(
+            top: BorderSide(color: color.withValues(alpha: 0.35)),
+            right: BorderSide(color: color.withValues(alpha: 0.35)),
+            bottom: BorderSide(color: color.withValues(alpha: 0.35)),
+            left: BorderSide(color: color, width: 4),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.12),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [

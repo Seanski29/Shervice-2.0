@@ -2,13 +2,13 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'enterprise_states.dart';
+import '../../layouts/enterprise/enterprise_states.dart';
 import 'package:http/http.dart' as http;
 
 import '../../constant.dart';
 import '../../utils/file_download.dart';
-import 'enterprise_data_grid.dart';
-import 'universal_pagination.dart';
+import '../../layouts/enterprise/enterprise_data_grid.dart';
+import '../interface/universal_pagination.dart';
 
 class Payroll extends StatefulWidget {
   final String userRole;

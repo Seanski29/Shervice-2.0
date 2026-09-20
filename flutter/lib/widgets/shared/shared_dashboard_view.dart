@@ -4,14 +4,14 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../theme/enterprise_theme.dart';
 import '../../utils/file_download.dart';
-import 'enterprise_data_grid.dart';
-import 'enterprise_data_table2.dart';
-import 'enterprise_states.dart';
+import '../../layouts/enterprise/enterprise_data_grid.dart';
+import '../../layouts/enterprise/enterprise_data_table2.dart';
+import '../../layouts/enterprise/enterprise_states.dart';
 import 'package:http/http.dart' as http;
 import 'package:fl_chart/fl_chart.dart';
-import 'dashboard_metric.dart';
-import 'enterprise_kpi_row.dart';
-import 'maintenance_alert.dart';
+import 'shared_dashboard_metric.dart';
+import '../../layouts/enterprise/enterprise_kpi_row.dart';
+import '../notifcations/maintenance_alert.dart';
 import '../../constant.dart';
 
 class CompanyTripMetric {
@@ -224,9 +224,12 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
           throw Exception('Dashboard metrics request was unsuccessful.');
         }
       } else {
-        throw Exception();
+        throw Exception(
+          'Dashboard metrics returned ${response.statusCode}: ${response.body}',
+        );
       }
     } catch (e) {
+      debugPrint('Dashboard metrics failed to load: $e');
       if (mounted) {
         setState(() {
           _errorMessage = "Could not sync backend data fields safely.";

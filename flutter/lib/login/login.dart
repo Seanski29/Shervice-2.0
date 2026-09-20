@@ -12,7 +12,7 @@ import '../session_manager.dart';
 import '../theme/enterprise_theme.dart';
 import '../theme/theme_manager.dart';
 import '../utils/network_status_monitor.dart';
-import '../widgets/shared/enterprise_states.dart';
+import '../layouts/enterprise/enterprise_states.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

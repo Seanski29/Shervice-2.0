@@ -7,9 +7,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../constant.dart';
 import '../../theme/enterprise_theme.dart';
 import '../../utils/file_download.dart';
-import 'enterprise_data_grid.dart';
-import 'enterprise_states.dart';
-import 'universal_pagination.dart';
+import '../../layouts/enterprise/enterprise_data_grid.dart';
+import '../../layouts/enterprise/enterprise_states.dart';
+import '../interface/universal_pagination.dart';
 
 class VehicleFleetView extends StatefulWidget {
   final String userRole;
@@ -425,25 +425,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                       OutlinedButton(
                         onPressed: () =>
                             _showVehicleModal(context, vehicle: vehicle),
-                        child: Text(_isAdmin ? 'Edit' : 'View'),
-                      ),
-                      OutlinedButton(
-                        onPressed: () async {
-                          final vehicleId =
-                              int.tryParse(
-                                (vehicle['vehicle_id'] ?? '0').toString(),
-                              ) ??
-                              0;
-                          final logs = await _fetchVehicleLogHistory(vehicleId);
-                          if (context.mounted) {
-                            _showMaintenanceManagerModal(
-                              context,
-                              vehicle,
-                              logs,
-                            );
-                          }
-                        },
-                        child: const Text('Maintenance'),
+                        child: Text(_isAdmin ? 'Update' : 'View'),
                       ),
                     ],
                   ),

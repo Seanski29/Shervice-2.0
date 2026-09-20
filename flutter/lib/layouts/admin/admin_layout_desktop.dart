@@ -8,12 +8,13 @@ import '../../screens/admin/admin_payroll.dart';
 import '../../screens/admin/admin_reports_manager.dart';
 import '../../screens/admin/admin_routes.dart';
 import '../../screens/admin/admin_schedules.dart';
+import '../../screens/admin/admin_settings.dart';
 import '../../screens/admin/admin_users.dart';
 import '../../screens/admin/admin_vehicles.dart';
 import '../../session_manager.dart';
 import '../../widgets/admin/admin_profile_button.dart';
-import '../../widgets/shared/enterprise_shell.dart';
-import '../../widgets/shared/notification_bell.dart';
+import '../enterprise/enterprise_shell.dart';
+import '../../widgets/notifcations/notification_bell.dart';
 import '../../widgets/shared/shared_analytics_hub.dart';
 
 class AdminDesktopLayout extends StatelessWidget {
@@ -101,6 +102,14 @@ class AdminDesktopLayout extends StatelessWidget {
           section: 'Intelligence',
           screen: SharedAnalyticsHub(),
           keywords: ['performance', 'reports', 'insights'],
+        ),
+        // NOTE: No 'const' keyword here because adminId is dynamic
+        EnterpriseNavigationItem(
+          label: 'Settings',
+          icon: Icons.settings_outlined,
+          section: 'Hidden',
+          screen: AdminSettings(adminId: adminId),
+          keywords: const ['preferences', 'theme', 'account'],
         ),
       ],
       notification: NotificationBell(

@@ -9,8 +9,8 @@ import '../../constant.dart';
 import '../../theme/enterprise_theme.dart';
 import '../../utils/file_download.dart';
 import '../driver/driver_profile_model.dart';
-import 'enterprise_data_grid.dart';
-import 'enterprise_states.dart';
+import '../../layouts/enterprise/enterprise_data_grid.dart';
+import '../../layouts/enterprise/enterprise_states.dart';
 
 class SharedDriversView extends StatefulWidget {
   const SharedDriversView({
@@ -255,7 +255,7 @@ class SharedDriversViewState extends State<SharedDriversView> {
                     child: OutlinedButton(
                       onPressed: () =>
                           widget.onDriverTapped?.call(context, driver),
-                      child: Text(widget.canManage ? 'Edit' : 'View'),
+                      child: Text(widget.canManage ? 'Update' : 'View'),
                     ),
                   ),
                 ),

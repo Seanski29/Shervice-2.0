@@ -136,9 +136,9 @@ class _EnterpriseDataTable2State<T> extends State<EnterpriseDataTable2<T>> {
         horizontalMargin: 0,
         headingRowHeight: 36,
         dataRowHeight: 38,
-        headingRowColor: WidgetStatePropertyAll(EnterpriseColors.main),
+        headingRowColor: WidgetStatePropertyAll(theme.cardColor),
         headingTextStyle: theme.textTheme.labelLarge?.copyWith(
-          color: Colors.white,
+          color: theme.colorScheme.onSurface,
           fontWeight: FontWeight.w700,
         ),
         columns: [
@@ -284,7 +284,7 @@ class _EnterpriseDataTable2State<T> extends State<EnterpriseDataTable2<T>> {
                           'Record updated successfully.',
                         )
                       : null,
-                  child: const Text('Edit'),
+                  child: const Text('Update'),
                 ),
               if (widget.onDelete != null)
                 OutlinedButton(

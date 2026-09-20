@@ -20,14 +20,25 @@ class EnterpriseSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final gradient = EnterpriseGradients.fadingToWhite(color);
     return Container(
       constraints: const BoxConstraints(minWidth: 176, maxWidth: 260),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: gradient,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: EnterpriseColors.substitute, width: 1.2),
+        border: Border(
+          top: BorderSide(color: theme.dividerColor),
+          right: BorderSide(color: theme.dividerColor),
+          bottom: BorderSide(color: theme.dividerColor),
+          left: BorderSide(color: color, width: 4),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -50,7 +61,7 @@ class EnterpriseSummaryCard extends StatelessWidget {
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
-                    color: EnterpriseColors.main,
+                    color: theme.colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -61,7 +72,7 @@ class EnterpriseSummaryCard extends StatelessWidget {
                   style: GoogleFonts.montserrat(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: EnterpriseColors.main.withValues(alpha: 0.72),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
                   ),
                 ),
               ],

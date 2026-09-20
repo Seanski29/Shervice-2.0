@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import '../../widgets/shared/enterprise_data_grid.dart';
-import '../../widgets/shared/enterprise_states.dart';
+import '../../layouts/enterprise/enterprise_data_grid.dart';
+import '../../layouts/enterprise/enterprise_states.dart';
 import 'package:http/http.dart' as http;
 import '../../constant.dart';
 import '../../utils/file_download.dart';
@@ -574,7 +574,7 @@ class _AdminCompaniesState extends State<AdminCompanies> {
                       ? const Text('Protected')
                       : OutlinedButton(
                           onPressed: () => _editCompanyDialog(company),
-                          child: const Text('Edit'),
+                          child: const Text('Update'),
                         ),
                 ),
               ],

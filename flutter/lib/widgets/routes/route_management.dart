@@ -7,8 +7,8 @@ import 'package:http/http.dart' as http;
 import '../../constant.dart';
 import '../../theme/enterprise_theme.dart';
 import '../../utils/file_download.dart';
-import 'enterprise_data_grid.dart';
-import 'enterprise_states.dart';
+import '../../layouts/enterprise/enterprise_data_grid.dart';
+import '../../layouts/enterprise/enterprise_states.dart';
 
 class RouteDirectory extends StatefulWidget {
   const RouteDirectory({super.key});
@@ -392,7 +392,7 @@ class _RouteDirectoryState extends State<RouteDirectory> {
                   alignment: Alignment.centerLeft,
                   child: OutlinedButton(
                     onPressed: () => _editRoute(route),
-                    child: const Text('Edit'),
+                    child: const Text('Update'),
                   ),
                 ),
               ),

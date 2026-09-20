@@ -6,8 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart' as xlsx;
 import '../../constant.dart';
-import '../shared/enterprise_data_grid.dart';
-import '../shared/enterprise_states.dart';
+import '../../layouts/enterprise/enterprise_data_grid.dart';
+import '../../layouts/enterprise/enterprise_states.dart';
 import '../../theme/enterprise_theme.dart';
 import 'trip_summary_editor_page.dart';
 
@@ -1131,7 +1131,7 @@ class _StaffTripsState extends State<StaffTrips> {
     final screenWidth = MediaQuery.of(context).size.width;
     final cardWidth = isNarrow
         ? 170.0
-        : ((screenWidth - 520) / 4).clamp(185.0, 245.0).toDouble();
+        : ((screenWidth - 520) / 5).clamp(185.0, 245.0).toDouble();
     final cards = [
       (
         'Rows',
@@ -1157,6 +1157,12 @@ class _StaffTripsState extends State<StaffTrips> {
         Icons.calendar_today,
         const Color(0xFF8B5CF6),
       ),
+      (
+        'Completed Trips',
+        '${_visibleTrips.where((trip) => (trip['trip_status'] ?? '').toString().toLowerCase().contains('completed')).length}',
+        Icons.task_alt_outlined,
+        EnterpriseColors.success,
+      ),
     ];
 
     return SingleChildScrollView(
@@ -1170,24 +1176,39 @@ class _StaffTripsState extends State<StaffTrips> {
             margin: EdgeInsets.only(right: index == cards.length - 1 ? 0 : 14),
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              gradient: EnterpriseGradients.fadingToWhite(card.$4),
-              border: Border.all(
-                color: EnterpriseColors.substitute,
-                width: 1.2,
+              color: Theme.of(context).cardColor,
+              border: Border(
+                top: BorderSide(color: card.$4.withValues(alpha: 0.35)),
+                right: BorderSide(color: card.$4.withValues(alpha: 0.35)),
+                bottom: BorderSide(color: card.$4.withValues(alpha: 0.35)),
+                left: BorderSide(color: card.$4, width: 4),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: card.$4.withValues(alpha: 0.12),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(card.$3, color: EnterpriseColors.main, size: 22),
+                Icon(
+                  card.$3,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? card.$4
+                      : EnterpriseColors.main,
+                  size: 22,
+                ),
                 const SizedBox(height: 8),
                 Text(
                   card.$2,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: EnterpriseColors.main,
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w900,
                     fontSize: 24,
                   ),
@@ -1197,7 +1218,9 @@ class _StaffTripsState extends State<StaffTrips> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: EnterpriseColors.main.withValues(alpha: 0.72),
+                    color: Theme.of(context).colorScheme.onSurface.withValues(
+                      alpha: 0.72,
+                    ),
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                   ),

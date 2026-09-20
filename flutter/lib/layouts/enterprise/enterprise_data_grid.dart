@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../theme/enterprise_theme.dart';
 import 'enterprise_states.dart';
-import 'universal_pagination.dart';
+import '../../widgets/interface/universal_pagination.dart';
 
 typedef EnterpriseCellChanged<T> = Future<void> Function(T row, String value);
 
@@ -362,7 +362,7 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
     return Container(
       width: totalWidth,
       height: 40,
-      color: EnterpriseColors.main,
+      color: theme.cardColor,
       child: Row(
         children: [
           SizedBox(
@@ -381,7 +381,7 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
                     });
                   },
                 ),
-                const Text('#', style: TextStyle(color: Colors.white)),
+                Text('#', style: TextStyle(color: theme.colorScheme.onSurface)),
               ],
             ),
           ),
@@ -406,7 +406,7 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
                         child: Text(
                           widget.columns[index].label,
                           style: theme.textTheme.labelLarge?.copyWith(
-                            color: Colors.white,
+                            color: theme.colorScheme.onSurface,
                             fontWeight: FontWeight.w700,
                           ),
                           overflow: TextOverflow.ellipsis,
@@ -421,7 +421,7 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
                         size: 14,
                         color: _sortColumn == index
                             ? EnterpriseColors.primary
-                            : Colors.white70,
+                            : theme.colorScheme.onSurface.withValues(alpha: 0.55),
                       ),
                     ],
                   ),

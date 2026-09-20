@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../../widgets/shared/enterprise_states.dart';
+import '../../layouts/enterprise/enterprise_states.dart';
 import 'package:http/http.dart' as http;
 import 'package:skeletonizer/skeletonizer.dart';
 import '../../constant.dart';

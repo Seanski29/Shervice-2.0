@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../shared/enterprise_states.dart';
+import '../../layouts/enterprise/enterprise_states.dart';
 import 'package:http/http.dart' as http;
 import 'driver_profile_model.dart';
 import '../../constant.dart';

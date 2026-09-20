@@ -100,7 +100,7 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Align(
-                                  alignment: Alignment.centerRight,
+                                  alignment: Alignment.centerLeft,
                                   child: Padding(
                                     padding: const EdgeInsets.fromLTRB(
                                       24,
@@ -230,6 +230,7 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
     const sidebarBackground = EnterpriseColors.sidebar;
     final width = expanded ? 260.0 : 76.0;
     final sections = <String>[];
+
     for (final item in widget.navigationItems) {
       if (!sections.contains(item.section)) sections.add(item.section);
     }
@@ -247,7 +248,9 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
               padding: const EdgeInsets.only(top: 8, bottom: 8),
               children: [
                 for (final section in sections)
-                  _buildNavigationSection(section, expanded),
+                  // THIS LINE ensures the Settings tab doesn't show in the sidebar
+                  if (section != 'Hidden')
+                    _buildNavigationSection(section, expanded),
               ],
             ),
           ),
@@ -275,6 +278,24 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (section != 'Workspace')
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
+            child: Text(
+              switch (section) {
+                'Operations' => 'OPERATIONS',
+                'Organization' => 'BUSINESS',
+                'Workforce' => 'DRIVERS',
+                _ => section.toUpperCase(),
+              },
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.55),
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
         if (sectionOpen)
           for (final entry in items) _buildNavigationItem(entry.key, true),
       ],
@@ -456,8 +477,13 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
     final settingsIndex = widget.navigationItems.indexWhere(
       (item) => item.label.toLowerCase() == 'settings',
     );
+
     if (settingsIndex >= 0) {
       setState(() => _selectedIndex = settingsIndex);
+      // Ensure the mobile drawer closes when routing to Settings
+      _scaffoldKey.currentState?.closeDrawer();
+    } else {
+      debugPrint('Settings route not found in navigationItems');
     }
   }
 

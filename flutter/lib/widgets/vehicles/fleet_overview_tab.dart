@@ -521,11 +521,21 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: EnterpriseGradients.fadingToWhite(color),
+        color: isDark ? EnterpriseColors.darkSurface : EnterpriseColors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withValues(alpha: 0.18),
+        border: Border(
+          top: BorderSide(color: color.withValues(alpha: 0.35)),
+          right: BorderSide(color: color.withValues(alpha: 0.35)),
+          bottom: BorderSide(color: color.withValues(alpha: 0.35)),
+          left: BorderSide(color: color, width: 4),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
