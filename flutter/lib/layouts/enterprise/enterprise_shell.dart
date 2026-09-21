@@ -99,30 +99,8 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      24,
-                                      18,
-                                      24,
-                                      4,
-                                    ),
-                                    child: Text(
-                                      _selected.label,
-                                      textAlign: TextAlign.right,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .headlineSmall
-                                          ?.copyWith(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.onSurface,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                    ),
-                                  ),
-                                ),
+                                // DELETED the Align block that held the Page Title. 
+                                // Titles are now managed directly by individual screens to save vertical space.
                                 Expanded(
                                   child: KeyedSubtree(
                                     key: ValueKey(_selected.label),
@@ -145,7 +123,6 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
     );
   }
 
-  // ─── BRANDING HEADER INSIDE THE SIDEBAR ───
   // ─── BRANDING HEADER INSIDE THE SIDEBAR ───
   Widget _buildSidebarHeader(bool expanded) {
     return Container(
@@ -219,7 +196,6 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
                   onPressed: () =>
                       setState(() => _sidebarExpanded = !_sidebarExpanded),
                 ),
-                // The circular logo Container has been completely removed from here
               ],
             ),
     );
@@ -230,7 +206,7 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
     const sidebarBackground = EnterpriseColors.sidebar;
     final width = expanded ? 260.0 : 76.0;
     final sections = <String>[];
-
+    
     for (final item in widget.navigationItems) {
       if (!sections.contains(item.section)) sections.add(item.section);
     }
@@ -241,15 +217,14 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
       color: sidebarBackground,
       child: Column(
         children: [
-          // Dynamic Header replaces the empty SizedBox
           _buildSidebarHeader(expanded),
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.only(top: 8, bottom: 8),
+              physics: const ClampingScrollPhysics(), 
+              padding: const EdgeInsets.only(top: 4, bottom: 24),
               children: [
                 for (final section in sections)
-                  // THIS LINE ensures the Settings tab doesn't show in the sidebar
-                  if (section != 'Hidden')
+                  if (section != 'Hidden') 
                     _buildNavigationSection(section, expanded),
               ],
             ),
@@ -313,10 +288,10 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
           _scaffoldKey.currentState?.closeDrawer();
         },
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
           padding: EdgeInsets.symmetric(
             horizontal: expanded ? 16 : 12,
-            vertical: 12,
+            vertical: 10, 
           ),
           decoration: BoxDecoration(
             color: active ? Colors.blue.shade600 : Colors.transparent,
@@ -368,7 +343,6 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
       ),
       child: Row(
         children: [
-          // Only show Hamburger in TopBar if on a small screen (mobile/tablet) to open drawer
           if (compact) ...[
             IconButton(
               onPressed: () => _scaffoldKey.currentState?.openDrawer(),
@@ -377,7 +351,6 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
             ),
             const SizedBox(width: 16),
           ],
-
           const Spacer(),
           IconButton(
             onPressed: _showCommandPalette,
@@ -480,7 +453,6 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
 
     if (settingsIndex >= 0) {
       setState(() => _selectedIndex = settingsIndex);
-      // Ensure the mobile drawer closes when routing to Settings
       _scaffoldKey.currentState?.closeDrawer();
     } else {
       debugPrint('Settings route not found in navigationItems');

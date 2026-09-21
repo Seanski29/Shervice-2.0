@@ -10,81 +10,73 @@ class EnterpriseSummaryCard extends StatelessWidget {
     required this.value,
     required this.icon,
     required this.color,
+    this.subtitle,
   });
 
   final String label;
   final String value;
   final IconData icon;
   final Color color;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final foreground = isDark ? EnterpriseColors.white : EnterpriseColors.main;
-    final mutedForeground = isDark
-        ? EnterpriseColors.white.withValues(alpha: 0.72)
-        : EnterpriseColors.substitute;
-    final cardFill = Color.lerp(theme.cardColor, color, isDark ? 0.18 : 0.07)!;
+
     return Container(
-      height: 108,
-      constraints: const BoxConstraints(minWidth: 176),
-      padding: const EdgeInsets.all(18),
+      constraints: const BoxConstraints(minHeight: 112), // Minimum height to prevent overflow
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: cardFill,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: color.withValues(alpha: isDark ? 0.45 : 0.38),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: isDark ? 0.2 : 0.14),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        color: color.withValues(alpha: 0.08),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min, // Prevents pixel overflow inside flexible grids
         children: [
           Row(
             children: [
               Icon(icon, color: color, size: 20),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.montserrat(
-                    fontSize: 13,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: mutedForeground,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Flexible(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  value,
-                  maxLines: 1,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    color: foreground,
-                  ),
-                ),
-              ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w900,
+              fontSize: 28,
+              height: 1.0, // Tightly constraints the text height bounds to prevent overflow
             ),
           ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              subtitle!,
+              style: TextStyle(
+                color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                fontSize: 12,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -101,12 +93,11 @@ class EnterpriseSummaryCardSkeleton extends StatelessWidget {
         ? EnterpriseColors.darkSurfaceMuted
         : const Color(0xFFD8DEE8);
     return Container(
-      constraints: const BoxConstraints(minWidth: 176),
-      height: 92,
+      constraints: const BoxConstraints(minHeight: 112),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: isDark ? color.withValues(alpha: 0.7) : const Color(0xFFF1F4F8),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isDark ? EnterpriseColors.darkBorder : const Color(0xFFD0D5DD),
         ),
@@ -185,7 +176,7 @@ class EnterpriseTableSkeleton extends StatelessWidget {
             decoration: BoxDecoration(
               color: theme.cardColor,
               border: Border.all(color: theme.dividerColor),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
               children: [
@@ -344,7 +335,6 @@ class EnterpriseFormSkeleton extends StatelessWidget {
   }
 }
 
-/// Compact structural placeholder for a loading button or small panel.
 class EnterpriseLoadingIndicator extends StatelessWidget {
   const EnterpriseLoadingIndicator({
     super.key,

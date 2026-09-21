@@ -165,14 +165,14 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                             metricsMap['ongoingTrips'] ??
                             0)
                         .toString(),
-                subTitle: 'This month',
+                subTitle: '',
                 icon: Icons.route,
                 baseColor: const Color(0xFF3B82F6),
               ),
               DashboardMetric(
                 title: 'Total Passengers',
                 value: (metricsMap['totalPassengers'] ?? 0).toString(),
-                subTitle: 'This month',
+                subTitle: '',
                 icon: Icons.groups_outlined,
                 baseColor: const Color(0xFF8B5CF6),
               ),
@@ -183,21 +183,21 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                             metricsMap['totalDrivers'] ??
                             0)
                         .toString(),
-                subTitle: 'Available profiles',
+                subTitle: '',
                 icon: Icons.people_alt,
                 baseColor: const Color(0xFF06B6D4),
               ),
               DashboardMetric(
                 title: 'Active Vehicles',
                 value: (metricsMap['activeVehicles'] ?? 0).toString(),
-                subTitle: 'Ready for operation',
+                subTitle: '',
                 icon: Icons.directions_car,
                 baseColor: const Color(0xFF10B981),
               ),
               DashboardMetric(
                 title: 'Maintenance Alerts',
                 value: (metricsMap['maintenanceAlerts'] ?? 0).toString(),
-                subTitle: 'Attention required',
+                subTitle: '',
                 icon: Icons.build_circle,
                 baseColor: const Color(0xFFEF4444),
               ),
@@ -400,19 +400,32 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
         padding: const EdgeInsets.all(16),
         children: [
           if (_errorMessage != null) _buildErrorBanner(),
-          Wrap(
-            alignment: WrapAlignment.end,
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
+          
+          // REPLACED WRAP WITH ROW: Title and Controls now share the top horizontal line perfectly
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              OutlinedButton.icon(
-                onPressed: _isLoading ? null : _reloadDashboard,
-                icon: const Icon(Icons.refresh, size: 17),
-                label: const Text('Refresh'),
+              Text(
+                'Dashboard',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _reloadDashboard,
+                    icon: const Icon(Icons.refresh, size: 17),
+                    label: const Text('Refresh'),
+                  ),
+                ],
               ),
             ],
           ),
+          
           const SizedBox(height: 20),
           LayoutBuilder(
             builder: (context, constraints) {

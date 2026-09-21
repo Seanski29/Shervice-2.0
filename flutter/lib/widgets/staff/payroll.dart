@@ -8,7 +8,6 @@ import 'package:http/http.dart' as http;
 import '../../constant.dart';
 import '../../utils/file_download.dart';
 import '../../layouts/enterprise/enterprise_data_grid.dart';
-import '../interface/universal_pagination.dart';
 
 class Payroll extends StatefulWidget {
   final String userRole;
@@ -25,7 +24,6 @@ class _PayrollState extends State<Payroll> {
   final _absentDeductionController = TextEditingController(text: '600');
   final _overtimePayController = TextEditingController(text: '100');
   final _searchController = TextEditingController();
-  final _tableScrollController = ScrollController();
   final Map<String, TextEditingController> _routeRateControllers = {};
   final Map<String, String> _routeNamesById = {};
 
@@ -34,8 +32,6 @@ class _PayrollState extends State<Payroll> {
   String? _error;
   String _searchQuery = '';
   String _payrollFilter = 'All';
-  int _currentPage = 0;
-  static const int _rowsPerPage = 10;
   DateTime _payDate = _currentPayThursday(DateTime.now());
   List<Map<String, dynamic>> _drivers = [];
   List<Map<String, dynamic>> _attendance = [];
@@ -55,7 +51,6 @@ class _PayrollState extends State<Payroll> {
     _absentDeductionController.dispose();
     _overtimePayController.dispose();
     _searchController.dispose();
-    _tableScrollController.dispose();
     for (final controller in _routeRateControllers.values) {
       controller.dispose();
     }
@@ -95,7 +90,6 @@ class _PayrollState extends State<Payroll> {
         _attendance = attendance;
         _trips = trips;
         _destinations = destinations;
-        _currentPage = 0;
         _syncRouteRates();
       });
     } catch (error) {
@@ -330,21 +324,6 @@ class _PayrollState extends State<Payroll> {
     }).toList();
   }
 
-  int get _totalPages {
-    final total = (_filteredPayrollRows.length / _rowsPerPage).ceil();
-    return total < 1 ? 1 : total;
-  }
-
-  List<_PayrollRow> get _pagedPayrollRows {
-    final rows = _filteredPayrollRows;
-    if (_currentPage >= _totalPages) _currentPage = _totalPages - 1;
-    final start = _currentPage * _rowsPerPage;
-    final end = start + _rowsPerPage > rows.length
-        ? rows.length
-        : start + _rowsPerPage;
-    return rows.sublist(start, end);
-  }
-
   String _driverName(String driverId) {
     for (final driver in _drivers) {
       if (_cleanText(driver['driver_id']) == driverId) {
@@ -490,18 +469,8 @@ class _PayrollState extends State<Payroll> {
 
   String _dateLabel(DateTime date) {
     const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
@@ -517,368 +486,8 @@ class _PayrollState extends State<Payroll> {
     if (picked == null) return;
     setState(() {
       _payDate = DateTime(picked.year, picked.month, picked.day);
-      _currentPage = 0;
       _syncRouteRates();
     });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final allRows = _payrollRows;
-    final rows = _filteredPayrollRows;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(isDark),
-          const SizedBox(height: 20),
-          _buildRatesPanel(isDark),
-          const SizedBox(height: 20),
-          if (_isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(48),
-                child: EnterpriseLoadingIndicator(),
-              ),
-            )
-          else if (_error != null)
-            _buildMessage(_error!, Icons.error_outline, Colors.red)
-          else if (allRows.isEmpty)
-            _buildMessage(
-              'No payroll data found for this pay period.',
-              Icons.payments_outlined,
-              Colors.blueGrey,
-            )
-          else ...[
-            _buildTableToolbar(isDark, rows.length),
-            const SizedBox(height: 12),
-            if (rows.isEmpty)
-              _buildNoMatchesMessage()
-            else ...[
-              _buildPayrollTable(_pagedPayrollRows, isDark),
-              const SizedBox(height: 16),
-              UniversalPagination(
-                currentPage: _currentPage,
-                totalPages: _totalPages,
-                totalItems: rows.length,
-                itemsPerPage: _rowsPerPage,
-                itemName: 'drivers',
-                onPrevPage: _currentPage > 0
-                    ? () => setState(() => _currentPage--)
-                    : null,
-                onNextPage: _currentPage < _totalPages - 1
-                    ? () => setState(() => _currentPage++)
-                    : null,
-              ),
-            ],
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        border: Border.all(color: Theme.of(context).dividerColor),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        'Pay period: ${_dateLabel(_periodStart)} - ${_dateLabel(_payDate)}  |  ${_payrollRows.length} drivers',
-        style: Theme.of(context).textTheme.bodySmall,
-      ),
-    );
-  }
-
-  Widget _buildRatesPanel(bool isDark) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-        ),
-      ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          initiallyExpanded: _ratesExpanded,
-          onExpansionChanged: (value) => setState(() => _ratesExpanded = value),
-          tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          childrenPadding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
-          leading: const Icon(Icons.tune),
-          title: Text(
-            'Payroll Rates',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
-            ),
-          ),
-          subtitle: Text(
-            'Regular pay, deductions, and overtime',
-            style: TextStyle(
-              color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
-            ),
-          ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                onPressed: _loadPayrollData,
-                tooltip: 'Refresh',
-                icon: const Icon(Icons.refresh),
-              ),
-              Icon(_ratesExpanded ? Icons.expand_less : Icons.expand_more),
-            ],
-          ),
-          children: [
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                _amountField('Regular pay/day', _regularPayController),
-                _amountField('Half-day deduction', _halfDayDeductionController),
-                _amountField('Absent deduction', _absentDeductionController),
-                _amountField('Overtime/day', _overtimePayController),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _amountField(String label, TextEditingController controller) {
-    return SizedBox(
-      width: 180,
-      child: TextField(
-        controller: controller,
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: InputDecoration(
-          labelText: label,
-          prefixText: 'PHP ',
-          isDense: true,
-          border: const OutlineInputBorder(),
-        ),
-        onChanged: (_) => setState(() {}),
-      ),
-    );
-  }
-
-  Widget _buildTableToolbar(bool isDark, int totalRows) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-        ),
-      ),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        alignment: WrapAlignment.spaceBetween,
-        children: [
-          SizedBox(
-            width: 340,
-            child: TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                labelText: 'Search driver ID or name',
-                isDense: true,
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                  _currentPage = 0;
-                });
-              },
-            ),
-          ),
-          SizedBox(
-            width: 190,
-            child: DropdownButtonFormField<String>(
-              value: _payrollFilter,
-              isExpanded: true,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.filter_list),
-                labelText: 'Filter',
-                isDense: true,
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(value: 'All', child: Text('All')),
-                DropdownMenuItem(value: 'Payable', child: Text('Payable')),
-                DropdownMenuItem(
-                  value: 'With Absences',
-                  child: Text('With Absences'),
-                ),
-                DropdownMenuItem(
-                  value: 'With Half Days',
-                  child: Text('With Half Days'),
-                ),
-                DropdownMenuItem(
-                  value: 'With Overtime',
-                  child: Text('With Overtime'),
-                ),
-                DropdownMenuItem(
-                  value: 'With Trips',
-                  child: Text('With Trips'),
-                ),
-              ],
-              onChanged: (value) {
-                if (value == null) return;
-                setState(() {
-                  _payrollFilter = value;
-                  _currentPage = 0;
-                });
-              },
-            ),
-          ),
-          Wrap(
-            spacing: 12,
-            runSpacing: 10,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              _payPeriodBadge(isDark),
-              OutlinedButton.icon(
-                onPressed: _pickPayDate,
-                icon: const Icon(Icons.event),
-                label: Text('Pay Thursday: ${_dateLabel(_payDate)}'),
-              ),
-              Text(
-                '$totalRows driver${totalRows == 1 ? '' : 's'}',
-                style: TextStyle(
-                  color: isDark
-                      ? Colors.grey.shade400
-                      : const Color(0xFF64748B),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _payPeriodBadge(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.white.withValues(alpha: 0.04)
-            : const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(
-          color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.date_range, size: 18, color: Colors.blue.shade500),
-          const SizedBox(width: 8),
-          Text(
-            'Pay Period: ${_dateLabel(_periodStart)} - ${_dateLabel(_payDate)}',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : const Color(0xFF0F172A),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPayrollTable(List<_PayrollRow> rows, bool isDark) {
-    return EnterpriseDataGrid<_PayrollRow>(
-      rows: rows,
-      paginate: false,
-      rowKey: (row) => row.driverId,
-      height: 500,
-      showDateRange: false,
-      columns: [
-        EnterpriseGridColumn(
-          label: 'Driver',
-          width: 250,
-          value: (row) => '${row.driverName}  #${row.driverId}',
-        ),
-        EnterpriseGridColumn(
-          label: 'Present',
-          width: 110,
-          value: (row) => '${row.presentDays}',
-          compare: (first, second) =>
-              first.presentDays.compareTo(second.presentDays),
-        ),
-        EnterpriseGridColumn(
-          label: 'Half day',
-          width: 110,
-          value: (row) => '${row.halfDays}',
-        ),
-        EnterpriseGridColumn(
-          label: 'Absent',
-          width: 110,
-          value: (row) => '${row.absentDays}',
-        ),
-        EnterpriseGridColumn(
-          label: 'Trips',
-          width: 110,
-          value: (row) => '${row.tripCount}',
-        ),
-        EnterpriseGridColumn(
-          label: 'Regular pay',
-          width: 160,
-          value: (row) => _moneyLabel(row.regularPay),
-          compare: (first, second) =>
-              first.regularPay.compareTo(second.regularPay),
-        ),
-        EnterpriseGridColumn(
-          label: 'Deductions',
-          width: 160,
-          value: (row) => '-${_moneyLabel(row.totalDeductions)}',
-          compare: (first, second) =>
-              first.totalDeductions.compareTo(second.totalDeductions),
-        ),
-        EnterpriseGridColumn(
-          label: 'Overtime',
-          width: 150,
-          value: (row) => _moneyLabel(row.overtimePay),
-        ),
-        EnterpriseGridColumn(
-          label: 'Route pay',
-          width: 150,
-          value: (row) => _moneyLabel(row.tripPay),
-        ),
-        EnterpriseGridColumn(
-          label: 'Total pay',
-          width: 170,
-          value: (row) => _moneyLabel(row.netPay),
-          compare: (first, second) => first.netPay.compareTo(second.netPay),
-          cellBuilder: (context, row) => Text(
-            _moneyLabel(row.netPay),
-            style: const TextStyle(fontWeight: FontWeight.w800),
-          ),
-        ),
-      ],
-      emptyTitle: 'Prepare this payroll period',
-      emptyMessage:
-          'Attendance and trip records are required before driver payroll can be calculated.',
-      emptyActionLabel: 'Refresh payroll data',
-      onEmptyAction: _loadPayrollData,
-      onExportSelection: _exportPayrollSelection,
-    );
   }
 
   Future<void> _exportPayrollSelection(List<_PayrollRow> rows) async {
@@ -905,45 +514,334 @@ class _PayrollState extends State<Payroll> {
     }
   }
 
-  Widget _buildMessage(String message, IconData icon, Color color) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(48),
+  // ---------------------------------------------------------
+  // UI BUILD METHODS
+  // ---------------------------------------------------------
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final rows = _filteredPayrollRows;
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: Padding(
+        padding: const EdgeInsets.all(24),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Icon(icon, color: color, size: 44),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
+            // 1. TOP ROW: Title on Left, Refresh on Right
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Payroll',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Calculate driver earnings and deductions.',
+                      style: TextStyle(
+                        color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+                OutlinedButton.icon(
+                  onPressed: _isLoading ? null : _loadPayrollData,
+                  icon: const Icon(Icons.refresh, size: 17),
+                  label: const Text('Refresh'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // 2. RATES PANEL (Sleeker, compact container)
+            _buildRatesPanel(isDark),
+            const SizedBox(height: 16),
+
+            // 3. FILTERS (Anchored Top-Left)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _buildFilters(isDark),
+            ),
+            const SizedBox(height: 16),
+
+            // 4. MAIN WORKSPACE TABLE (Expanded to fill space)
+            Expanded(
+              child: _isLoading
+                  ? const EnterpriseTableSkeleton(columns: 9)
+                  : _error != null
+                      ? EnterpriseEmptyState(
+                          icon: Icons.error_outline,
+                          title: 'Error Loading Payroll',
+                          message: _error!,
+                          actionLabel: 'Retry',
+                          onAction: _loadPayrollData,
+                        )
+                      : EnterpriseDataGrid<_PayrollRow>(
+                          rows: rows,
+                          rowKey: (row) => row.driverId,
+                          height: double.infinity,
+                          showDateRange: false,
+                          filterFields: const [], // Cleared to prevent middle rendering
+                          columns: [
+                            EnterpriseGridColumn(
+                              label: 'Driver',
+                              width: 250,
+                              value: (row) => '${row.driverName}  #${row.driverId}',
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Present',
+                              width: 110,
+                              value: (row) => '${row.presentDays}',
+                              compare: (first, second) =>
+                                  first.presentDays.compareTo(second.presentDays),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Half day',
+                              width: 110,
+                              value: (row) => '${row.halfDays}',
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Absent',
+                              width: 110,
+                              value: (row) => '${row.absentDays}',
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Trips',
+                              width: 110,
+                              value: (row) => '${row.tripCount}',
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Regular pay',
+                              width: 160,
+                              value: (row) => _moneyLabel(row.regularPay),
+                              compare: (first, second) =>
+                                  first.regularPay.compareTo(second.regularPay),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Deductions',
+                              width: 160,
+                              value: (row) => '-${_moneyLabel(row.totalDeductions)}',
+                              compare: (first, second) =>
+                                  first.totalDeductions.compareTo(second.totalDeductions),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Overtime',
+                              width: 150,
+                              value: (row) => _moneyLabel(row.overtimePay),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Route pay',
+                              width: 150,
+                              value: (row) => _moneyLabel(row.tripPay),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Total pay',
+                              width: 170,
+                              value: (row) => _moneyLabel(row.netPay),
+                              compare: (first, second) => first.netPay.compareTo(second.netPay),
+                              cellBuilder: (context, row) => Text(
+                                _moneyLabel(row.netPay),
+                                style: const TextStyle(fontWeight: FontWeight.w800),
+                              ),
+                            ),
+                          ],
+                          emptyTitle: 'Prepare this payroll period',
+                          emptyMessage:
+                              'Attendance and trip records are required before driver payroll can be calculated.',
+                          emptyActionLabel: 'Refresh payroll data',
+                          onEmptyAction: _loadPayrollData,
+                          onExportSelection: _exportPayrollSelection,
+                        ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNoMatchesMessage() {
+  Widget _buildRatesPanel(bool isDark) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(40),
-      child: Column(
-        children: [
-          Icon(Icons.filter_alt_off, color: Colors.blueGrey.shade400, size: 42),
-          const SizedBox(height: 12),
-          const Text('No drivers match the current payroll filter.'),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: () {
-              setState(() {
-                _payrollFilter = 'All';
-                _searchQuery = '';
-                _searchController.clear();
-                _currentPage = 0;
-              });
-            },
-            icon: const Icon(Icons.clear),
-            label: const Text('Clear Filter'),
-          ),
-        ],
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade800 : Theme.of(context).dividerColor,
+        ),
       ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: _ratesExpanded,
+          onExpansionChanged: (value) => setState(() => _ratesExpanded = value),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          leading: Icon(Icons.tune, size: 20, color: Theme.of(context).colorScheme.primary),
+          title: Text(
+            'Payroll Rates Configuration',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+            ),
+          ),
+          children: [
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                _amountField('Regular pay/day', _regularPayController, isDark),
+                _amountField('Half-day deduction', _halfDayDeductionController, isDark),
+                _amountField('Absent deduction', _absentDeductionController, isDark),
+                _amountField('Overtime/day', _overtimePayController, isDark),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _amountField(String label, TextEditingController controller, bool isDark) {
+    return SizedBox(
+      width: 170,
+      height: 40,
+      child: TextField(
+        controller: controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        style: TextStyle(
+          fontSize: 13,
+          color: isDark ? Colors.white : Colors.black87,
+        ),
+        decoration: InputDecoration(
+          labelText: label,
+          prefixText: 'PHP ',
+          isDense: true,
+          filled: true,
+          fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+          ),
+        ),
+        onChanged: (_) => setState(() {}),
+      ),
+    );
+  }
+
+  Widget _buildFilters(bool isDark) {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        SizedBox(
+          width: 260,
+          height: 34,
+          child: TextField(
+            controller: _searchController,
+            onChanged: (value) => setState(() => _searchQuery = value),
+            style: TextStyle(fontSize: 13, color: isDark ? Colors.white : Colors.black87),
+            decoration: InputDecoration(
+              hintText: 'Search driver ID or name...',
+              hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+              prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
+              filled: true,
+              fillColor: Theme.of(context).cardColor,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: BorderSide(color: Theme.of(context).dividerColor),
+              ),
+            ),
+          ),
+        ),
+        Container(
+          width: 170,
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            border: Border.all(color: Theme.of(context).dividerColor),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _payrollFilter,
+              isExpanded: true,
+              isDense: true,
+              icon: const Padding(
+                padding: EdgeInsets.only(left: 8.0),
+                child: Icon(Icons.filter_list, size: 16),
+              ),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+              dropdownColor: Theme.of(context).cardColor,
+              selectedItemBuilder: (BuildContext context) {
+                return ['All', 'Payable', 'With Absences', 'With Half Days', 'With Overtime', 'With Trips']
+                    .map((String value) {
+                  return Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      value == 'All' ? 'Filter: All' : 'Filter: $value',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                }).toList();
+              },
+              items: const [
+                DropdownMenuItem(value: 'All', child: Text('All records')),
+                DropdownMenuItem(value: 'Payable', child: Text('Payable')),
+                DropdownMenuItem(value: 'With Absences', child: Text('With Absences')),
+                DropdownMenuItem(value: 'With Half Days', child: Text('With Half Days')),
+                DropdownMenuItem(value: 'With Overtime', child: Text('With Overtime')),
+                DropdownMenuItem(value: 'With Trips', child: Text('With Trips')),
+              ],
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() => _payrollFilter = value);
+              },
+            ),
+          ),
+        ),
+        OutlinedButton.icon(
+          onPressed: _pickPayDate,
+          icon: const Icon(Icons.event, size: 16),
+          label: Text('Pay Thursday: ${_dateLabel(_payDate)}'),
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(0, 34),
+            foregroundColor: isDark ? Colors.grey.shade300 : Colors.black87,
+            side: BorderSide(color: Theme.of(context).dividerColor),
+          ),
+        ),
+        Chip(
+          label: Text(
+            '${_filteredPayrollRows.length} drivers',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          ),
+          backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+          side: BorderSide(color: Theme.of(context).dividerColor),
+        ),
+      ],
     );
   }
 }

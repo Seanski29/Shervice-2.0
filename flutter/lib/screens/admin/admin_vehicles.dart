@@ -28,7 +28,7 @@ class _AdminFleetState extends State<AdminFleet> {
         userRole: 'admin',
         onRefreshNeeded: _triggerInstantRefresh,
         title: 'Vehicles',
-        subtitle: 'Owner: Admin',
+        subtitle: '',
       ),
     );
   }

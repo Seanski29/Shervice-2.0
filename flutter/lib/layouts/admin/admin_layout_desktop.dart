@@ -47,13 +47,7 @@ class AdminDesktopLayout extends StatelessWidget {
           screen: AdminSchedules(),
           keywords: ['dispatch', 'calendar', 'assignments'],
         ),
-        const EnterpriseNavigationItem(
-          label: 'Drivers',
-          icon: Icons.badge_outlined,
-          section: 'Operations',
-          screen: AdminDriver(),
-          keywords: ['operators', 'profiles'],
-        ),
+        
         const EnterpriseNavigationItem(
           label: 'Vehicles',
           icon: Icons.directions_bus_outlined,
@@ -88,6 +82,13 @@ class AdminDesktopLayout extends StatelessWidget {
           section: 'Workforce',
           screen: AdminReportsManager(),
           keywords: ['timecard', 'hours'],
+        ),
+        const EnterpriseNavigationItem(
+          label: 'Drivers',
+          icon: Icons.badge_outlined,
+          section: 'Workforce',
+          screen: AdminDriver(),
+          keywords: ['operators', 'profiles'],
         ),
         const EnterpriseNavigationItem(
           label: 'Payroll',

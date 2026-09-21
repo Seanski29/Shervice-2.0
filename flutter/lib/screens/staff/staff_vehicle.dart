@@ -31,7 +31,7 @@ class _StaffVehicleState extends State<StaffVehicle> {
         userId: widget.staffId,
         onRefreshNeeded: _triggerInstantRefresh,
         title: 'Vehicles',
-        subtitle: 'Owner: Staff',
+        subtitle: '',
       ),
     );
   }

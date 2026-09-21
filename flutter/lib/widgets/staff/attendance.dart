@@ -11,6 +11,7 @@ import 'package:excel/excel.dart' as excel;
 import '../../constant.dart';
 import '../../utils/file_download.dart';
 import '../../layouts/enterprise/enterprise_data_grid.dart';
+import '../../theme/enterprise_theme.dart';
 
 class Attendance extends StatefulWidget {
   final String userRole;
@@ -24,7 +25,7 @@ class Attendance extends StatefulWidget {
 class _AttendanceState extends State<Attendance> {
   bool _isImporting = false;
   bool _isLoadingSystemData = false;
-  String _sourceFileName = 'No file selected';
+  String _sourceFileName = 'System Database';
   String? _selectedSourceFile;
 
   bool _sortDateAscending = false;
@@ -190,11 +191,10 @@ class _AttendanceState extends State<Attendance> {
 
       if (!mounted) return;
       setState(() {
-        _sourceFileName = _selectedSourceFile == null
-            ? 'System attendance records'
-            : 'Imported attendance: $_selectedSourceFile';
         _columns = _attendanceColumns;
         _rows = normalized;
+        _sourceFileName = 'System Database';
+        _selectedSourceFile = null;
       });
     } catch (error) {
       _setEmptyState();
@@ -212,49 +212,10 @@ class _AttendanceState extends State<Attendance> {
     });
   }
 
-  Widget _buildAttendanceTitle(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        border: Border.all(color: Theme.of(context).dividerColor),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Text(
-        '${_rows.length} attendance records  |  Source: $_sourceFileName',
-        style: Theme.of(context).textTheme.bodySmall,
-        overflow: TextOverflow.ellipsis,
-      ),
-    );
-  }
-
-  Widget _buildImportButton() {
-    return FilledButton.icon(
-      onPressed: _isImporting ? null : _pickExcelFile,
-      icon: _isImporting
-          ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: EnterpriseLoadingIndicator(strokeWidth: 2),
-            )
-          : const Icon(Icons.upload_file_outlined),
-      label: Text(_isImporting ? 'Importing...' : 'Import Excel'),
-    );
-  }
-
-  Widget _buildExportButton() {
-    return OutlinedButton.icon(
-      onPressed: _showExportDialog,
-      icon: const Icon(Icons.download_outlined),
-      label: const Text('Export'),
-    );
-  }
-
   Future<void> _pickExcelFile() async {
     setState(() => _isImporting = true);
 
     try {
-      // File picker version 13 syntax.
       final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['xls', 'xlsx', 'csv'],
@@ -453,6 +414,37 @@ class _AttendanceState extends State<Attendance> {
     );
   }
 
+  Future<void> _exportAttendanceSelection(
+    List<Map<String, String>> rows,
+  ) async {
+    final buffer = StringBuffer(
+      '${_columns.map((column) => '"${_formatTableHeader(column)}"').join(',')}\n',
+    );
+    for (final row in rows) {
+      buffer.writeln(
+        _columns
+            .map(
+              (column) =>
+                  '"${_formatDisplayValue(column, row[column] ?? '').replaceAll('"', '""')}"',
+            )
+            .join(','),
+      );
+    }
+    await downloadFileBytes(
+      fileName: 'shervice-attendance-selection.csv',
+      bytes: Uint8List.fromList(utf8.encode(buffer.toString())),
+    );
+    if (mounted) {
+      // If EnterpriseToasts is not imported in this file, use ScaffoldMessenger:
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${rows.length} attendance rows exported.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
   Future<void> _executeExport(String format) async {
     final filteredRows = _processedRows;
     final exportColumns = _attendanceColumns;
@@ -467,6 +459,7 @@ class _AttendanceState extends State<Attendance> {
       );
       return;
     }
+    
 
     final baseName = _exportBaseName(filteredRows);
     final fileName = '$baseName.${format.toLowerCase()}';
@@ -498,7 +491,6 @@ class _AttendanceState extends State<Attendance> {
       if (kIsWeb) {
         await downloadFileBytes(fileName: fileName, bytes: bytes);
       } else {
-        // File picker version 13 syntax.
         await FilePicker.saveFile(fileName: fileName, bytes: bytes);
       }
 
@@ -516,472 +508,213 @@ class _AttendanceState extends State<Attendance> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isMobile = MediaQuery.of(context).size.width < 700;
+  // ==========================================
+  // PARSING AND UTILITY METHODS
+  // ==========================================
 
-    final activeData = _processedRows;
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(isMobile ? 12 : 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              isMobile
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildAttendanceTitle(isDark),
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _buildImportButton(),
-                            _buildExportButton(),
-                          ],
-                        ),
-                      ],
-                    )
-                  : Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(child: _buildAttendanceTitle(isDark)),
-                        const SizedBox(width: 16),
-                        _buildImportButton(),
-                        const SizedBox(width: 12),
-                        _buildExportButton(),
-                      ],
-                    ),
-              const SizedBox(height: 20),
+  String _exportBaseName(List<Map<String, String>> rows) {
+    final range = _activeDateFilterRange(rows);
+    if (range != null) {
+      return 'attendance_${_dateRangeFileSegment(range.start, range.end)}';
+    }
 
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF111827) : Colors.white,
-                  borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                    color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.description_outlined,
-                      color: Colors.blue.shade500,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        _sourceFileName,
-                        style: TextStyle(
-                          color: isDark
-                              ? Colors.white
-                              : const Color(0xFF0F172A),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        'Total: ${activeData.length} rows',
-                        style: const TextStyle(
-                          color: Color(0xFF2563EB),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
+    if (_sourceFileName != 'System Database' &&
+        !_sourceFileName.startsWith('System ')) {
+      final source = _sourceFileName.replaceAll(RegExp(r'\.[^.]+$'), '');
+      return 'attendance_${_fileSafeSegment(source)}';
+    }
 
-              Flex(
-                direction: isMobile ? Axis.vertical : Axis.horizontal,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  if (_columns.isNotEmpty && _rows.isNotEmpty) ...[
-                    Container(
-                      height: 42,
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        'Total: ${activeData.length} rows',
-                        style: const TextStyle(
-                          color: Color(0xFF2563EB),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: isMobile ? 0 : 8, height: isMobile ? 8 : 0),
-                    Container(
-                      height: 42,
-                      width: isMobile ? double.infinity : 560,
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1F2937) : Colors.white,
-                        border: Border.all(
-                          color: isDark
-                              ? Colors.grey.shade700
-                              : Colors.grey.shade300,
-                        ),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: PopupMenuButton<String>(
-                        tooltip: 'Date',
-                        offset: const Offset(0, 48),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.calendar_today_outlined,
-                                size: 18,
-                                color: isDark ? Colors.white : Colors.black87,
-                              ),
-                              const SizedBox(width: 8),
-                              Flexible(
-                                child: Text(
-                                  'Date: ${_dateFilterLabel()}',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: isDark
-                                        ? Colors.white
-                                        : const Color(0xFF111827),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Icon(
-                                Icons.keyboard_arrow_down,
-                                size: 18,
-                                color: isDark ? Colors.white : Colors.black87,
-                              ),
-                            ],
-                          ),
-                        ),
-                        onSelected: (val) async {
-                          if (val == 'Custom Week') {
-                            final picked = await showDateRangePicker(
-                              context: context,
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime(2100),
-                              initialDateRange: _customDateRange,
-                              builder: (context, child) {
-                                return Center(
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxWidth: 400,
-                                      maxHeight: 600,
-                                    ),
-                                    child: child,
-                                  ),
-                                );
-                              },
-                            );
-                            if (picked != null) {
-                              final dayCount =
-                                  picked.end.difference(picked.start).inDays +
-                                  1;
-                              if (dayCount > 7) {
-                                if (!mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Attendance print range can only be one week at most.',
-                                    ),
-                                  ),
-                                );
-                                return;
-                              }
-                              setState(() {
-                                _selectedRange = val;
-                                _customDateRange = picked;
-                              });
-                            }
-                          } else if (val == 'Month') {
-                            final picked = await showDatePicker(
-                              context: context,
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime(2100),
-                              initialDate:
-                                  _customDateRange?.start ?? DateTime.now(),
-                              helpText: 'Select month',
-                              builder: (context, child) {
-                                return Center(
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxWidth: 400,
-                                      maxHeight: 600,
-                                    ),
-                                    child: child,
-                                  ),
-                                );
-                              },
-                            );
-                            if (picked != null) {
-                              final start = DateTime(
-                                picked.year,
-                                picked.month,
-                                1,
-                              );
-                              final end = DateTime(
-                                picked.year,
-                                picked.month + 1,
-                                0,
-                              );
-                              setState(() {
-                                _selectedRange = val;
-                                _customDateRange = DateTimeRange(
-                                  start: start,
-                                  end: end,
-                                );
-                              });
-                            }
-                          } else {
-                            setState(() {
-                              _selectedRange = val;
-                              _customDateRange = null;
-                            });
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(
-                            value: 'Today',
-                            child: Text('Today'),
-                          ),
-                          const PopupMenuItem(
-                            value: 'This Week',
-                            child: Text('This Week'),
-                          ),
-                          const PopupMenuItem(
-                            value: 'Custom Week',
-                            child: Text('Custom Week...'),
-                          ),
-                          const PopupMenuItem(
-                            value: 'Month',
-                            child: Text('Month...'),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (!isMobile) const Spacer(),
-                    SizedBox(width: isMobile ? 0 : 8, height: isMobile ? 8 : 0),
-                    // Search Bar
-                    SizedBox(
-                      width: isMobile ? double.infinity : 200,
-                      height: 42,
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (val) => setState(() {
-                          _searchQuery = val;
-                        }),
-                        style: const TextStyle(fontSize: 14),
-                        decoration: InputDecoration(
-                          hintText: 'Search...',
-                          prefixIcon: const Icon(Icons.search, size: 20),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear, size: 16),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() {
-                                      _searchQuery = '';
-                                    });
-                                  },
-                                )
-                              : null,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 0,
-                          ),
-                          filled: true,
-                          fillColor: isDark
-                              ? const Color(0xFF1F2937)
-                              : Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(4),
-                            borderSide: BorderSide(
-                              color: isDark
-                                  ? Colors.grey.shade700
-                                  : Colors.grey.shade300,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(4),
-                            borderSide: BorderSide(
-                              color: isDark
-                                  ? Colors.grey.shade700
-                                  : Colors.grey.shade300,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: isMobile ? 0 : 8, height: isMobile ? 8 : 0),
-                    // Date Sort Asc/Desc Toggle
-                    Container(
-                      height: 42,
-                      width: 42,
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1F2937) : Colors.white,
-                        border: Border.all(
-                          color: isDark
-                              ? Colors.grey.shade700
-                              : Colors.grey.shade300,
-                        ),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Tooltip(
-                        message: _sortDateAscending
-                            ? 'Oldest First'
-                            : 'Newest First',
-                        child: InkWell(
-                          onTap: () => setState(() {
-                            _sortDateAscending = !_sortDateAscending;
-                          }),
-                          borderRadius: BorderRadius.circular(4),
-                          child: Center(
-                            child: Icon(
-                              _sortDateAscending
-                                  ? Icons.arrow_upward
-                                  : Icons.arrow_downward,
-                              size: 18,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              Expanded(
-                child: _isLoadingSystemData
-                    ? EnterpriseTableSkeleton(
-                        columns: _columns.isEmpty ? 6 : _columns.length + 1,
-                      )
-                    : activeData.isEmpty
-                    ? EnterpriseEmptyState(
-                        icon: Icons.fact_check_outlined,
-                        title: _rows.isEmpty
-                            ? 'Import the first attendance file'
-                            : 'Nothing matches the current search or filters',
-                        message: _rows.isEmpty
-                            ? 'Import a biometric workbook to establish the attendance register for payroll and workforce reporting.'
-                            : 'No attendance records match the current date range and search query.',
-                        actionLabel: _rows.isEmpty
-                            ? 'Import attendance file'
-                            : null,
-                        onAction: _rows.isEmpty ? _pickExcelFile : null,
-                      )
-                    : EnterpriseDataGrid<Map<String, String>>(
-                        rows: activeData,
-                        rowKey: (row) =>
-                            '${row['employee_id'] ?? row['employee'] ?? ''}-${row['date'] ?? ''}',
-                        height: double.infinity,
-                        showDateRange: false,
-                        columns: _columns
-                            .map(
-                              (column) =>
-                                  EnterpriseGridColumn<Map<String, String>>(
-                                    label: _formatTableHeader(column),
-                                    width:
-                                        column == 'employee' ||
-                                            column == 'employee_name'
-                                        ? 240
-                                        : 150,
-                                    value: (row) => _formatDisplayValue(
-                                      column,
-                                      row[column] ?? '',
-                                    ),
-                                    cellBuilder: column == 'total_minutes_late'
-                                        ? (context, row) {
-                                            final raw = row[column] ?? '';
-                                            final flagged =
-                                                (int.tryParse(raw) ?? 0) > 0 ||
-                                                raw.toLowerCase().contains(
-                                                  'half',
-                                                ) ||
-                                                raw.toLowerCase().contains(
-                                                  'absent',
-                                                );
-                                            return Text(
-                                              _formatDisplayValue(column, raw),
-                                              style: TextStyle(
-                                                color: flagged
-                                                    ? Theme.of(
-                                                        context,
-                                                      ).colorScheme.error
-                                                    : null,
-                                                fontWeight: flagged
-                                                    ? FontWeight.w800
-                                                    : null,
-                                              ),
-                                            );
-                                          }
-                                        : null,
-                                  ),
-                            )
-                            .toList(),
-                        emptyTitle: 'Import the first attendance file',
-                        emptyMessage:
-                            'Attendance records support payroll and workforce reporting.',
-                        emptyActionLabel: 'Import attendance file',
-                        onEmptyAction: _pickExcelFile,
-                        onExportSelection: _exportAttendanceSelection,
-                      ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    final suffix = _selectedRange == 'All Time'
+        ? 'all_time'
+        : _fileSafeSegment(_selectedRange);
+    return 'attendance_$suffix';
   }
 
-  Future<void> _exportAttendanceSelection(
-    List<Map<String, String>> rows,
-  ) async {
-    final buffer = StringBuffer(
-      '${_columns.map((column) => '"${_formatTableHeader(column)}"').join(',')}\n',
-    );
-    for (final row in rows) {
-      buffer.writeln(
-        _columns
-            .map(
-              (column) =>
-                  '"${_formatDisplayValue(column, row[column] ?? '').replaceAll('"', '""')}"',
-            )
-            .join(','),
+  DateTimeRange? _activeDateFilterRange(List<Map<String, String>> rows) {
+    final now = DateTime.now();
+    if (_selectedRange == 'Today') {
+      final day = DateTime(now.year, now.month, now.day);
+      return DateTimeRange(start: day, end: day);
+    }
+    if (_selectedRange == 'This Week') {
+      final start = DateTime(now.year, now.month, now.day);
+      return DateTimeRange(
+        start: start,
+        end: start.add(const Duration(days: 6)),
       );
     }
-    await downloadFileBytes(
-      fileName: 'shervice-attendance-selection.csv',
-      bytes: Uint8List.fromList(utf8.encode(buffer.toString())),
-    );
-    if (mounted) {
-      EnterpriseToasts.success(
-        context,
-        '${rows.length} attendance rows exported.',
-      );
+    if ((_selectedRange == 'Custom Week' || _selectedRange == 'Month') &&
+        _customDateRange != null) {
+      return _customDateRange;
     }
+
+    final dates =
+        rows
+            .map((row) => _parseFlexibleDate(_extractDateFromRow(row)))
+            .whereType<DateTime>()
+            .toList()
+          ..sort();
+    if (dates.isEmpty) return null;
+    return DateTimeRange(start: dates.first, end: dates.last);
+  }
+
+  String _dateRangeFileSegment(DateTime start, DateTime end) {
+    final sameMonth = start.year == end.year && start.month == end.month;
+    final month = _monthName(start.month).toLowerCase();
+    if (sameMonth) {
+      return '${month}_${start.day}-${end.day}';
+    }
+    return '${month}_${start.day}_${_monthName(end.month).toLowerCase()}_${end.day}';
+  }
+
+  String _monthName(int month) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+    if (month < 1 || month > 12) return 'Unknown';
+    return months[month - 1];
+  }
+
+  String _fileSafeSegment(String value) {
+    return value
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+        .replaceAll(RegExp(r'^_+|_+$'), '');
+  }
+
+  String _dateFilterLabel() {
+    final now = DateTime.now();
+    if (_selectedRange == 'Today') {
+      return 'Today (${_longDateLabel(DateTime(now.year, now.month, now.day))})';
+    }
+    if (_selectedRange == 'This Week') {
+      final start = DateTime(now.year, now.month, now.day);
+      final end = start.add(const Duration(days: 6));
+      return 'This Week (${_longDateLabel(start)} - ${_longDateLabel(end)})';
+    }
+    if (_selectedRange == 'Custom Week' && _customDateRange != null) {
+      return 'Custom Week (${_longDateLabel(_customDateRange!.start)} - ${_longDateLabel(_customDateRange!.end)})';
+    }
+    if (_selectedRange == 'Month' && _customDateRange != null) {
+      return _monthName(_customDateRange!.start.month);
+    }
+    return _selectedRange;
+  }
+
+  String _longDateLabel(DateTime date) {
+    return '${_monthName(date.month)} ${date.day}, ${date.year}';
+  }
+
+  bool _isEarlierTime(String candidate, String current) {
+    final candidateMinutes = _parseTimeToMinutes(candidate);
+    final currentMinutes = _parseTimeToMinutes(current);
+    if (candidateMinutes == null) return false;
+    if (currentMinutes == null) return true;
+    return candidateMinutes < currentMinutes;
+  }
+
+  bool _isLaterTime(String candidate, String current) {
+    final candidateMinutes = _parseTimeToMinutes(candidate);
+    final currentMinutes = _parseTimeToMinutes(current);
+    if (candidateMinutes == null) return false;
+    if (currentMinutes == null) return true;
+    return candidateMinutes > currentMinutes;
+  }
+
+  String _formatMinutesAsTime(int minutes) {
+    final hour = (minutes ~/ 60) % 24;
+    final minute = minutes % 60;
+    return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+  }
+
+  int? _parseTimeToMinutes(String value) {
+    if (!_hasAttendanceValue(value)) return null;
+    final trimmed = value.trim();
+
+    final amPmMatch = RegExp(
+      r'^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$',
+      caseSensitive: false,
+    ).firstMatch(trimmed);
+    if (amPmMatch != null) {
+      var hour = int.parse(amPmMatch.group(1)!);
+      final minute = int.parse(amPmMatch.group(2)!);
+      final meridiem = amPmMatch.group(3)!.toUpperCase();
+      if (meridiem == 'PM' && hour != 12) hour += 12;
+      if (meridiem == 'AM' && hour == 12) hour = 0;
+      return hour * 60 + minute;
+    }
+
+    try {
+      final parsed = DateTime.parse(trimmed);
+      return parsed.hour * 60 + parsed.minute;
+    } catch (_) {}
+
+    final timeMatch = RegExp(
+      r'(\d{1,2}):(\d{2})(?::\d{2})?',
+    ).firstMatch(trimmed);
+    if (timeMatch == null) return null;
+
+    final hour = int.tryParse(timeMatch.group(1)!);
+    final minute = int.tryParse(timeMatch.group(2)!);
+    if (hour == null || minute == null || hour > 23 || minute > 59) {
+      return null;
+    }
+    return hour * 60 + minute;
+  }
+
+  int _calculateTotalMinutesLate(Map<String, String> row) {
+    var total = 0;
+    final morningIn = _parseTimeToMinutes(row['morning_in'] ?? '');
+    if (morningIn != null && morningIn > 3 * 60) {
+      total += morningIn - 3 * 60;
+    }
+
+    final afternoonIn = _parseTimeToMinutes(row['afternoon_in'] ?? '');
+    if (afternoonIn != null && afternoonIn > 15 * 60) {
+      total += afternoonIn - 15 * 60;
+    }
+    return total;
+  }
+
+  bool _isHalfDay(Map<String, String> row) {
+    if (_isAbsent(row)) return false;
+    final hasMorning =
+        _hasAttendanceValue(row['morning_in'] ?? '') ||
+        _hasAttendanceValue(row['morning_out'] ?? '');
+    final hasAfternoon =
+        _hasAttendanceValue(row['afternoon_in'] ?? '') ||
+        _hasAttendanceValue(row['afternoon_out'] ?? '');
+    return hasMorning != hasAfternoon;
+  }
+
+  bool _isAbsent(Map<String, String> row) {
+    final note = (row['note'] ?? '').toLowerCase();
+    if (note.contains('absent') || note.contains('whole day')) return true;
+
+    final hasRegularOrOvertime = [
+      'morning_in',
+      'morning_out',
+      'afternoon_in',
+      'afternoon_out',
+      'overtime_in',
+      'overtime_out',
+    ].any((key) => _hasAttendanceValue(row[key] ?? ''));
+    return !hasRegularOrOvertime;
+  }
+
+  String _finalAttendanceValue(Map<String, String> row) {
+    if (_isAbsent(row)) return 'Absent';
+    if (_isHalfDay(row)) return 'Half Day';
+    return _calculateTotalMinutesLate(row).toString();
+  }
+
+  bool _hasAttendanceValue(String value) {
+    final normalized = value.trim().toLowerCase();
+    return normalized.isNotEmpty &&
+        normalized != 'nan' &&
+        normalized != 'null' &&
+        normalized != '-';
   }
 
   String _formatDisplayValue(String column, String rawValue) {
@@ -1100,18 +833,8 @@ class _AttendanceState extends State<Attendance> {
       final parsed = DateTime.tryParse(cleanDate);
       if (parsed != null) {
         const months = [
-          'Jan',
-          'Feb',
-          'Mar',
-          'Apr',
-          'May',
-          'Jun',
-          'Jul',
-          'Aug',
-          'Sep',
-          'Oct',
-          'Nov',
-          'Dec',
+          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
         ];
         return '${months[parsed.month - 1]} ${parsed.day.toString().padLeft(2, '0')}, ${parsed.year}';
       }
@@ -1137,10 +860,8 @@ class _AttendanceState extends State<Attendance> {
     if (lowerVal == 'overtime_out') return 'Overtime OUT';
     if (lowerVal == 'total_minutes_late') return 'Total Minutes Late';
     if (lowerVal == 'work_time' || lowerVal == 'work_hours') return 'Work Time';
-    if (lowerVal == 'daily_total' || lowerVal == 'total_hours')
-      return 'Daily Total';
-    if (lowerVal == 'note' || lowerVal == 'notes' || lowerVal == 'remarks')
-      return 'Note';
+    if (lowerVal == 'daily_total' || lowerVal == 'total_hours') return 'Daily Total';
+    if (lowerVal == 'note' || lowerVal == 'notes' || lowerVal == 'remarks') return 'Note';
 
     final cleaned = value
         .replaceAll(RegExp(r'[_-]+'), ' ')
@@ -1301,14 +1022,6 @@ class _AttendanceState extends State<Attendance> {
     return values;
   }
 
-  bool _hasAttendanceValue(String value) {
-    final normalized = value.trim().toLowerCase();
-    return normalized.isNotEmpty &&
-        normalized != 'nan' &&
-        normalized != 'null' &&
-        normalized != '-';
-  }
-
   Map<String, String> _buildShiftValues(List<String> times) {
     final shifts = {
       'morning_in': 'NaN',
@@ -1408,213 +1121,6 @@ class _AttendanceState extends State<Attendance> {
             _isLaterTime(outTime, currentOut))) {
       shifts[outKey] = outTime;
     }
-  }
-
-  String _exportBaseName(List<Map<String, String>> rows) {
-    final range = _activeDateFilterRange(rows);
-    if (range != null) {
-      return 'attendance_${_dateRangeFileSegment(range.start, range.end)}';
-    }
-
-    if (_sourceFileName != 'No file selected' &&
-        !_sourceFileName.startsWith('System ')) {
-      final source = _sourceFileName.replaceAll(RegExp(r'\.[^.]+$'), '');
-      return 'attendance_${_fileSafeSegment(source)}';
-    }
-
-    final suffix = _selectedRange == 'All Time'
-        ? 'all_time'
-        : _fileSafeSegment(_selectedRange);
-    return 'attendance_$suffix';
-  }
-
-  DateTimeRange? _activeDateFilterRange(List<Map<String, String>> rows) {
-    final now = DateTime.now();
-    if (_selectedRange == 'Today') {
-      final day = DateTime(now.year, now.month, now.day);
-      return DateTimeRange(start: day, end: day);
-    }
-    if (_selectedRange == 'This Week') {
-      final start = DateTime(now.year, now.month, now.day);
-      return DateTimeRange(
-        start: start,
-        end: start.add(const Duration(days: 6)),
-      );
-    }
-    if ((_selectedRange == 'Custom Week' || _selectedRange == 'Month') &&
-        _customDateRange != null) {
-      return _customDateRange;
-    }
-
-    final dates =
-        rows
-            .map((row) => _parseFlexibleDate(_extractDateFromRow(row)))
-            .whereType<DateTime>()
-            .toList()
-          ..sort();
-    if (dates.isEmpty) return null;
-    return DateTimeRange(start: dates.first, end: dates.last);
-  }
-
-  String _dateRangeFileSegment(DateTime start, DateTime end) {
-    final sameMonth = start.year == end.year && start.month == end.month;
-    final month = _monthName(start.month).toLowerCase();
-    if (sameMonth) {
-      return '${month}_${start.day}-${end.day}';
-    }
-    return '${month}_${start.day}_${_monthName(end.month).toLowerCase()}_${end.day}';
-  }
-
-  String _monthName(int month) {
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    if (month < 1 || month > 12) return 'Unknown';
-    return months[month - 1];
-  }
-
-  String _fileSafeSegment(String value) {
-    return value
-        .toLowerCase()
-        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
-        .replaceAll(RegExp(r'^_+|_+$'), '');
-  }
-
-  String _dateFilterLabel() {
-    final now = DateTime.now();
-    if (_selectedRange == 'Today') {
-      return 'Today(${_longDateLabel(DateTime(now.year, now.month, now.day))})';
-    }
-    if (_selectedRange == 'This Week') {
-      final start = DateTime(now.year, now.month, now.day);
-      final end = start.add(const Duration(days: 6));
-      return 'This Week(${_longDateLabel(start)} - ${_longDateLabel(end)})';
-    }
-    if (_selectedRange == 'Custom Week' && _customDateRange != null) {
-      return 'Custom Week(${_longDateLabel(_customDateRange!.start)} - ${_longDateLabel(_customDateRange!.end)})';
-    }
-    if (_selectedRange == 'Month' && _customDateRange != null) {
-      return _monthName(_customDateRange!.start.month);
-    }
-    return _selectedRange;
-  }
-
-  String _longDateLabel(DateTime date) {
-    return '${_monthName(date.month)} ${date.day}, ${date.year}';
-  }
-
-  bool _isEarlierTime(String candidate, String current) {
-    final candidateMinutes = _parseTimeToMinutes(candidate);
-    final currentMinutes = _parseTimeToMinutes(current);
-    if (candidateMinutes == null) return false;
-    if (currentMinutes == null) return true;
-    return candidateMinutes < currentMinutes;
-  }
-
-  bool _isLaterTime(String candidate, String current) {
-    final candidateMinutes = _parseTimeToMinutes(candidate);
-    final currentMinutes = _parseTimeToMinutes(current);
-    if (candidateMinutes == null) return false;
-    if (currentMinutes == null) return true;
-    return candidateMinutes > currentMinutes;
-  }
-
-  String _formatMinutesAsTime(int minutes) {
-    final hour = (minutes ~/ 60) % 24;
-    final minute = minutes % 60;
-    return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
-  }
-
-  int? _parseTimeToMinutes(String value) {
-    if (!_hasAttendanceValue(value)) return null;
-    final trimmed = value.trim();
-
-    final amPmMatch = RegExp(
-      r'^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)$',
-      caseSensitive: false,
-    ).firstMatch(trimmed);
-    if (amPmMatch != null) {
-      var hour = int.parse(amPmMatch.group(1)!);
-      final minute = int.parse(amPmMatch.group(2)!);
-      final meridiem = amPmMatch.group(3)!.toUpperCase();
-      if (meridiem == 'PM' && hour != 12) hour += 12;
-      if (meridiem == 'AM' && hour == 12) hour = 0;
-      return hour * 60 + minute;
-    }
-
-    try {
-      final parsed = DateTime.parse(trimmed);
-      return parsed.hour * 60 + parsed.minute;
-    } catch (_) {}
-
-    final timeMatch = RegExp(
-      r'(\d{1,2}):(\d{2})(?::\d{2})?',
-    ).firstMatch(trimmed);
-    if (timeMatch == null) return null;
-
-    final hour = int.tryParse(timeMatch.group(1)!);
-    final minute = int.tryParse(timeMatch.group(2)!);
-    if (hour == null || minute == null || hour > 23 || minute > 59) {
-      return null;
-    }
-    return hour * 60 + minute;
-  }
-
-  int _calculateTotalMinutesLate(Map<String, String> row) {
-    var total = 0;
-    final morningIn = _parseTimeToMinutes(row['morning_in'] ?? '');
-    if (morningIn != null && morningIn > 3 * 60) {
-      total += morningIn - 3 * 60;
-    }
-
-    final afternoonIn = _parseTimeToMinutes(row['afternoon_in'] ?? '');
-    if (afternoonIn != null && afternoonIn > 15 * 60) {
-      total += afternoonIn - 15 * 60;
-    }
-    return total;
-  }
-
-  bool _isHalfDay(Map<String, String> row) {
-    if (_isAbsent(row)) return false;
-    final hasMorning =
-        _hasAttendanceValue(row['morning_in'] ?? '') ||
-        _hasAttendanceValue(row['morning_out'] ?? '');
-    final hasAfternoon =
-        _hasAttendanceValue(row['afternoon_in'] ?? '') ||
-        _hasAttendanceValue(row['afternoon_out'] ?? '');
-    return hasMorning != hasAfternoon;
-  }
-
-  bool _isAbsent(Map<String, String> row) {
-    final note = (row['note'] ?? '').toLowerCase();
-    if (note.contains('absent') || note.contains('whole day')) return true;
-
-    final hasRegularOrOvertime = [
-      'morning_in',
-      'morning_out',
-      'afternoon_in',
-      'afternoon_out',
-      'overtime_in',
-      'overtime_out',
-    ].any((key) => _hasAttendanceValue(row[key] ?? ''));
-    return !hasRegularOrOvertime;
-  }
-
-  String _finalAttendanceValue(Map<String, String> row) {
-    if (_isAbsent(row)) return 'Absent';
-    if (_isHalfDay(row)) return 'Half Day';
-    return _calculateTotalMinutesLate(row).toString();
   }
 
   List<Map<String, String>> _mergeAttendanceRows(
@@ -2310,5 +1816,448 @@ class _AttendanceState extends State<Attendance> {
     sheet.setColumnWidth(7, 24.0);
 
     return Uint8List.fromList(workbook.encode() ?? []);
+  }
+
+  // ==========================================
+  // UI BUILD METHODS
+  // ==========================================
+
+  Widget _buildSummaryCards(bool isDark, List<Map<String, String>> data) {
+    final int total = data.length;
+    final int absent = data.where((r) => r['total_minutes_late'] == 'Absent').length;
+    final int halfDay = data.where((r) => r['total_minutes_late'] == 'Half Day').length;
+    final int late = data.where((r) {
+      final lateMins = int.tryParse(r['total_minutes_late'] ?? '0') ?? 0;
+      return lateMins > 0;
+    }).length;
+    final int onTime = total - absent - halfDay - late;
+
+    final cards = [
+      ('Total Records', '$total', 'Filtered entries', Icons.receipt_long, const Color(0xFF3B82F6)),
+      ('On Time', '$onTime', 'Perfect attendance', Icons.check_circle_outline, const Color(0xFF10B981)),
+      ('Late', '$late', 'Minutes tracked', Icons.access_time, const Color(0xFFF59E0B)),
+      ('Absent / Half Day', '${absent + halfDay}', 'Missed shifts', Icons.person_off_outlined, const Color(0xFFEF4444)),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 900;
+        final cardWidgets = cards.map((card) {
+          final Color baseColor = card.$5;
+          return Container(
+            constraints: const BoxConstraints(minHeight: 112),
+            width: isNarrow ? double.infinity : null,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: baseColor.withValues(alpha: 0.08),
+              border: Border.all(color: baseColor.withValues(alpha: 0.3)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Icon(card.$4, color: baseColor, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        card.$1,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: baseColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  card.$2,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 28,
+                    height: 1.0,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  card.$3,
+                  style: TextStyle(
+                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList();
+
+        if (isNarrow) {
+          return Column(
+            children: cardWidgets
+                .map((c) => Padding(padding: const EdgeInsets.only(bottom: 16), child: c))
+                .toList(),
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: cardWidgets[0]),
+            const SizedBox(width: 16),
+            Expanded(child: cardWidgets[1]),
+            const SizedBox(width: 16),
+            Expanded(child: cardWidgets[2]),
+            const SizedBox(width: 16),
+            Expanded(child: cardWidgets[3]),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildFilters(bool isDark) {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      alignment: WrapAlignment.start,
+      children: [
+        SizedBox(
+          width: 320,
+          height: 34,
+          child: TextField(
+            controller: _searchController,
+            onChanged: (value) => setState(() => _searchQuery = value),
+            style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 13),
+            decoration: InputDecoration(
+              hintText: 'Search employee or records...',
+              hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+              prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
+              filled: true,
+              fillColor: Theme.of(context).cardColor,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+                borderSide: BorderSide(color: Theme.of(context).dividerColor),
+              ),
+            ),
+          ),
+        ),
+        Container(
+          width: 220,
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            border: Border.all(color: Theme.of(context).dividerColor),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: _selectedRange,
+              isExpanded: true,
+              isDense: true,
+              icon: const Padding(
+                padding: EdgeInsets.only(left: 8.0),
+                child: Icon(Icons.calendar_today_outlined, size: 16),
+              ),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+              dropdownColor: Theme.of(context).cardColor,
+              selectedItemBuilder: (BuildContext context) {
+                return ['Today', 'This Week', 'Custom Week', 'Month', 'All Time']
+                    .map((String value) {
+                  return Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Date: ${_dateFilterLabel()}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                }).toList();
+              },
+              items: const [
+                DropdownMenuItem(value: 'Today', child: Text('Today')),
+                DropdownMenuItem(value: 'This Week', child: Text('This Week')),
+                DropdownMenuItem(value: 'Custom Week', child: Text('Custom Week...')),
+                DropdownMenuItem(value: 'Month', child: Text('Month...')),
+                DropdownMenuItem(value: 'All Time', child: Text('All Time')),
+              ],
+              onChanged: (val) async {
+                if (val == 'Custom Week') {
+                  final picked = await showDateRangePicker(
+                    context: context,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2100),
+                    initialDateRange: _customDateRange,
+                    builder: (context, child) {
+                      return Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 400, maxHeight: 600),
+                          child: child,
+                        ),
+                      );
+                    },
+                  );
+                  if (picked != null) {
+                    final dayCount = picked.end.difference(picked.start).inDays + 1;
+                    if (dayCount > 7) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Attendance print range can only be one week at most.')),
+                      );
+                      return;
+                    }
+                    setState(() {
+                      _selectedRange = val!;
+                      _customDateRange = picked;
+                    });
+                  }
+                } else if (val == 'Month') {
+                  final picked = await showDatePicker(
+                    context: context,
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2100),
+                    initialDate: _customDateRange?.start ?? DateTime.now(),
+                    helpText: 'Select month',
+                    builder: (context, child) {
+                      return Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 400, maxHeight: 600),
+                          child: child,
+                        ),
+                      );
+                    },
+                  );
+                  if (picked != null) {
+                    final start = DateTime(picked.year, picked.month, 1);
+                    final end = DateTime(picked.year, picked.month + 1, 0);
+                    setState(() {
+                      _selectedRange = val!;
+                      _customDateRange = DateTimeRange(start: start, end: end);
+                    });
+                  }
+                } else {
+                  setState(() {
+                    _selectedRange = val!;
+                    _customDateRange = null;
+                  });
+                }
+              },
+            ),
+          ),
+        ),
+        Container(
+          width: 190,
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            border: Border.all(color: Theme.of(context).dividerColor),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<bool>(
+              value: _sortDateAscending,
+              isExpanded: true,
+              isDense: true,
+              icon: const Padding(
+                padding: EdgeInsets.only(left: 8.0),
+                child: Icon(Icons.sort, size: 16),
+              ),
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+              dropdownColor: Theme.of(context).cardColor,
+              selectedItemBuilder: (BuildContext context) {
+                return [false, true].map((bool value) {
+                  return Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Sort: ${value ? 'Oldest First' : 'Newest First'}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  );
+                }).toList();
+              },
+              items: const [
+                DropdownMenuItem(value: false, child: Text('Newest First')),
+                DropdownMenuItem(value: true, child: Text('Oldest First')),
+              ],
+              onChanged: (val) {
+                if (val != null) setState(() => _sortDateAscending = val);
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final activeData = _processedRows;
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 1. TOP ROW: Title on Left, Actions on Right
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Attendance',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                      ),
+                      const SizedBox(height: 1),
+                    ],
+                  ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(backgroundColor: EnterpriseColors.generativeAction),
+                        onPressed: _isImporting ? null : _pickExcelFile,
+                        icon: _isImporting
+                            ? const SizedBox(width: 17, height: 17, child: EnterpriseLoadingIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.upload_file_outlined, size: 17),
+                        label: Text(_isImporting ? 'Importing...' : 'Import Excel'),
+                      ),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        onPressed: _showExportDialog,
+                        icon: const Icon(Icons.download_outlined, size: 17),
+                        label: const Text('Export'),
+                      ),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        onPressed: _loadAttendanceData,
+                        icon: const Icon(Icons.refresh, size: 17),
+                        label: const Text('Refresh'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // 2. CARDS
+              if (_isLoadingSystemData)
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 900;
+                    if (isNarrow) {
+                      return Column(
+                        children: List.generate(
+                          4,
+                          (_) => const Padding(
+                            padding: EdgeInsets.only(bottom: 16),
+                            child: SizedBox(height: 112, width: double.infinity, child: EnterpriseSummaryCardSkeleton()),
+                          ),
+                        ),
+                      );
+                    }
+                    return Row(
+                      children: const [
+                        Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
+                        SizedBox(width: 16),
+                        Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
+                        SizedBox(width: 16),
+                        Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
+                        SizedBox(width: 16),
+                        Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
+                      ],
+                    );
+                  },
+                )
+              else
+                _buildSummaryCards(isDark, activeData),
+
+              const SizedBox(height: 32),
+
+              // 3. FILTERS (Anchored Left)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: _buildFilters(isDark),
+              ),
+
+              const SizedBox(height: 24),
+
+              // 4. DATA GRID
+              Expanded(
+                child: _isLoadingSystemData
+                    ? EnterpriseTableSkeleton(columns: _columns.isEmpty ? 6 : _columns.length + 1)
+                    : activeData.isEmpty
+                    ? EnterpriseEmptyState(
+                        icon: Icons.fact_check_outlined,
+                        title: _rows.isEmpty ? 'Import the first attendance file' : 'Nothing matches the current search or filters',
+                        message: _rows.isEmpty
+                            ? 'Import a biometric workbook to establish the attendance register for payroll and workforce reporting.'
+                            : 'No attendance records match the current date range and search query.',
+                        actionLabel: _rows.isEmpty ? 'Import attendance file' : null,
+                        onAction: _rows.isEmpty ? _pickExcelFile : null,
+                      )
+                    : EnterpriseDataGrid<Map<String, String>>(
+                      emptyTitle: 'No attendance records match the current search or filters',
+                      emptyMessage: 'Try adjusting the date range or search query to find records.',
+                        rows: activeData,
+                        rowKey: (row) => '${row['employee_id'] ?? row['employee'] ?? ''}-${row['date'] ?? ''}',
+                        height: double.infinity,
+                        showDateRange: false, // Disables native top-right Date Range control
+                        filterFields: const [], // Clean table top
+                        columns: _columns.map((column) => EnterpriseGridColumn<Map<String, String>>(
+                              label: _formatTableHeader(column),
+                              width: column == 'employee' || column == 'employee_name' ? 240 : 150,
+                              value: (row) => _formatDisplayValue(column, row[column] ?? ''),
+                              cellBuilder: column == 'total_minutes_late'
+                                  ? (context, row) {
+                                      final raw = row[column] ?? '';
+                                      final flagged = (int.tryParse(raw) ?? 0) > 0 ||
+                                          raw.toLowerCase().contains('half') ||
+                                          raw.toLowerCase().contains('absent');
+                                      return Text(
+                                        _formatDisplayValue(column, raw),
+                                        style: TextStyle(
+                                          color: flagged ? Theme.of(context).colorScheme.error : null,
+                                          fontWeight: flagged ? FontWeight.w800 : null,
+                                        ),
+                                      );
+                                    }
+                                  : null,
+                            )).toList(),
+                        onExportSelection: _exportAttendanceSelection,
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

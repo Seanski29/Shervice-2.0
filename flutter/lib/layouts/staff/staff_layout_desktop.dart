@@ -60,7 +60,7 @@ class StaffLayoutDesktop extends StatelessWidget {
         const EnterpriseNavigationItem(
           label: 'Drivers',
           icon: Icons.badge_outlined,
-          section: 'Operations',
+          section: 'Workforce',
           screen: StaffDrivers(),
           keywords: ['operators', 'profiles'],
         ),

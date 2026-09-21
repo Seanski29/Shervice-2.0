@@ -56,7 +56,7 @@ class _AdminDriverState extends State<AdminDriver> {
 
         // Pass UI text and actions directly so the view can wrap them dynamically
         title: 'Drivers',
-        subtitle: 'Owner: Admin',
+        subtitle: '',
 
         // The Add Driver action widget
         actionWidget: ElevatedButton.icon(
