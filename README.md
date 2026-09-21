@@ -1,71 +1,72 @@
 # Shervice: GT LANTIN Shuttle Service Management System
 
-> **Upgrading manual fleet operations to an automated, data-driven ecosystem using machine learning and modern web technologies.**
+> **Upgrading manual fleet operations to an automated, data-driven system using analytics and modern web technologies.**
 
-Shervice is an enterprise-grade transport management system engineered to modernize the shuttle operations of GT LANTIN Shuttle Rental Services. Replacing legacy tracking methods, whiteboards, and paper logs, the platform seamlessly coordinates over 70 vehicles and 12,000+ weekly passenger trips for top-tier corporate clients including EPSON, Bandai Namco, and NX Logistics.
+Shervice is a transport management system built to update the shuttle operations of GT LANTIN Shuttle Rental Services. It replaces manual tracking methods, whiteboards, and paper logs. The system manages over 70 vehicles and more than 12,000 weekly passenger trips for corporate clients, including EPSON, Bandai Namco, and NX Logistics.
 
-By uniting a cross-platform web interface with a dual-engine backend, Shervice leverages machine learning to predict vehicle maintenance, analyze route delays, and continuously evaluate driver performance.
+By combining a web platform with a dual-engine backend, Shervice uses machine learning to predict vehicle maintenance, analyze route delays, and evaluate driver performance.
 
 ---
 
 ## System Architecture and Technology Stack
 
-Shervice utilizes a modular architecture to strictly separate the user interface, background processing, and database management, ensuring scalability and maintainability.
+Shervice uses a structured design to clearly separate the user interface, system processes, and database management.
 
 ### 1. Presentation Layer (Frontend)
 
-* **Unified Web Portal:** Built entirely in Flutter Web, running on `Railway`. Manages the complete user journey from secure authentication sessions , role-based application layouts (Admin and Staff).
-* **Responsive Enterprise UI:** Utilizes custom Flutter themes (`EnterpriseColors`, `EnterpriseEmptyState`) and responsive `LayoutBuilder` constraints to ensure the interface adapts flawlessly from desktop admin monitors to mobile devices used by drivers in the field.
+* **Authentication Hub:** React.js (18.3+) and Vite (5.0+) running on `localhost:3000`. Handles user sessions, secure logins, and role-based access.
+* **Main Application Portal:** Flutter Web running on `localhost:8080`. Loads specific layouts based on the user's role (for example, `?role=admin`) passed from the React hub.
+* **Styling and Layout:** Tailwind CSS (3.4) ensures the interface works well on mobile devices for drivers in the field.
 
 ### 2. Application Layer (Backend)
 
-* **Primary Server:** Node.js (20.x) with Express.js (4.19) manages core business logic, API requests, and data ingestion (attendance and trip logs).
-* **Real-Time Updates:** Socket.io (4.7) drives bidirectional communication, pushing live operational updates and alerts directly to the Admin dashboard.
-* **Analytics Engine:** Python Flask (3.0) operates as a dedicated microservice to host the machine learning models and execute heavy computational analytics.
+* **Primary Server:** Node.js (20.x) with Express.js (4.19) processes tasks, handles API requests, and manages data inputs like attendance and trip logs.
+* **Real-Time Updates:** Socket.io (4.7) handles two-way communication, sending live updates and notifications to the Admin dashboard.
+* **Analytics Engine:** Python Flask (3.0) runs as a separate service to host machine learning models and process complex calculations.
 
 ### 3. Data Layer
 
-* **Database:** MySQL / PostgreSQL (16) serves as the primary relational store for driver records, historical operational logs, and maintenance tracking.
-* **Backend-as-a-Service:** Supabase provides secure authentication infrastructure and real-time database synchronization.
+* **Database:** MySQL / PostgreSQL (16) stores driver records, operational logs, and maintenance histories.
+* **Backend Service:** Supabase provides secure login features and real-time database updates.
 
 ---
 
 ## Machine Learning and Analytics
 
-Shervice integrates Scikit-learn (1.4) and Pandas (2.2) to transform raw daily logs into actionable operational intelligence.
+Shervice uses Scikit-learn (1.4) and Pandas (2.2) to turn daily logs into useful information for the business.
 
 ### 1. Driver Performance Classification (Random Forest)
 
-This model synthesizes biometric attendance records with live passenger feedback to autonomously categorize driver performance into actionable tiers (e.g., Highly Reliable, Needs Improvement).
+This feature combines driver attendance records and passenger feedback to group driver performance into clear categories, such as Highly Reliable or Needs Improvement.
 
-* **Evaluation Metrics:** Validated using Accuracy, Precision, Recall, and the F1-Score.
+* **Evaluation Metrics:** Measured using Accuracy, Precision, Recall, and the F1-Score.
 
 $$F_{1}=2\frac{precision\cdot recall}{precision+recall}$$
 
 ### 2. Predictive Maintenance (Multiple Linear Regression)
 
-Transitioning the fleet from reactive repairs to preventative care, this model calculates the correlation between historical vehicle wear metrics and future servicing requirements to mitigate unexpected downtime.
+This model shifts fleet management from reacting to problems to preventing them. It calculates the relationship between past vehicle wear and future maintenance needs to avoid unexpected breakdowns.
 
 $$y=\beta_0+\beta_1x_1+\beta_2x_2+...+\beta_nx_n+\epsilon$$
 
-* **Evaluation Metrics:** Validated using Mean Absolute Error (MAE) and Root Mean Squared Error (RMSE).
+* **Evaluation Metrics:** Measured using Mean Absolute Error (MAE) and Root Mean Squared Error (RMSE).
 
 ### 3. Route Delay Analysis (K-Means Clustering)
 
-This spatial model groups analogous routing bottlenecks by evaluating transit distances, vehicle health metrics, and historical arrival variances, allowing dispatchers to systematically resolve common delays.
+This model groups similar route issues by analyzing distances, vehicle health, and arrival times. It helps dispatchers identify and fix common delays.
 
-* **Optimization Target:** Minimizes the Within-Cluster Sum of Squares (WCSS).
+* **Optimization:** Minimizes the Within-Cluster Sum of Squares (WCSS).
 
-$$J=\sum_{j=1}^{k}\sum_{i=1}^{n}\Vert{}x_i^{(j)}-c_j\Vert{}^2$$
+$$J=\sum_{j=1}^{k}\sum_{i=1}^{n}\vert{}\vert{}x_i^{(j)}-c_j\vert{}\vert{}^2$$
 
 ---
 
 ## Core Features by User Role
 
-* **Administrators and Dispatch Staff:** Maintain driver registries, assign daily trip schedules, log vehicle maintenance events, and monitor the live analytics dashboard for real-time fleet performance.
-* **Drivers:** Access a mobile-optimized web portal to review assigned vehicles and routing schedules. On-site attendance is securely logged via biometric fingerprint scanners for precise time-in/time-out tracking.
-* **Officer-in-Charge (OIC):** Client enterprise representatives utilize a dedicated portal to submit shift schedules, forecast passenger volumes, and dispatch specific trip requests.
-* **Passengers:** Scan in-cabin QR codes to access a rapid feedback interface. Passengers rate drivers on safety, professionalism, and punctuality, directly feeding the machine learning evaluation models.
+* **Administrators and Staff:** Manage driver records, assign daily trips, log vehicle maintenance, and view the analytics dashboard for real-time performance tracking.
+* **Drivers:** Use a mobile-friendly site to check assigned vehicles and schedules. Their attendance is recorded using biometric fingerprint scanners for daily time-in and time-out.
+* **Officer-in-Charge (OIC):** Client representatives use a separate portal to submit shift schedules, provide passenger counts, and make specific trip requests.
+* **Passengers:** Scan QR codes inside the vehicles to access a feedback form. They rate drivers on safety, attitude, and punctuality, which provides data for the machine learning models.
 
 ---
 
@@ -73,7 +74,7 @@ $$J=\sum_{j=1}^{k}\sum_{i=1}^{n}\Vert{}x_i^{(j)}-c_j\Vert{}^2$$
 
 ### Prerequisites
 
-Ensure your local development environment includes the following dependencies:
+Make sure your computer has the following installed:
 
 * Node.js v20+
 * Flutter SDK
@@ -82,17 +83,14 @@ Ensure your local development environment includes the following dependencies:
 
 ### Running the System Locally
 
-The backend analytics engine and the Flutter web portal must run concurrently in separate terminal instances.
+You need to run the backend and the frontend at the same time in separate terminal windows.
 
-**Terminal 1: Python Analytics Backend**
+**Terminal 1: Python Backend**
 
 ```bash
 cd python
-
-# Activate your virtual environment (Windows example)
+# Activate your virtual environment (Windows example below)
 .\Activate.ps1    
-
-# Launch the Flask server
 python app.py
 
 ```
@@ -101,8 +99,6 @@ python app.py
 
 ```bash
 cd flutter
-
-# Launch the Flutter web application
 flutter run -d chrome --web-port 8080 --no-web-resources-cdn
 
 ```
