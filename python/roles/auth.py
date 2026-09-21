@@ -10,8 +10,6 @@ supabase = None
 def get_admin_client():
     admin_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     if not admin_key or admin_key == "your_service_role_key_here":
-        admin_key = os.getenv("SUPABASE_KEY")
-    if not admin_key:
         raise RuntimeError("Missing SUPABASE_SERVICE_ROLE_KEY for admin auth operations.")
     return create_client(os.getenv("SUPABASE_URL"), admin_key)
 

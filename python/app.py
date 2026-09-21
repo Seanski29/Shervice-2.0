@@ -23,23 +23,28 @@ class TransportBackendApp:
         # 1. Initialize safe environment profile keys
         load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
         self.app = Flask(__name__)
-        
+
+        allowed_origins = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8080,http://localhost:5000")
+        allowed_origins_list = [origin.strip() for origin in allowed_origins.split(",") if origin.strip()]
+
         CORS(self.app, resources={
             r"/*": {
-                "origins": "*",
+                "origins": allowed_origins_list,
                 "allow_headers": ["Content-Type", "Authorization", "Accept"],
                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
             }
         })
-        
+
         # 3. Setup core unified database engine connection parameters
         self.supabase_url = os.getenv("SUPABASE_URL")
-        self.supabase_key = os.getenv("SUPABASE_ANON_KEY") or os.getenv("SUPABASE_KEY")
-        
-        if not self.supabase_url or not self.supabase_key:
+        self.supabase_anon_key = os.getenv("SUPABASE_ANON_KEY")
+        self.supabase_service_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+        if not self.supabase_url or not self.supabase_anon_key:
             raise ValueError("Missing SUPABASE_URL or SUPABASE_ANON_KEY inside your backend .env file!")
-            
-        self.supabase: Client = create_client(self.supabase_url, self.supabase_key)
+
+        self.supabase: Client = create_client(self.supabase_url, self.supabase_anon_key)
+        self.service_supabase = create_client(self.supabase_url, self.supabase_service_key) if self.supabase_service_key else None
         
         # 4. Bind hooks and structural modular router blueprints
         self._register_hooks()
