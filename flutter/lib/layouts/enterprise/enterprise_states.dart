@@ -1,8 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../theme/enterprise_theme.dart';
+import 'enterprise_theme.dart';
 
+class EnterpriseSummaryCardSkeleton extends StatelessWidget {
+  const EnterpriseSummaryCardSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = isDark ? EnterpriseColors.darkSurfaceMuted : const Color(0xFFD8DEE8);
+    
+    return Container(
+      constraints: const BoxConstraints(minHeight: 112),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? color.withValues(alpha: 0.7) : const Color(0xFFF1F4F8),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? EnterpriseColors.darkBorder : const Color(0xFFD0D5DD),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min, // <-- FIX: Prevents vertical overflow inside flexible cards
+              children: [
+                Container(
+                  width: 54,
+                  height: 16,
+                  decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
+                ),
+                const SizedBox(height: 6),
+                FractionallySizedBox(
+                  widthFactor: 0.8,
+                  child: Container(
+                    height: 10,
+                    decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 class EnterpriseSummaryCard extends StatelessWidget {
   const EnterpriseSummaryCard({
     super.key,
@@ -25,7 +81,7 @@ class EnterpriseSummaryCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      constraints: const BoxConstraints(minHeight: 112), // Minimum height to prevent overflow
+      constraints: const BoxConstraints(minHeight: 112), 
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
@@ -35,7 +91,7 @@ class EnterpriseSummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min, // Prevents pixel overflow inside flexible grids
+        mainAxisSize: MainAxisSize.min, 
         children: [
           Row(
             children: [
@@ -64,7 +120,7 @@ class EnterpriseSummaryCard extends StatelessWidget {
               color: theme.colorScheme.onSurface,
               fontWeight: FontWeight.w900,
               fontSize: 28,
-              height: 1.0, // Tightly constraints the text height bounds to prevent overflow
+              height: 1.0, 
             ),
           ),
           if (subtitle != null) ...[
@@ -82,70 +138,6 @@ class EnterpriseSummaryCard extends StatelessWidget {
     );
   }
 }
-
-class EnterpriseSummaryCardSkeleton extends StatelessWidget {
-  const EnterpriseSummaryCardSkeleton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color = isDark
-        ? EnterpriseColors.darkSurfaceMuted
-        : const Color(0xFFD8DEE8);
-    return Container(
-      constraints: const BoxConstraints(minHeight: 112),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? color.withValues(alpha: 0.7) : const Color(0xFFF1F4F8),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark ? EnterpriseColors.darkBorder : const Color(0xFFD0D5DD),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(14),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 54,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                FractionallySizedBox(
-                  widthFactor: 0.8,
-                  child: Container(
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class EnterpriseTableSkeleton extends StatelessWidget {
   const EnterpriseTableSkeleton({super.key, this.rows = 7, this.columns = 5});
 
@@ -172,123 +164,129 @@ class EnterpriseTableSkeleton extends StatelessWidget {
         builder: (context, opacity, child) {
           final headColor = highlightColor.withValues(alpha: opacity);
           final rowColor = baseColor.withValues(alpha: opacity);
+          
           return Container(
+            clipBehavior: Clip.hardEdge, // <-- FIX 1: Cleanly slices off overflowing content
             decoration: BoxDecoration(
               color: theme.cardColor,
               border: Border.all(color: theme.dividerColor),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: 30,
-                          decoration: BoxDecoration(
-                            color: headColor,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Container(
-                        width: 88,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: headColor,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  height: 42,
-                  color: theme.brightness == Brightness.dark
-                      ? EnterpriseColors.darkSurfaceMuted
-                      : EnterpriseColors.lightSurfaceMuted,
-                  child: Row(
-                    children: List.generate(columns, (index) {
-                      return Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(
-                            left: index == 0 ? 12 : 0,
-                            right: 12,
-                          ),
+            child: SingleChildScrollView( // <-- FIX 2: Safe overflow wrapper
+              physics: const NeverScrollableScrollPhysics(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min, // <-- FIX 3: Shrink-wrap the column
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+                    child: Row(
+                      children: [
+                        Expanded(
                           child: Container(
-                            height: 12,
-                            width: 80,
+                            height: 30,
                             decoration: BoxDecoration(
                               color: headColor,
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(8),
                             ),
                           ),
                         ),
-                      );
-                    }),
-                  ),
-                ),
-                for (var index = 0; index < rows; index++)
-                  Container(
-                    height: 44,
-                    decoration: BoxDecoration(
-                      border: Border(
-                        top: BorderSide(color: theme.dividerColor),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
                         const SizedBox(width: 12),
                         Container(
-                          width: 22,
-                          height: 22,
+                          width: 88,
+                          height: 28,
                           decoration: BoxDecoration(
-                            color: rowColor,
-                            borderRadius: BorderRadius.circular(6),
+                            color: headColor,
+                            borderRadius: BorderRadius.circular(14),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        for (var col = 0; col < columns - 1; col++)
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.only(right: 12),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Container(
-                                  height: 10,
-                                  width: col == 0 ? 120 : 90,
-                                  decoration: BoxDecoration(
-                                    color: rowColor,
-                                    borderRadius: BorderRadius.circular(5),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    height: 42,
+                    color: theme.brightness == Brightness.dark
+                        ? EnterpriseColors.darkSurfaceMuted
+                        : EnterpriseColors.lightSurfaceMuted,
+                    child: Row(
+                      children: List.generate(columns, (index) {
+                        return Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              left: index == 0 ? 12 : 0,
+                              right: 12,
+                            ),
+                            child: Container(
+                              height: 12,
+                              width: 80,
+                              decoration: BoxDecoration(
+                                color: headColor,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+                  for (var index = 0; index < rows; index++)
+                    Container(
+                      height: 44,
+                      decoration: BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: theme.dividerColor),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const SizedBox(width: 12),
+                          Container(
+                            width: 22,
+                            height: 22,
+                            decoration: BoxDecoration(
+                              color: rowColor,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          for (var col = 0; col < columns - 1; col++)
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 12),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Container(
+                                    height: 10,
+                                    width: col == 0 ? 120 : 90,
+                                    decoration: BoxDecoration(
+                                      color: rowColor,
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Container(
-                      height: 6,
-                      width: 160,
-                      decoration: BoxDecoration(
-                        color: headColor,
-                        borderRadius: BorderRadius.circular(3),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Container(
+                        height: 6,
+                        width: 160,
+                        decoration: BoxDecoration(
+                          color: headColor,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           );
         },

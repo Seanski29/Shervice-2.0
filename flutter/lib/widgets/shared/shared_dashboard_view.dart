@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import '../../theme/enterprise_theme.dart';
+import '../../layouts/enterprise/enterprise_theme.dart';
 import '../../utils/file_download.dart';
 import '../../layouts/enterprise/enterprise_data_grid.dart';
 import '../../layouts/enterprise/enterprise_data_table2.dart';
@@ -77,18 +77,8 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
   List<int> _availableDriverYears = [];
 
   final List<String> _monthNames = const [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
   ];
 
   @override
@@ -160,44 +150,36 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
             _metrics = [
               DashboardMetric(
                 title: 'Total Trips',
-                value:
-                    (metricsMap['totalTrips'] ??
-                            metricsMap['ongoingTrips'] ??
-                            0)
-                        .toString(),
-                subTitle: '',
+                value: (metricsMap['totalTrips'] ?? metricsMap['ongoingTrips'] ?? 0).toString(),
+                subTitle: '', // <-- FIX ADDED HERE
                 icon: Icons.route,
                 baseColor: const Color(0xFF3B82F6),
               ),
               DashboardMetric(
                 title: 'Total Passengers',
                 value: (metricsMap['totalPassengers'] ?? 0).toString(),
-                subTitle: '',
+                subTitle: '', // <-- FIX ADDED HERE
                 icon: Icons.groups_outlined,
                 baseColor: const Color(0xFF8B5CF6),
               ),
               DashboardMetric(
                 title: 'Active Drivers',
-                value:
-                    (metricsMap['activeDrivers'] ??
-                            metricsMap['totalDrivers'] ??
-                            0)
-                        .toString(),
-                subTitle: '',
+                value: (metricsMap['activeDrivers'] ?? metricsMap['totalDrivers'] ?? 0).toString(),
+                subTitle: '', // <-- FIX ADDED HERE
                 icon: Icons.people_alt,
                 baseColor: const Color(0xFF06B6D4),
               ),
               DashboardMetric(
                 title: 'Active Vehicles',
                 value: (metricsMap['activeVehicles'] ?? 0).toString(),
-                subTitle: '',
+                subTitle: '', // <-- FIX ADDED HERE
                 icon: Icons.directions_car,
                 baseColor: const Color(0xFF10B981),
               ),
               DashboardMetric(
                 title: 'Maintenance Alerts',
                 value: (metricsMap['maintenanceAlerts'] ?? 0).toString(),
-                subTitle: '',
+                subTitle: '', // <-- FIX ADDED HERE
                 icon: Icons.build_circle,
                 baseColor: const Color(0xFFEF4444),
               ),
@@ -401,7 +383,6 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
         children: [
           if (_errorMessage != null) _buildErrorBanner(),
           
-          // REPLACED WRAP WITH ROW: Title and Controls now share the top horizontal line perfectly
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -520,11 +501,6 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                   value: (metric) => metric.value,
                   compare: (first, second) =>
                       _parseInt(first.value).compareTo(_parseInt(second.value)),
-                ),
-                EnterpriseGridColumn(
-                  label: 'Scope',
-                  width: 220,
-                  value: (metric) => metric.subTitle,
                 ),
                 EnterpriseGridColumn(
                   label: 'Detail records',
@@ -717,7 +693,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
     final buffer = StringBuffer('Measure,Value,Scope\n');
     for (final metric in metrics) {
       buffer.writeln(
-        '"${metric.title}","${metric.value}","${metric.subTitle}"',
+        '"${metric.title}","${metric.value}","${metric.subTitle ?? ''}"',
       );
     }
     await _downloadDashboardCsv('shervice-dashboard-summary.csv', buffer);

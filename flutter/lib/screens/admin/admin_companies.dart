@@ -6,7 +6,7 @@ import '../../layouts/enterprise/enterprise_states.dart';
 import 'package:http/http.dart' as http;
 import '../../constant.dart';
 import '../../utils/file_download.dart';
-import '../../theme/enterprise_theme.dart';
+import '../../layouts/enterprise/enterprise_theme.dart';
 
 class AdminCompanies extends StatefulWidget {
   const AdminCompanies({super.key});

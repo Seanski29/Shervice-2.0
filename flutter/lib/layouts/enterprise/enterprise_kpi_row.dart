@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../theme/enterprise_theme.dart';
+import 'enterprise_theme.dart';
 import '../../widgets/shared/shared_dashboard_metric.dart';
 
 class EnterpriseKpiRow extends StatelessWidget {

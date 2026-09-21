@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../theme/enterprise_theme.dart';
+import 'enterprise_theme.dart';
 import 'enterprise_states.dart';
 import '../../widgets/interface/universal_pagination.dart';
 

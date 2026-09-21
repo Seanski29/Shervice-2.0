@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart' as mui;
 
-import '../../theme/enterprise_theme.dart';
+import 'enterprise_theme.dart';
 import 'enterprise_states.dart';
 
 class EnterpriseTableColumn<T> {

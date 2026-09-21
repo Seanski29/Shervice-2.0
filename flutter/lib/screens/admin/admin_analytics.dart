@@ -5,7 +5,7 @@ import '../../screens/admin/admin_drivers.dart';
 import '../../screens/admin/admin_vehicles.dart';
 import '../../screens/admin/admin_users.dart';
 import '../../screens/admin/admin_settings.dart';
-import '../../widgets/shared/shared_analytics_hub.dart';
+import '../../widgets/analytics/shared_analytics_hub.dart';
 import '../../login/login.dart';
 import '../../widgets/notifcations/notification_bell.dart';
 import '../../widgets/interface/shervice_floating_stack.dart';

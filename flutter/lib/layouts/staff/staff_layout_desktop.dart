@@ -12,8 +12,8 @@ import '../../screens/staff/staff_vehicle.dart';
 import '../../session_manager.dart';
 import '../enterprise/enterprise_shell.dart';
 import '../../widgets/notifcations/notification_bell.dart';
-import '../../widgets/shared/shared_analytics_hub.dart';
-import '../../widgets/staff/staff_profile_button.dart';
+import '../../widgets/analytics/shared_analytics_hub.dart';
+import '../../widgets/interface/staff_profile_button.dart';
 
 class StaffLayoutDesktop extends StatelessWidget {
   const StaffLayoutDesktop({

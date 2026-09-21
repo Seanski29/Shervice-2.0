@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import '../../layouts/enterprise/enterprise_states.dart';
-import '../../theme/enterprise_theme.dart';
+import '../../layouts/enterprise/enterprise_theme.dart';
 
 // ============================================================================
 // STAFF ATTENDANCE WIDGET

@@ -15,7 +15,7 @@ import '../../session_manager.dart';
 import '../../widgets/admin/admin_profile_button.dart';
 import '../enterprise/enterprise_shell.dart';
 import '../../widgets/notifcations/notification_bell.dart';
-import '../../widgets/shared/shared_analytics_hub.dart';
+import '../../widgets/analytics/shared_analytics_hub.dart';
 
 class AdminDesktopLayout extends StatelessWidget {
   const AdminDesktopLayout({
