@@ -401,25 +401,30 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
                   child: Row(
                     children: [
                       Expanded(
-                        child: Text(
-                          widget.columns[index].label,
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: theme.colorScheme.onSurface,
-                            fontWeight: FontWeight.w700,
+                        child: Center(
+                          child: Text(
+                            widget.columns[index].label,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: theme.colorScheme.onSurface,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       Icon(
                         _sortColumn == index
                             ? (_sortAscending
-                                ? Icons.arrow_upward
-                                : Icons.arrow_downward)
+                                  ? Icons.arrow_upward
+                                  : Icons.arrow_downward)
                             : Icons.unfold_more,
                         size: 14,
                         color: _sortColumn == index
                             ? EnterpriseColors.primary
-                            : theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                            : theme.colorScheme.onSurface.withValues(
+                                alpha: 0.55,
+                              ),
                       ),
                     ],
                   ),
@@ -552,13 +557,20 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
               child: Row(
                 children: [
                   Expanded(
-                    child:
-                        column.cellBuilder?.call(context, row) ??
-                        Text(
-                          column.value(row),
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodyMedium,
-                        ),
+                    child: Align(
+                      alignment: Alignment.center,
+                      child: SizedBox(
+                        width: double.infinity,
+                        child:
+                            column.cellBuilder?.call(context, row) ??
+                            Text(
+                              column.value(row),
+                              textAlign: TextAlign.center,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                      ),
+                    ),
                   ),
                   if (column.editable)
                     const Icon(
@@ -607,9 +619,13 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
               style: Theme.of(context).textTheme.bodySmall,
             ),
           if (!widget.paginate || rowCount == 0) const Spacer(),
-          Text(
-            'Arrow keys move cells | Tab advances | F2 edits',
-            style: Theme.of(context).textTheme.bodySmall,
+          Flexible(
+            child: Text(
+              'Arrow keys move cells | Tab advances | F2 edits',
+              textAlign: TextAlign.right,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ),
         ],
       ),

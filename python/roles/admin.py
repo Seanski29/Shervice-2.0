@@ -750,7 +750,9 @@ def get_driver_leaderboard():
         raw_month = request.args.get('month', '0').lower()
         limit_param = request.args.get('limit', '10').lower()
         
-        drivers_res = supabase.table('driver_profile').select('*').limit(5000).execute()
+        drivers_res = supabase.table('driver_profile').select(
+            'driver_id, full_name, phone_no, employment_status, ml_classification'
+        ).limit(5000).execute()
         all_drivers = drivers_res.data or []
         
         driver_scores = {d['driver_id']: [] for d in all_drivers if d.get('driver_id') is not None}
@@ -815,7 +817,6 @@ def get_driver_leaderboard():
 
             top_drivers.append({
                 "driver_id": d_id,
-                "user_id": drv_info.get("user_id"),
                 "full_name": drv_info.get("full_name") or "Unknown Driver",
                 "ml_classification": drv_info.get("ml_classification") or "Pending Sweep",
                 "employment_status": drv_info.get("employment_status") or "Active",
@@ -851,16 +852,20 @@ def get_driver_leaderboard():
 def update_system_user(user_id):
     try:
         data = request.get_json() or {}
+        account = supabase.table("user_account").select("user_id").eq(
+            "staff_id", user_id
+        ).maybe_single().execute().data or {}
+        auth_user_id = account.get("user_id") or user_id
         new_email = data.get("email", "").strip().lower()
         raw_role = data.get("role")
-        role_map = {'Administrator': 'admin', 'Dispatch Staff': 'staff'}
+        role_map = {'Dispatch Staff': 'staff'}
         normalized_role = role_map.get(raw_role, 'staff')
 
         if new_email:
             try:
                 admin_supabase = get_admin_client()
                 admin_supabase.auth.admin.update_user_by_id(
-                    user_id,
+                    auth_user_id,
                     attributes={"email": new_email, "email_confirm": True}
                 )
             except Exception as auth_err:
@@ -870,9 +875,7 @@ def update_system_user(user_id):
             "full_name": data.get("full_name"),
             "username": new_email,
             "role": normalized_role
-        }).eq("user_id", user_id).execute()
-
-        supabase.table("oic_profile").delete().eq("user_id", user_id).execute()
+        }).eq("staff_id", user_id).execute()
 
         return jsonify({"success": True, "message": "User profiles synchronized successfully."}), 200
     except Exception as e:
@@ -882,12 +885,15 @@ def update_system_user(user_id):
 @admin_bp.route('/api/auth/delete-user/<user_id>', methods=['DELETE'])
 def delete_system_user(user_id):
     try:
-        supabase.table("oic_profile").delete().eq("user_id", user_id).execute()
-        supabase.table("user_account").delete().eq("user_id", user_id).execute()
+        account = supabase.table("user_account").select("user_id").eq(
+            "staff_id", user_id
+        ).maybe_single().execute().data or {}
+        auth_user_id = account.get("user_id") or user_id
+        supabase.table("user_account").delete().eq("staff_id", user_id).execute()
 
         try:
             admin_supabase = get_admin_client()
-            admin_supabase.auth.admin.delete_user(user_id)
+            admin_supabase.auth.admin.delete_user(auth_user_id)
         except Exception as auth_err:
             print(f"⚠️ Auth microservice reference absent or skipped: {auth_err}")
 

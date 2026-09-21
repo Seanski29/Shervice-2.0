@@ -9,8 +9,10 @@ class EnterpriseSummaryCardSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color = isDark ? EnterpriseColors.darkSurfaceMuted : const Color(0xFFD8DEE8);
-    
+    final color = isDark
+        ? EnterpriseColors.darkSurfaceMuted
+        : const Color(0xFFD8DEE8);
+
     return Container(
       constraints: const BoxConstraints(minHeight: 112),
       padding: const EdgeInsets.all(16),
@@ -36,19 +38,26 @@ class EnterpriseSummaryCardSkeleton extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min, // <-- FIX: Prevents vertical overflow inside flexible cards
+              mainAxisSize: MainAxisSize
+                  .min, // <-- FIX: Prevents vertical overflow inside flexible cards
               children: [
                 Container(
                   width: 54,
                   height: 16,
-                  decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                 ),
                 const SizedBox(height: 6),
                 FractionallySizedBox(
                   widthFactor: 0.8,
                   child: Container(
                     height: 10,
-                    decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
                   ),
                 ),
               ],
@@ -59,6 +68,7 @@ class EnterpriseSummaryCardSkeleton extends StatelessWidget {
     );
   }
 }
+
 class EnterpriseSummaryCard extends StatelessWidget {
   const EnterpriseSummaryCard({
     super.key,
@@ -81,7 +91,7 @@ class EnterpriseSummaryCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      constraints: const BoxConstraints(minHeight: 112), 
+      constraints: const BoxConstraints(minHeight: 112),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
@@ -89,17 +99,19 @@ class EnterpriseSummaryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min, 
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, color: color, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   label,
+                  textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -114,19 +126,21 @@ class EnterpriseSummaryCard extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             value,
+            textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: theme.colorScheme.onSurface,
               fontWeight: FontWeight.w900,
               fontSize: 28,
-              height: 1.0, 
+              height: 1.0,
             ),
           ),
           if (subtitle != null) ...[
             const SizedBox(height: 4),
             Text(
               subtitle!,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                 fontSize: 12,
@@ -138,6 +152,7 @@ class EnterpriseSummaryCard extends StatelessWidget {
     );
   }
 }
+
 class EnterpriseTableSkeleton extends StatelessWidget {
   const EnterpriseTableSkeleton({super.key, this.rows = 7, this.columns = 5});
 
@@ -164,18 +179,21 @@ class EnterpriseTableSkeleton extends StatelessWidget {
         builder: (context, opacity, child) {
           final headColor = highlightColor.withValues(alpha: opacity);
           final rowColor = baseColor.withValues(alpha: opacity);
-          
+
           return Container(
-            clipBehavior: Clip.hardEdge, // <-- FIX 1: Cleanly slices off overflowing content
+            clipBehavior: Clip
+                .hardEdge, // <-- FIX 1: Cleanly slices off overflowing content
             decoration: BoxDecoration(
               color: theme.cardColor,
               border: Border.all(color: theme.dividerColor),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: SingleChildScrollView( // <-- FIX 2: Safe overflow wrapper
+            child: SingleChildScrollView(
+              // <-- FIX 2: Safe overflow wrapper
               physics: const NeverScrollableScrollPhysics(),
               child: Column(
-                mainAxisSize: MainAxisSize.min, // <-- FIX 3: Shrink-wrap the column
+                mainAxisSize:
+                    MainAxisSize.min, // <-- FIX 3: Shrink-wrap the column
                 children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),

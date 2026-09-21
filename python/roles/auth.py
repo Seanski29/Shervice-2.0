@@ -1,5 +1,4 @@
 import os
-import uuid
 from typing import Any, Dict, cast
 from flask import Blueprint, jsonify, request
 from supabase import create_client
@@ -10,6 +9,8 @@ supabase = None
 
 def get_admin_client():
     admin_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    if not admin_key or admin_key == "your_service_role_key_here":
+        admin_key = os.getenv("SUPABASE_KEY")
     if not admin_key:
         raise RuntimeError("Missing SUPABASE_SERVICE_ROLE_KEY for admin auth operations.")
     return create_client(os.getenv("SUPABASE_URL"), admin_key)
@@ -34,6 +35,7 @@ def handle_api_login():
         role = "admin" 
         display_name = "System User"
         company_str = "GT Lantin Internal"
+        staff_id = None
 
         user_query = supabase.table('user_account').select('*').eq('user_id', user_uuid).execute()
         
@@ -43,11 +45,14 @@ def handle_api_login():
             if role not in ('admin', 'staff'):
                 return jsonify({"success": False, "message": "Invalid email or password credentials."}), 401
             display_name = account.get('full_name') or "System User"
+            staff_id = account.get('staff_id')
 
         return jsonify({
             "success": True,
             "data": {
-                "id": user_uuid,
+                "id": staff_id if role == 'staff' and staff_id else user_uuid,
+                "staff_id": staff_id,
+                "auth_user_id": user_uuid,
                 "role": role,
                 "name": display_name,
                 "company": company_str, 
@@ -67,7 +72,7 @@ def register_staff():
         full_name = data.get('full_name')
         role_raw = data.get('role')
 
-        role_map = {'Administrator': 'admin', 'Dispatch Staff': 'staff'}
+        role_map = {'Dispatch Staff': 'staff'}
         normalized_role = role_map.get(role_raw, 'staff')
 
         admin_supabase = get_admin_client()
@@ -99,18 +104,7 @@ def register_driver_profile():
         if not full_name:
             return jsonify({"success": False, "message": "Driver name is required."}), 400
 
-        uid = str(uuid.uuid4())
-        dummy_username = f"driver_{uid}"
-
-        supabase.table('user_account').insert({
-            "user_id": uid,
-            "role": 'driver',
-            "username": dummy_username,
-            "full_name": full_name
-        }).execute()
-
-        supabase.table('driver_profile').insert({
-            "user_id": uid,
+        insert_response = supabase.table('driver_profile').insert({
             "full_name": full_name,
             "birthday": data.get('birthday', '1995-05-15'),
             "phone_no": phone_no,
@@ -119,7 +113,12 @@ def register_driver_profile():
             "is_backup": data.get('is_backup', 'No')
         }).execute()
 
-        return jsonify({"success": True, "message": "Driver profile registered."}), 201
+        created = insert_response.data[0] if insert_response.data else {}
+        return jsonify({
+            "success": True,
+            "message": "Driver profile registered.",
+            "driver_id": created.get('driver_id'),
+        }), 201
     except Exception as e:
         error_message = str(e)
         if "unique_driver_phone" in error_message or "23505" in error_message:
@@ -158,7 +157,9 @@ def get_system_users():
                 display_role = "Administrator"
                 permission = "Full Access"
             formatted_users.append({
-                "id": u['user_id'],
+                "id": u.get('staff_id'),
+                "staff_id": u.get('staff_id'),
+                "auth_user_id": u['user_id'],
                 "name": actual_name,
                 "email": u.get('username', ''),
                 "role": display_role,
@@ -190,11 +191,6 @@ def update_driver(driver_id):
 
         profile_res = supabase.table("driver_profile").update(driver_update).eq("driver_id", driver_id).execute()
         
-        if profile_res.data and len(profile_res.data) > 0:
-            user_id = profile_res.data[0].get("user_id")
-            if user_id and full_name:
-                supabase.table("user_account").update({"full_name": full_name}).eq("user_id", user_id).execute()
-        
         return jsonify({"success": True, "message": "Driver profile updated successfully."}), 200
     except Exception as e:
         error_message = str(e)
@@ -206,13 +202,7 @@ def update_driver(driver_id):
 @auth_bp.route('/api/auth/delete-driver/<driver_id>', methods=['DELETE'])
 def delete_driver(driver_id):
     try:
-        profile = supabase.table("driver_profile").select("user_id").eq("driver_id", driver_id).execute()
-        user_id = profile.data[0].get("user_id") if profile.data else None
-        
         supabase.table("driver_profile").delete().eq("driver_id", driver_id).execute()
-        
-        if user_id:
-            supabase.table("user_account").delete().eq("user_id", user_id).execute()
         
         return jsonify({"success": True, "message": "Driver completely expunged from system."}), 200
     except Exception as e:

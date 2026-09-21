@@ -161,12 +161,16 @@ def cluster_destination_demand():
             if c_info.get("color_code") == "high":
                 recommendations.append({
                     "route": r_name,
+                    "cluster_id": c_id,
+                    "color_code": c_info.get("color_code", "high"),
                     "insight": f"High demand detected: {stats['passengers']} pax across {stats['trips']} trips.",
                     "action": "Increase vehicle allocation or dispatch higher capacity shuttles."
                 })
             elif c_info.get("color_code") == "low":
                 recommendations.append({
                     "route": r_name,
+                    "cluster_id": c_id,
+                    "color_code": c_info.get("color_code", "low"),
                     "insight": f"Low demand mapped: Only {stats['passengers']} pax total.",
                     "action": "Consider merging schedules or deploying smaller vehicles to optimize fuel."
                 })

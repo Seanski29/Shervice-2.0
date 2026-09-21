@@ -1,6 +1,5 @@
 class DriverProfileModel {
   final dynamic id;
-  final String userId;
   final String name;
   final String birthday;
   final String phoneNumber;
@@ -11,7 +10,6 @@ class DriverProfileModel {
 
   DriverProfileModel({
     required this.id,
-    required this.userId,
     required this.name,
     required this.birthday,
     required this.phoneNumber,
@@ -24,7 +22,6 @@ class DriverProfileModel {
   factory DriverProfileModel.fromJson(Map<String, dynamic> json) {
     return DriverProfileModel(
       id: json['driver_id'] ?? json['id'] ?? 0,
-      userId: json['user_id']?.toString() ?? '',
       name: json['full_name'] ?? json['name'] ?? 'Unknown Driver',
       birthday: json['birthday']?.toString() ?? '1995-05-15',
       phoneNumber:
@@ -41,7 +38,6 @@ class DriverProfileModel {
   Map<String, dynamic> toJson() {
     return {
       'driver_id': id,
-      'user_id': userId,
       'full_name': name,
       'birthday': birthday,
       'phone_no': phoneNumber,

@@ -151,7 +151,7 @@ class _AdminUsersState extends State<AdminUsers> {
 
   Future<void> _exportUsers(List<Map<String, dynamic>> users) async {
     final buffer = StringBuffer(
-      'User ID,Name,Email,Company,Role,Permission,Status\n',
+      'Staff ID,Name,Email,Company,Role,Permission,Status\n',
     );
     for (final user in users) {
       String csv(dynamic value) =>
@@ -174,15 +174,29 @@ class _AdminUsersState extends State<AdminUsers> {
 
   Widget _buildSummaryCards(bool isDark) {
     final int total = _allUsers.length;
-    final int active = _allUsers.where((u) => (u['status'] ?? '').toString().toLowerCase() == 'active').length;
-    final int admins = _allUsers.where((u) => (u['role'] ?? '').toString().toLowerCase().contains('admin')).length;
-    final int staff = total - admins;
-
+    final int active = _allUsers
+        .where((u) => (u['status'] ?? '').toString().toLowerCase() == 'active')
+        .length;
+    final int inactive = total - active;
     final cards = [
-      ('Total Users', '$total', Icons.people_alt_outlined, const Color(0xFF3B82F6)),
-      ('Active', '$active', Icons.check_circle_outline, const Color(0xFF10B981)),
-      ('Administrators', '$admins', Icons.admin_panel_settings_outlined, const Color(0xFF8B5CF6)),
-      ('Staff', '$staff', Icons.badge_outlined, const Color(0xFFF59E0B)),
+      (
+        'Total Staff',
+        '$total',
+        Icons.people_alt_outlined,
+        const Color(0xFF3B82F6),
+      ),
+      (
+        'Active Staff',
+        '$active',
+        Icons.check_circle_outline,
+        const Color(0xFF10B981),
+      ),
+      (
+        'Inactive Staff',
+        '$inactive',
+        Icons.person_off_outlined,
+        const Color(0xFFF59E0B),
+      ),
     ];
 
     return LayoutBuilder(
@@ -200,17 +214,19 @@ class _AdminUsersState extends State<AdminUsers> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min, // Prevents vertical overflow
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(card.$3, color: baseColor, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         card.$1,
+                        textAlign: TextAlign.center,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -225,6 +241,7 @@ class _AdminUsersState extends State<AdminUsers> {
                 const SizedBox(height: 10),
                 Text(
                   card.$2,
+                  textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -243,19 +260,21 @@ class _AdminUsersState extends State<AdminUsers> {
         if (isNarrow) {
           return Column(
             children: cardWidgets
-                .map((c) => Padding(padding: const EdgeInsets.only(bottom: 16), child: c))
+                .map(
+                  (c) => Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: c,
+                  ),
+                )
                 .toList(),
           );
         }
         return Row(
           children: [
-            Expanded(child: cardWidgets[0]),
-            const SizedBox(width: 16),
-            Expanded(child: cardWidgets[1]),
-            const SizedBox(width: 16),
-            Expanded(child: cardWidgets[2]),
-            const SizedBox(width: 16),
-            Expanded(child: cardWidgets[3]),
+            for (var index = 0; index < cardWidgets.length; index++) ...[
+              if (index > 0) const SizedBox(width: 16),
+              Expanded(child: cardWidgets[index]),
+            ],
           ],
         );
       },
@@ -291,10 +310,7 @@ class _AdminUsersState extends State<AdminUsers> {
             return _sortOptions.map((String value) {
               return Align(
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  'Sort: $value',
-                  overflow: TextOverflow.ellipsis,
-                ),
+                child: Text('Sort: $value', overflow: TextOverflow.ellipsis),
               );
             }).toList();
           },
@@ -317,7 +333,9 @@ class _AdminUsersState extends State<AdminUsers> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final users = _filteredUsers.map((user) => Map<String, dynamic>.from(user as Map)).toList();
+    final users = _filteredUsers
+        .map((user) => Map<String, dynamic>.from(user as Map))
+        .toList();
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -336,7 +354,8 @@ class _AdminUsersState extends State<AdminUsers> {
                   children: [
                     Text(
                       'Users',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
                             fontWeight: FontWeight.w800,
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
@@ -391,18 +410,34 @@ class _AdminUsersState extends State<AdminUsers> {
                                 _applyFiltersAndSort();
                               });
                             },
-                            style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 13),
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black87,
+                              fontSize: 13,
+                            ),
                             decoration: InputDecoration(
                               hintText: 'Search user name, email, or company',
-                              hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-                              prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
+                              hintStyle: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 13,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.search,
+                                size: 18,
+                                color: Color(0xFF64748B),
+                              ),
                               filled: true,
                               fillColor: Theme.of(context).cardColor,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(4),
-                                borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                                borderSide: BorderSide(
+                                  color: Theme.of(context).dividerColor,
+                                ),
                               ),
                             ),
                           ),
@@ -411,24 +446,27 @@ class _AdminUsersState extends State<AdminUsers> {
                       ],
                       columns: [
                         EnterpriseGridColumn(
-                          label: 'User ID',
+                          label: 'Staff ID',
                           width: 130,
-                          value: (user) => (user['id'] ?? '').toString(),
+                          value: (user) => (user['staff_id'] ?? '').toString(),
                         ),
                         EnterpriseGridColumn(
                           label: 'Name',
                           width: 230,
-                          value: (user) => (user['name'] ?? 'System User').toString(),
+                          value: (user) =>
+                              (user['name'] ?? 'System User').toString(),
                         ),
                         EnterpriseGridColumn(
                           label: 'Email',
                           width: 260,
-                          value: (user) => (user['email'] ?? 'Not provided').toString(),
+                          value: (user) =>
+                              (user['email'] ?? 'Not provided').toString(),
                         ),
                         EnterpriseGridColumn(
                           label: 'Company',
                           width: 220,
-                          value: (user) => (user['company'] ?? 'Internal').toString(),
+                          value: (user) =>
+                              (user['company'] ?? 'Internal').toString(),
                         ),
                         EnterpriseGridColumn(
                           label: 'Role',
@@ -438,14 +476,16 @@ class _AdminUsersState extends State<AdminUsers> {
                         EnterpriseGridColumn(
                           label: 'Permission',
                           width: 150,
-                          value: (user) => (user['permission'] ?? 'Standard').toString(),
+                          value: (user) =>
+                              (user['permission'] ?? 'Standard').toString(),
                         ),
                         EnterpriseGridColumn(
                           label: 'Record actions',
                           width: 170,
                           value: (_) => '',
                           cellBuilder: (context, user) => OutlinedButton(
-                            onPressed: () => _showUserModal(context, user: user),
+                            onPressed: () =>
+                                _showUserModal(context, user: user),
                             child: const Text('Update'),
                           ),
                         ),
@@ -456,8 +496,12 @@ class _AdminUsersState extends State<AdminUsers> {
                       emptyMessage: _allUsers.isEmpty
                           ? 'Create an account to establish role-based access to Shervice.'
                           : 'No user accounts match the current search and sort criteria.',
-                      emptyActionLabel: _allUsers.isEmpty ? 'Register first user' : null,
-                      onEmptyAction: _allUsers.isEmpty ? () => _showUserModal(context) : null,
+                      emptyActionLabel: _allUsers.isEmpty
+                          ? 'Register first user'
+                          : null,
+                      onEmptyAction: _allUsers.isEmpty
+                          ? () => _showUserModal(context)
+                          : null,
                       onDelete: _deleteUserDirect,
                       onBulkDelete: _deleteUsers,
                       onExportSelection: _exportUsers,
@@ -514,13 +558,14 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
     _passwordController = TextEditingController();
 
     if (isEdit) {
-      _selectedRole = widget.user!['role'];
+      _selectedRole = 'Dispatch Staff';
       _selectedCompany = widget.user!['company'] == 'Internal'
           ? 'GT LANTIN INTERNAL'
           : widget.user!['company'];
     }
 
-    if (_selectedCompany != null && !_companyOptions.contains(_selectedCompany)) {
+    if (_selectedCompany != null &&
+        !_companyOptions.contains(_selectedCompany)) {
       _companyOptions.add(_selectedCompany!);
     }
 
@@ -543,7 +588,8 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
             if (fetched.isNotEmpty) {
               _companyOptions = fetched;
             }
-            if (_selectedCompany != null && !_companyOptions.contains(_selectedCompany)) {
+            if (_selectedCompany != null &&
+                !_companyOptions.contains(_selectedCompany)) {
               _companyOptions.add(_selectedCompany!);
             }
           });
@@ -637,7 +683,9 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
 
           final passData = jsonDecode(passResponse.body);
           if (passResponse.statusCode != 200 || passData['success'] != true) {
-            throw Exception(passData['message'] ?? "Failed to override password.");
+            throw Exception(
+              passData['message'] ?? "Failed to override password.",
+            );
           }
         }
       } else {
@@ -665,7 +713,9 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isEditMode ? "Account profile synchronized!" : "User registered successfully!",
+              isEditMode
+                  ? "Account profile synchronized!"
+                  : "User registered successfully!",
               style: const TextStyle(color: Colors.white),
             ),
             backgroundColor: const Color(0xFF10B981),
@@ -673,13 +723,18 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
           ),
         );
       } else {
-        throw Exception(responseData['message'] ?? "Request operation rejected.");
+        throw Exception(
+          responseData['message'] ?? "Request operation rejected.",
+        );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString(), style: const TextStyle(color: Colors.white)),
+          content: Text(
+            e.toString(),
+            style: const TextStyle(color: Colors.white),
+          ),
           backgroundColor: const Color(0xFFEF4444),
           behavior: SnackBarBehavior.floating,
         ),
@@ -745,7 +800,9 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
                   onPressed: () => Navigator.pop(context),
                   icon: Icon(
                     Icons.close,
-                    color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
+                    color: isDark
+                        ? Colors.grey.shade400
+                        : const Color(0xFF64748B),
                   ),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -763,34 +820,56 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
                       TextFormField(
                         controller: _nameController,
                         readOnly: !_isWritingUnlocked,
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                        validator: (val) => val == null || val.isEmpty ? "Required" : null,
-                        decoration: _fieldStyle(context, label: 'Full Name', icon: Icons.person),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        validator: (val) =>
+                            val == null || val.isEmpty ? "Required" : null,
+                        decoration: _fieldStyle(
+                          context,
+                          label: 'Full Name',
+                          icon: Icons.person,
+                        ),
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _emailController,
                         readOnly: !_isWritingUnlocked,
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                        validator: (val) => val == null || !val.contains('@') ? "Enter a valid email" : null,
-                        decoration: _fieldStyle(context, label: 'Email Address', icon: Icons.email),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        validator: (val) => val == null || !val.contains('@')
+                            ? "Enter a valid email"
+                            : null,
+                        decoration: _fieldStyle(
+                          context,
+                          label: 'Email Address',
+                          icon: Icons.email,
+                        ),
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _passwordController,
                         obscureText: true,
                         readOnly: !_isWritingUnlocked,
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                         decoration: _fieldStyle(
                           context,
-                          label: isEditMode ? 'Reset Password (Leave empty to keep current)' : 'Secure Password',
+                          label: isEditMode
+                              ? 'Reset Password (Leave empty to keep current)'
+                              : 'Secure Password',
                           icon: Icons.lock_reset,
                         ),
                         validator: (val) {
                           if (!isEditMode && (val == null || val.length < 6)) {
                             return "Minimum 6 characters required";
                           }
-                          if (isEditMode && val != null && val.isNotEmpty && val.length < 6) {
+                          if (isEditMode &&
+                              val != null &&
+                              val.isNotEmpty &&
+                              val.length < 6) {
                             return "Minimum 6 characters required";
                           }
                           return null;
@@ -799,30 +878,25 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
                       const SizedBox(height: 14),
                       DropdownButtonFormField<String>(
                         value: _selectedRole,
-                        validator: (val) => val == null ? "Select a role" : null,
+                        validator: (val) =>
+                            val == null ? "Select a role" : null,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 15,
                         ),
-                        decoration: _fieldStyle(context, label: 'Assign Role', icon: Icons.admin_panel_settings),
-                        onChanged: !_isWritingUnlocked ? null : (value) => setState(() => _selectedRole = value),
-                        dropdownColor: Theme.of(context).cardColor,
-                        items: ['Administrator', 'Dispatch Staff']
-                            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                            .toList(),
-                      ),
-                      const SizedBox(height: 14),
-                      DropdownButtonFormField<String>(
-                        value: _selectedCompany,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                          fontSize: 15,
+                        decoration: _fieldStyle(
+                          context,
+                          label: 'Assign Role',
+                          icon: Icons.admin_panel_settings,
                         ),
-                        decoration: _fieldStyle(context, label: 'Assign Company Account', icon: Icons.business),
-                        onChanged: !_isWritingUnlocked ? null : (value) => setState(() => _selectedCompany = value),
+                        onChanged: !_isWritingUnlocked
+                            ? null
+                            : (value) => setState(() => _selectedRole = value),
                         dropdownColor: Theme.of(context).cardColor,
-                        items: _companyOptions
-                            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        items: const ['Dispatch Staff']
+                            .map(
+                              (e) => DropdownMenuItem(value: e, child: Text(e)),
+                            )
                             .toList(),
                       ),
                     ],
@@ -839,14 +913,21 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
               children: [
                 if (isEditMode)
                   TextButton(
-                    style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                    ),
                     onPressed: () {
                       Navigator.pop(context);
                       if (widget.onDelete != null) widget.onDelete!();
                     },
                     child: const Text(
                       'Delete',
-                      style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold, fontSize: 14),
+                      style: TextStyle(
+                        color: Color(0xFFEF4444),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                   )
                 else
@@ -857,7 +938,9 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
                     TextButton(
                       onPressed: () => Navigator.pop(context),
                       style: TextButton.styleFrom(
-                        foregroundColor: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                        foregroundColor: isDark
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade700,
                       ),
                       child: const Text('Cancel'),
                     ),
@@ -866,32 +949,54 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF64748B),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
                         ),
-                        onPressed: () => setState(() => _isWritingUnlocked = true),
+                        onPressed: () =>
+                            setState(() => _isWritingUnlocked = true),
                         child: const Text(
                           'Edit Details',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
                       )
                     else
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF3B82F6),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 10,
+                          ),
                         ),
                         onPressed: _isLoading ? null : _submitUserForm,
                         child: _isLoading
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: EnterpriseLoadingIndicator(color: Colors.white, strokeWidth: 2),
+                                child: EnterpriseLoadingIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
                               )
                             : Text(
                                 isEditMode ? 'Save Changes' : 'Register User',
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
                               ),
                       ),
                   ],
