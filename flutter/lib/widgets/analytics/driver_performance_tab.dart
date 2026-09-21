@@ -140,9 +140,7 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
         try {
           final evalRes = await http
               .get(
-                Uri.parse(
-                  '${widget.backendUrl}/api/evaluate/driver/$driverUuid',
-                ),
+                Uri.parse('${widget.backendUrl}/evaluate/driver/$driverUuid'),
               )
               .timeout(const Duration(seconds: 5));
 

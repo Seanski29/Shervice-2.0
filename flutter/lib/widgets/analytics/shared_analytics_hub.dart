@@ -22,6 +22,8 @@ class SharedAnalyticsHub extends StatefulWidget {
 class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
   int _activeTab = 0;
   bool _isLoading = true;
+  bool _hasLoadedOnce = false;
+  int _requestToken = 0;
 
   List<dynamic> _allDrivers = [];
   List<dynamic> _allVehicles = [];
@@ -29,6 +31,14 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
   List<dynamic> _allMaintenanceLogs = [];
 
   final Set<int> _visitedTabs = {0};
+
+  List<Map<String, dynamic>> _mapList(dynamic value) {
+    if (value is! List) return const [];
+    return value
+        .whereType<Map>()
+        .map((item) => Map<String, dynamic>.from(item))
+        .toList();
+  }
 
   @override
   void initState() {
@@ -47,7 +57,8 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
 
   Future<void> _fetchGlobalAnalyticsPayload() async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
+    final requestToken = ++_requestToken;
+    if (!_hasLoadedOnce) setState(() => _isLoading = true);
     try {
       final cleanBaseUrl = backendUrl.endsWith('/')
           ? backendUrl.substring(0, backendUrl.length - 1)
@@ -70,29 +81,35 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
       final tRes = results[1];
       final mRes = results[2];
       final vRes = results[3];
-      
+      if (!mounted || requestToken != _requestToken) return;
+
       // 2. Parse Trip Summary rows
       List<dynamic> trips = [];
       if (tRes != null && tRes.statusCode == 200) {
         final tData = jsonDecode(tRes.body);
-        trips = tData is List
+        final rawTrips = tData is List
             ? tData
-            : (tData['data'] ??
-                tData['trips'] ??
-                tData['sample_data_payload'] ??
-                []);
+            : tData is Map
+            ? (tData['data'] ?? tData['trips'] ?? tData['sample_data_payload'])
+            : const [];
+        trips = _mapList(rawTrips);
         _allTrips = trips;
       }
 
       // 3. Parse Maintenance Logs
       if (mRes != null && mRes.statusCode == 200) {
         final mData = jsonDecode(mRes.body);
-        _allMaintenanceLogs = mData['data'] ?? mData['logs'] ?? [];
+        _allMaintenanceLogs = mData is Map
+            ? _mapList(mData['data'] ?? mData['logs'])
+            : const [];
       }
 
       // 4. Parse Vehicles
       if (vRes != null && vRes.statusCode == 200) {
-        List<dynamic> vehicles = jsonDecode(vRes.body)['data'] ?? [];
+        final decodedVehicles = jsonDecode(vRes.body);
+        List<dynamic> vehicles = decodedVehicles is Map
+            ? _mapList(decodedVehicles['data'])
+            : const [];
         for (var v in vehicles) {
           v['live_risk_score'] =
               double.tryParse(
@@ -105,8 +122,12 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
 
       // 5. Parse Drivers & Compute True Rating from Completed Trips
       if (dRes != null && dRes.statusCode == 200) {
-        List<dynamic> rawDrivers =
-            jsonDecode(dRes.body)['sample_data_payload'] ?? [];
+        final decodedDrivers = jsonDecode(dRes.body);
+        List<dynamic> rawDrivers = decodedDrivers is Map
+            ? _mapList(
+                decodedDrivers['sample_data_payload'] ?? decodedDrivers['data'],
+              )
+            : const [];
 
         // PERF: Aggregate trip ratings once, reducing driver rating lookup from
         // O(drivers * trips) scans to O(drivers + trips) hash-map lookups.
@@ -160,6 +181,7 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
         _allDrivers = rawDrivers;
 
         if (mounted) {
+          _hasLoadedOnce = true;
           setState(() => _isLoading = false);
         }
 
@@ -170,7 +192,8 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
     } catch (e) {
       debugPrint("Global Analytics Fetch Error: $e");
     } finally {
-      if (mounted && _isLoading) {
+      if (mounted && _isLoading && requestToken == _requestToken) {
+        _hasLoadedOnce = true;
         setState(() => _isLoading = false);
       }
     }
@@ -214,9 +237,8 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
         }),
       );
 
-      if (mounted) {
-        setState(() {});
-      }
+      // Keep enrichment from repainting the entire analytics workspace after
+      // every network chunk; the next explicit refresh will show new values.
     }
   }
 
@@ -242,9 +264,10 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
   Widget build(BuildContext context) {
     final bool isMobile = MediaQuery.of(context).size.width < 768;
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     // --> FIX: Safety check to ensure charts don't crash when backend returns empty data
-    final bool isDataEmpty = _allVehicles.isEmpty && _allDrivers.isEmpty && _allTrips.isEmpty;
+    final bool isDataEmpty =
+        _allVehicles.isEmpty && _allDrivers.isEmpty && _allTrips.isEmpty;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -297,86 +320,89 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Expanded(child: EnterpriseTableSkeleton(columns: 6, rows: 8)),
+                  const Expanded(
+                    child: EnterpriseTableSkeleton(columns: 6, rows: 8),
+                  ),
                 ],
               ),
             )
           // --> FIX: If data is empty, intercept it so the charts don't crash
           : (!_isLoading && isDataEmpty)
-              ? Padding(
-                  padding: EdgeInsets.all(isMobile ? 12.0 : 24.0),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 500),
-                      child: EnterpriseEmptyState(
-                        icon: Icons.auto_graph_outlined,
-                        title: 'Analytics Data Unavailable',
-                        message: 'Machine learning insights and performance reports require active fleet, driver, and trip records to generate models.',
-                        actionLabel: 'Force Synchronization',
-                        onAction: _fetchGlobalAnalyticsPayload,
-                      ),
-                    ),
-                  ),
-                )
-              : Padding(
-                  padding: EdgeInsets.all(isMobile ? 12.0 : 24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(child: _buildNavigationTabs(isDark)),
-                          const SizedBox(width: 12),
-                          _buildSweepButton(),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-
-                      Expanded(
-                        child: IndexedStack(
-                          index: _activeTab,
-                          children: [
-                            FleetOverviewTab(
-                              vehicles: _allVehicles,
-                              drivers: _allDrivers,
-                              trips: _allTrips,
-                              maintenanceLogs: _allMaintenanceLogs,
-                              onSyncAction: _handleManualSync,
-                              onReload: _fetchGlobalAnalyticsPayload,
-                            ),
-                            _visitedTabs.contains(1)
-                                ? DriverPerformanceTab(
-                                    drivers: _allDrivers,
-                                    backendUrl: backendUrl,
-                                    onSyncAction: _handleManualSync,
-                                  )
-                                : const SizedBox.shrink(),
-                            _visitedTabs.contains(2)
-                                ? VehicleMlTab(
-                                    vehicles: _allVehicles,
-                                    backendUrl: backendUrl,
-                                    onSyncAction: _handleManualSync,
-                                  )
-                                : const SizedBox.shrink(),
-                            _visitedTabs.contains(3)
-                                ? RouteOptimizationTab(
-                                    backendUrl: backendUrl,
-                                    onSyncAction: _handleManualSync,
-                                  )
-                                : const SizedBox.shrink(),
-                            _visitedTabs.contains(4)
-                                ? CompanyAnalyticsTab(
-                                    trips: _allTrips,
-                                    drivers: _allDrivers,
-                                  )
-                                : const SizedBox.shrink(),
-                          ],
-                        ),
-                      ),
-                    ],
+          ? Padding(
+              padding: EdgeInsets.all(isMobile ? 12.0 : 24.0),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 500),
+                  child: EnterpriseEmptyState(
+                    icon: Icons.auto_graph_outlined,
+                    title: 'Analytics Data Unavailable',
+                    message:
+                        'Machine learning insights and performance reports require active fleet, driver, and trip records to generate models.',
+                    actionLabel: 'Force Synchronization',
+                    onAction: _fetchGlobalAnalyticsPayload,
                   ),
                 ),
+              ),
+            )
+          : Padding(
+              padding: EdgeInsets.all(isMobile ? 12.0 : 24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(child: _buildNavigationTabs(isDark)),
+                      const SizedBox(width: 12),
+                      _buildSweepButton(),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  Expanded(
+                    child: IndexedStack(
+                      index: _activeTab,
+                      children: [
+                        FleetOverviewTab(
+                          vehicles: _allVehicles,
+                          drivers: _allDrivers,
+                          trips: _allTrips,
+                          maintenanceLogs: _allMaintenanceLogs,
+                          onSyncAction: _handleManualSync,
+                          onReload: _fetchGlobalAnalyticsPayload,
+                        ),
+                        _visitedTabs.contains(1)
+                            ? DriverPerformanceTab(
+                                drivers: _allDrivers,
+                                backendUrl: backendUrl,
+                                onSyncAction: _handleManualSync,
+                              )
+                            : const SizedBox.shrink(),
+                        _visitedTabs.contains(2)
+                            ? VehicleMlTab(
+                                vehicles: _allVehicles,
+                                backendUrl: backendUrl,
+                                onSyncAction: _handleManualSync,
+                              )
+                            : const SizedBox.shrink(),
+                        _visitedTabs.contains(3)
+                            ? RouteOptimizationTab(
+                                backendUrl: backendUrl,
+                                onSyncAction: _handleManualSync,
+                              )
+                            : const SizedBox.shrink(),
+                        _visitedTabs.contains(4)
+                            ? CompanyAnalyticsTab(
+                                trips: _allTrips,
+                                drivers: _allDrivers,
+                              )
+                            : const SizedBox.shrink(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 

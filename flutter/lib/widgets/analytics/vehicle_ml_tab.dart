@@ -22,7 +22,7 @@ class VehicleMlTab extends StatefulWidget {
 
 class _VehicleMlTabState extends State<VehicleMlTab> {
   String _searchQuery = '';
-  String _currentSort = 'Needs Attention first';
+  String _currentSort = 'Needs Maintenance first';
   int _currentPage = 0;
   static const int _itemsPerPage = 10;
 
@@ -40,7 +40,7 @@ class _VehicleMlTabState extends State<VehicleMlTab> {
           dbStatus.toLowerCase().contains('maintenance') ||
           dbStatus.toLowerCase().contains('repair') ||
           daysRemaining <= 7.0) {
-        dynamicStatus = 'Needs Attention';
+        dynamicStatus = 'Needs Maintenance';
       } else if (daysRemaining <= 30.0) {
         dynamicStatus = 'Fair';
       } else if (daysRemaining <= 90.0) {
@@ -188,13 +188,13 @@ class _VehicleMlTabState extends State<VehicleMlTab> {
                       ),
                       items:
                           [
-                                'Needs Attention first',
+                                'Needs Maintenance first',
                                 'A to Z',
                                 'Z to A',
                                 'Condition: Excellent',
                                 'Condition: Good',
                                 'Condition: Fair',
-                                'Condition: Needs Attention',
+                                'Condition: Needs Maintenance',
                               ]
                               .map(
                                 (String value) => DropdownMenuItem(
@@ -271,7 +271,7 @@ class _VehicleMlTabState extends State<VehicleMlTab> {
                         dbStatus.toLowerCase().contains('maintenance') ||
                         dbStatus.toLowerCase().contains('repair') ||
                         daysRemaining <= 7.0) {
-                      statusLabel = 'Needs Attention';
+                      statusLabel = 'Needs Maintenance';
                       statusColor = const Color(0xFFEF4444);
                     } else if (daysRemaining <= 30.0) {
                       statusLabel = 'Fair';

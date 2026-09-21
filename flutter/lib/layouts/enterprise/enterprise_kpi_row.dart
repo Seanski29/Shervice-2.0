@@ -99,7 +99,7 @@ class _KpiCard extends StatelessWidget {
             ],
           ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Row(
@@ -109,6 +109,7 @@ class _KpiCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       metric.title,
+                      textAlign: TextAlign.center,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
@@ -130,6 +131,7 @@ class _KpiCard extends StatelessWidget {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       metric.value,
+                      textAlign: TextAlign.center,
                       maxLines: 1,
                       style: theme.textTheme.titleLarge?.copyWith(
                         color: theme.colorScheme.onSurface,
@@ -143,6 +145,7 @@ class _KpiCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 metric.subTitle,
+                textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall?.copyWith(
