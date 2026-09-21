@@ -5,24 +5,33 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "shervice_flutter",
-            "cwd": "shervice_flutter",
-            "request": "launch",
-            "type": "dart"
-        },
-        {
-            "name": "shervice_flutter (profile mode)",
-            "cwd": "shervice_flutter",
+            "name": "Shervice Flutter",
+            "cwd": "flutter",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "profile"
+            "args": [
+                "--no-web-resources-cdn"
+            ]
         },
         {
-            "name": "shervice_flutter (release mode)",
-            "cwd": "shervice_flutter",
+            "name": "Shervice Flutter (profile mode)",
+            "cwd": "flutter",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "release"
+            "flutterMode": "profile",
+            "args": [
+                "--no-web-resources-cdn"
+            ]
+        },
+        {
+            "name": "Shervice Flutter (release mode)",
+            "cwd": "flutter",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release",
+            "args": [
+                "--no-web-resources-cdn"
+            ]
         }
     ]
 }

@@ -88,7 +88,7 @@ You need to run the backend and the frontend at the same time in separate termin
 **Terminal 1: Python Backend**
 
 ```bash
-cd shuttle-backend
+cd python
 # Activate your virtual environment (Windows example below)
 .\Activate.ps1    
 python app.py
@@ -98,7 +98,7 @@ python app.py
 **Terminal 2: Flutter Web Portal**
 
 ```bash
-cd shervice_flutter
-flutter run -d chrome --web-port 8080
+cd flutter
+flutter run -d chrome --web-port 8080 --no-web-resources-cdn
 
 ```

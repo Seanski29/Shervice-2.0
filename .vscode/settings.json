@@ -1,12 +1,12 @@
 {
-    "cmake.sourceDirectory": "D:/xampp/htdocs/Shuttle Services/shervice_flutter/linux",
+    "cmake.sourceDirectory": "${workspaceFolder}/flutter/linux",
     "folder-color.pathColors": [
         {
-            "folderPath": "Shuttle Services\\shervice_flutter\\",
+            "folderPath": "flutter\\",
             "color": "foldercolorizer.color_ffffff"
         },
         {
-            "folderPath": "Shuttle Services\\shervice_flutter\\lib\\screens\\passenger\\",
+            "folderPath": "flutter\\lib\\screens\\passenger\\",
             "color": "foldercolorizer.color_ffffff"
         }
     ],
@@ -42,5 +42,6 @@
         "activityBar.activeBorder": "#e7e7e7",
         "activityBarTop.activeBorder": "#e7e7e7"
     },
-    "peacock.color": "#000000"
+    "peacock.color": "#000000",
+    "editor.rename.enablePreview": false
 }
