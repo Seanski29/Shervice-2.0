@@ -459,7 +459,6 @@ class _AttendanceState extends State<Attendance> {
       );
       return;
     }
-    
 
     final baseName = _exportBaseName(filteredRows);
     final fileName = '$baseName.${format.toLowerCase()}';
@@ -569,8 +568,18 @@ class _AttendanceState extends State<Attendance> {
 
   String _monthName(int month) {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     if (month < 1 || month > 12) return 'Unknown';
     return months[month - 1];
@@ -833,8 +842,18 @@ class _AttendanceState extends State<Attendance> {
       final parsed = DateTime.tryParse(cleanDate);
       if (parsed != null) {
         const months = [
-          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
         ];
         return '${months[parsed.month - 1]} ${parsed.day.toString().padLeft(2, '0')}, ${parsed.year}';
       }
@@ -860,8 +879,10 @@ class _AttendanceState extends State<Attendance> {
     if (lowerVal == 'overtime_out') return 'Overtime OUT';
     if (lowerVal == 'total_minutes_late') return 'Total Minutes Late';
     if (lowerVal == 'work_time' || lowerVal == 'work_hours') return 'Work Time';
-    if (lowerVal == 'daily_total' || lowerVal == 'total_hours') return 'Daily Total';
-    if (lowerVal == 'note' || lowerVal == 'notes' || lowerVal == 'remarks') return 'Note';
+    if (lowerVal == 'daily_total' || lowerVal == 'total_hours')
+      return 'Daily Total';
+    if (lowerVal == 'note' || lowerVal == 'notes' || lowerVal == 'remarks')
+      return 'Note';
 
     final cleaned = value
         .replaceAll(RegExp(r'[_-]+'), ' ')
@@ -1824,8 +1845,12 @@ class _AttendanceState extends State<Attendance> {
 
   Widget _buildSummaryCards(bool isDark, List<Map<String, String>> data) {
     final int total = data.length;
-    final int absent = data.where((r) => r['total_minutes_late'] == 'Absent').length;
-    final int halfDay = data.where((r) => r['total_minutes_late'] == 'Half Day').length;
+    final int absent = data
+        .where((r) => r['total_minutes_late'] == 'Absent')
+        .length;
+    final int halfDay = data
+        .where((r) => r['total_minutes_late'] == 'Half Day')
+        .length;
     final int late = data.where((r) {
       final lateMins = int.tryParse(r['total_minutes_late'] ?? '0') ?? 0;
       return lateMins > 0;
@@ -1833,10 +1858,34 @@ class _AttendanceState extends State<Attendance> {
     final int onTime = total - absent - halfDay - late;
 
     final cards = [
-      ('Total Records', '$total', 'Filtered entries', Icons.receipt_long, const Color(0xFF3B82F6)),
-      ('On Time', '$onTime', 'Perfect attendance', Icons.check_circle_outline, const Color(0xFF10B981)),
-      ('Late', '$late', 'Minutes tracked', Icons.access_time, const Color(0xFFF59E0B)),
-      ('Absent / Half Day', '${absent + halfDay}', 'Missed shifts', Icons.person_off_outlined, const Color(0xFFEF4444)),
+      (
+        'Total Records',
+        '$total',
+        'Filtered entries',
+        Icons.receipt_long,
+        const Color(0xFF3B82F6),
+      ),
+      (
+        'On Time',
+        '$onTime',
+        'Perfect attendance',
+        Icons.check_circle_outline,
+        const Color(0xFF10B981),
+      ),
+      (
+        'Late',
+        '$late',
+        'Minutes tracked',
+        Icons.access_time,
+        const Color(0xFFF59E0B),
+      ),
+      (
+        'Absent / Half Day',
+        '${absent + halfDay}',
+        'Missed shifts',
+        Icons.person_off_outlined,
+        const Color(0xFFEF4444),
+      ),
     ];
 
     return LayoutBuilder(
@@ -1854,17 +1903,19 @@ class _AttendanceState extends State<Attendance> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(card.$4, color: baseColor, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         card.$1,
+                        textAlign: TextAlign.center,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -1879,6 +1930,7 @@ class _AttendanceState extends State<Attendance> {
                 const SizedBox(height: 10),
                 Text(
                   card.$2,
+                  textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -1891,6 +1943,7 @@ class _AttendanceState extends State<Attendance> {
                 const SizedBox(height: 4),
                 Text(
                   card.$3,
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                     fontSize: 12,
@@ -1904,7 +1957,12 @@ class _AttendanceState extends State<Attendance> {
         if (isNarrow) {
           return Column(
             children: cardWidgets
-                .map((c) => Padding(padding: const EdgeInsets.only(bottom: 16), child: c))
+                .map(
+                  (c) => Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: c,
+                  ),
+                )
                 .toList(),
           );
         }
@@ -1935,15 +1993,24 @@ class _AttendanceState extends State<Attendance> {
           child: TextField(
             controller: _searchController,
             onChanged: (value) => setState(() => _searchQuery = value),
-            style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 13),
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black87,
+              fontSize: 13,
+            ),
             decoration: InputDecoration(
               hintText: 'Search employee or records...',
               hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-              prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
+              prefixIcon: const Icon(
+                Icons.search,
+                size: 18,
+                color: Color(0xFF64748B),
+              ),
               filled: true,
               fillColor: Theme.of(context).cardColor,
               contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4),
                 borderSide: BorderSide(color: Theme.of(context).dividerColor),
@@ -1976,8 +2043,13 @@ class _AttendanceState extends State<Attendance> {
               ),
               dropdownColor: Theme.of(context).cardColor,
               selectedItemBuilder: (BuildContext context) {
-                return ['Today', 'This Week', 'Custom Week', 'Month', 'All Time']
-                    .map((String value) {
+                return [
+                  'Today',
+                  'This Week',
+                  'Custom Week',
+                  'Month',
+                  'All Time',
+                ].map((String value) {
                   return Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -1990,7 +2062,10 @@ class _AttendanceState extends State<Attendance> {
               items: const [
                 DropdownMenuItem(value: 'Today', child: Text('Today')),
                 DropdownMenuItem(value: 'This Week', child: Text('This Week')),
-                DropdownMenuItem(value: 'Custom Week', child: Text('Custom Week...')),
+                DropdownMenuItem(
+                  value: 'Custom Week',
+                  child: Text('Custom Week...'),
+                ),
                 DropdownMenuItem(value: 'Month', child: Text('Month...')),
                 DropdownMenuItem(value: 'All Time', child: Text('All Time')),
               ],
@@ -2004,18 +2079,26 @@ class _AttendanceState extends State<Attendance> {
                     builder: (context, child) {
                       return Center(
                         child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 400, maxHeight: 600),
+                          constraints: const BoxConstraints(
+                            maxWidth: 400,
+                            maxHeight: 600,
+                          ),
                           child: child,
                         ),
                       );
                     },
                   );
                   if (picked != null) {
-                    final dayCount = picked.end.difference(picked.start).inDays + 1;
+                    final dayCount =
+                        picked.end.difference(picked.start).inDays + 1;
                     if (dayCount > 7) {
                       if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Attendance print range can only be one week at most.')),
+                        const SnackBar(
+                          content: Text(
+                            'Attendance print range can only be one week at most.',
+                          ),
+                        ),
                       );
                       return;
                     }
@@ -2034,7 +2117,10 @@ class _AttendanceState extends State<Attendance> {
                     builder: (context, child) {
                       return Center(
                         child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 400, maxHeight: 600),
+                          constraints: const BoxConstraints(
+                            maxWidth: 400,
+                            maxHeight: 600,
+                          ),
                           child: child,
                         ),
                       );
@@ -2130,7 +2216,8 @@ class _AttendanceState extends State<Attendance> {
                     children: [
                       Text(
                         'Attendance',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
                               fontWeight: FontWeight.w800,
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
@@ -2142,12 +2229,23 @@ class _AttendanceState extends State<Attendance> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       FilledButton.icon(
-                        style: FilledButton.styleFrom(backgroundColor: EnterpriseColors.generativeAction),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: EnterpriseColors.generativeAction,
+                        ),
                         onPressed: _isImporting ? null : _pickExcelFile,
                         icon: _isImporting
-                            ? const SizedBox(width: 17, height: 17, child: EnterpriseLoadingIndicator(strokeWidth: 2, color: Colors.white))
+                            ? const SizedBox(
+                                width: 17,
+                                height: 17,
+                                child: EnterpriseLoadingIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
                             : const Icon(Icons.upload_file_outlined, size: 17),
-                        label: Text(_isImporting ? 'Importing...' : 'Import Excel'),
+                        label: Text(
+                          _isImporting ? 'Importing...' : 'Import Excel',
+                        ),
                       ),
                       const SizedBox(width: 12),
                       OutlinedButton.icon(
@@ -2178,20 +2276,44 @@ class _AttendanceState extends State<Attendance> {
                           4,
                           (_) => const Padding(
                             padding: EdgeInsets.only(bottom: 16),
-                            child: SizedBox(height: 112, width: double.infinity, child: EnterpriseSummaryCardSkeleton()),
+                            child: SizedBox(
+                              height: 112,
+                              width: double.infinity,
+                              child: EnterpriseSummaryCardSkeleton(),
+                            ),
                           ),
                         ),
                       );
                     }
                     return Row(
                       children: const [
-                        Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
+                        Expanded(
+                          child: SizedBox(
+                            height: 112,
+                            child: EnterpriseSummaryCardSkeleton(),
+                          ),
+                        ),
                         SizedBox(width: 16),
-                        Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
+                        Expanded(
+                          child: SizedBox(
+                            height: 112,
+                            child: EnterpriseSummaryCardSkeleton(),
+                          ),
+                        ),
                         SizedBox(width: 16),
-                        Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
+                        Expanded(
+                          child: SizedBox(
+                            height: 112,
+                            child: EnterpriseSummaryCardSkeleton(),
+                          ),
+                        ),
                         SizedBox(width: 16),
-                        Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
+                        Expanded(
+                          child: SizedBox(
+                            height: 112,
+                            child: EnterpriseSummaryCardSkeleton(),
+                          ),
+                        ),
                       ],
                     );
                   },
@@ -2212,45 +2334,78 @@ class _AttendanceState extends State<Attendance> {
               // 4. DATA GRID
               Expanded(
                 child: _isLoadingSystemData
-                    ? EnterpriseTableSkeleton(columns: _columns.isEmpty ? 6 : _columns.length + 1)
+                    ? EnterpriseTableSkeleton(
+                        columns: _columns.isEmpty ? 6 : _columns.length + 1,
+                      )
                     : activeData.isEmpty
                     ? EnterpriseEmptyState(
                         icon: Icons.fact_check_outlined,
-                        title: _rows.isEmpty ? 'Import the first attendance file' : 'Nothing matches the current search or filters',
+                        title: _rows.isEmpty
+                            ? 'Import the first attendance file'
+                            : 'Nothing matches the current search or filters',
                         message: _rows.isEmpty
                             ? 'Import a biometric workbook to establish the attendance register for payroll and workforce reporting.'
                             : 'No attendance records match the current date range and search query.',
-                        actionLabel: _rows.isEmpty ? 'Import attendance file' : null,
+                        actionLabel: _rows.isEmpty
+                            ? 'Import attendance file'
+                            : null,
                         onAction: _rows.isEmpty ? _pickExcelFile : null,
                       )
                     : EnterpriseDataGrid<Map<String, String>>(
-                      emptyTitle: 'No attendance records match the current search or filters',
-                      emptyMessage: 'Try adjusting the date range or search query to find records.',
+                        emptyTitle:
+                            'No attendance records match the current search or filters',
+                        emptyMessage:
+                            'Try adjusting the date range or search query to find records.',
                         rows: activeData,
-                        rowKey: (row) => '${row['employee_id'] ?? row['employee'] ?? ''}-${row['date'] ?? ''}',
+                        rowKey: (row) =>
+                            '${row['employee_id'] ?? row['employee'] ?? ''}-${row['date'] ?? ''}',
                         height: double.infinity,
-                        showDateRange: false, // Disables native top-right Date Range control
+                        showDateRange:
+                            false, // Disables native top-right Date Range control
                         filterFields: const [], // Clean table top
-                        columns: _columns.map((column) => EnterpriseGridColumn<Map<String, String>>(
-                              label: _formatTableHeader(column),
-                              width: column == 'employee' || column == 'employee_name' ? 240 : 150,
-                              value: (row) => _formatDisplayValue(column, row[column] ?? ''),
-                              cellBuilder: column == 'total_minutes_late'
-                                  ? (context, row) {
-                                      final raw = row[column] ?? '';
-                                      final flagged = (int.tryParse(raw) ?? 0) > 0 ||
-                                          raw.toLowerCase().contains('half') ||
-                                          raw.toLowerCase().contains('absent');
-                                      return Text(
-                                        _formatDisplayValue(column, raw),
-                                        style: TextStyle(
-                                          color: flagged ? Theme.of(context).colorScheme.error : null,
-                                          fontWeight: flagged ? FontWeight.w800 : null,
-                                        ),
-                                      );
-                                    }
-                                  : null,
-                            )).toList(),
+                        columns: _columns
+                            .map(
+                              (column) =>
+                                  EnterpriseGridColumn<Map<String, String>>(
+                                    label: _formatTableHeader(column),
+                                    width:
+                                        column == 'employee' ||
+                                            column == 'employee_name'
+                                        ? 240
+                                        : 150,
+                                    value: (row) => _formatDisplayValue(
+                                      column,
+                                      row[column] ?? '',
+                                    ),
+                                    cellBuilder: column == 'total_minutes_late'
+                                        ? (context, row) {
+                                            final raw = row[column] ?? '';
+                                            final flagged =
+                                                (int.tryParse(raw) ?? 0) > 0 ||
+                                                raw.toLowerCase().contains(
+                                                  'half',
+                                                ) ||
+                                                raw.toLowerCase().contains(
+                                                  'absent',
+                                                );
+                                            return Text(
+                                              _formatDisplayValue(column, raw),
+                                              style: TextStyle(
+                                                color: flagged
+                                                    ? Theme.of(
+                                                        context,
+                                                      ).colorScheme.error
+                                                    : null,
+                                                fontWeight: flagged
+                                                    ? FontWeight.w800
+                                                    : null,
+                                              ),
+                                            );
+                                          }
+                                        : null,
+                                  ),
+                            )
+                            .toList(),
                         onExportSelection: _exportAttendanceSelection,
                       ),
               ),

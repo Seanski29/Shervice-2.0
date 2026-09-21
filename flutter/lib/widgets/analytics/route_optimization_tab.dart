@@ -22,6 +22,7 @@ class RouteOptimizationTab extends StatefulWidget {
 
 class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
   bool _isLoading = true;
+  bool _showRecommendations = true;
   Map<String, dynamic>? _mlPayload;
 
   // Default to the current month.
@@ -100,6 +101,48 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
     if (label.contains('Stable')) return const Color(0xFF10B981);
     if (label.contains('High')) return const Color(0xFFF97316);
     return const Color(0xFF3B82F6);
+  }
+
+  Color _getRecommendationColor(
+    dynamic recommendation,
+    List<dynamic> clusters,
+    bool isDark,
+  ) {
+    var code = recommendation['color_code']?.toString().toLowerCase();
+    if (code == null || code.isEmpty) {
+      for (final cluster in clusters) {
+        if (cluster is Map &&
+            cluster['cluster_id'] == recommendation['cluster_id']) {
+          final label = (cluster['label'] ?? '').toString().toLowerCase();
+          code = label.contains('high')
+              ? 'high'
+              : label.contains('low')
+              ? 'low'
+              : 'stable';
+          break;
+        }
+      }
+      if (code == null || code.isEmpty) {
+        final insight = (recommendation['insight'] ?? '')
+            .toString()
+            .toLowerCase();
+        code = insight.contains('high demand')
+            ? 'high'
+            : insight.contains('low demand')
+            ? 'low'
+            : 'stable';
+      }
+    }
+    switch (code) {
+      case 'high':
+        return const Color(0xFFF97316);
+      case 'stable':
+        return const Color(0xFF10B981);
+      case 'low':
+        return const Color(0xFF3B82F6);
+      default:
+        return isDark ? Colors.amber.shade300 : const Color(0xFFF59E0B);
+    }
   }
 
   IconData _getClusterIcon(String label) {
@@ -296,16 +339,16 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
             ),
             const SizedBox(height: 32),
 
-            Text(
-              'Actionable Dispatch Recommendations',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: textColor,
+            _buildRecommendationsHeader(isDark, textColor),
+            if (_showRecommendations) ...[
+              const SizedBox(height: 12),
+              _buildRecommendationsView(
+                recommendations,
+                clusters,
+                isDark,
+                cardBg,
               ),
-            ),
-            const SizedBox(height: 12),
-            _buildRecommendationsView(recommendations, isDark, cardBg),
+            ],
             const SizedBox(height: 32),
             _buildTripBreakdownSection(
               filteredTrips,
@@ -588,6 +631,7 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
 
   Widget _buildRecommendationsView(
     List<dynamic> recommendations,
+    List<dynamic> clusters,
     bool isDark,
     Color cardBg,
   ) {
@@ -619,19 +663,24 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
 
     return Column(
       children: recommendations.map<Widget>((r) {
+        final recommendationColor = _getRecommendationColor(
+          r,
+          clusters,
+          isDark,
+        );
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF451A03) : const Color(0xFFFFFBEB),
+            color: recommendationColor.withValues(alpha: isDark ? 0.18 : 0.08),
             borderRadius: BorderRadius.circular(4),
             border: Border.all(
-              color: const Color(0xFFF59E0B).withValues(alpha: 0.3),
+              color: recommendationColor.withValues(alpha: 0.35),
             ),
           ),
           child: Row(
             children: [
-              const Icon(Icons.lightbulb, color: Color(0xFFF59E0B), size: 22),
+              Icon(Icons.lightbulb, color: recommendationColor, size: 22),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -646,9 +695,9 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
                     ),
                     Text(
                       "${r['insight']} -> ${r['action']}",
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: Color(0xFFD97706),
+                        color: recommendationColor,
                       ),
                     ),
                   ],
@@ -658,6 +707,36 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildRecommendationsHeader(bool isDark, Color textColor) {
+    return InkWell(
+      onTap: () => setState(() => _showRecommendations = !_showRecommendations),
+      borderRadius: BorderRadius.circular(6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Actionable Dispatch Recommendations',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
+              ),
+            ),
+            Icon(
+              _showRecommendations
+                  ? Icons.keyboard_arrow_up
+                  : Icons.keyboard_arrow_down,
+              color: isDark ? Colors.grey.shade300 : const Color(0xFF64748B),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

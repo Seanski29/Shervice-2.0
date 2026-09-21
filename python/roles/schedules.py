@@ -488,7 +488,7 @@ def upload_summary_xls():
 @schedules_bp.route('/api/schedules/staff-options', methods=['GET'])
 def get_staff_options():
     try:
-        query = supabase.table('user_account').select('user_id, full_name').eq('role', 'staff').execute()
+        query = supabase.table('user_account').select('staff_id, full_name').eq('role', 'staff').execute()
         return jsonify({"success": True, "data": query.data}), 200
     except Exception as e:
         current_app.logger.exception('Fetch staff options failed')
@@ -498,7 +498,10 @@ def get_staff_options():
 def get_dispatch_options():
     try:
         all_vehicles = supabase.table('vehicle').select('*').eq('is_available', True).execute()
-        raw_drivers = supabase.table('driver_profile').select('*').execute()
+        raw_drivers = supabase.table('driver_profile').select(
+            'driver_id, full_name, birthday, phone_no, date_hired, '
+            'employment_status, is_backup, ml_classification'
+        ).execute()
         
         all_drivers = raw_drivers.data or []
         active_drivers = [d for d in all_drivers if str(d.get('employment_status', '')).strip().lower() == 'active']

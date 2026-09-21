@@ -97,7 +97,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final userData = Map<String, dynamic>.from(responseData['data'] as Map);
       final role = (userData['role'] ?? '').toString().trim().toLowerCase();
-      final userId = (userData['user_id'] ?? userData['id'] ?? '').toString();
+      final userId =
+          (userData['auth_user_id'] ??
+                  userData['user_id'] ??
+                  userData['id'] ??
+                  '')
+              .toString();
       final displayName = (userData['name'] ?? userData['full_name'] ?? 'User')
           .toString();
       if (role != 'admin' && role != 'staff') {

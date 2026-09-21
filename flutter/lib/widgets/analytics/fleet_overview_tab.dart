@@ -392,7 +392,7 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
                   isDark,
                 ),
                 _buildKpiCard(
-                  'Average CSAT',
+                  'Average Driver Performance Rating',
                   '${csat.toStringAsFixed(1)} ★',
                   Icons.star,
                   const Color(0xFFF59E0B),
@@ -477,29 +477,27 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    IntrinsicHeight(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            child: _buildHorizontalBarChart(
-                              'Routes',
-                              topRoutesData,
-                              const Color(0xFF8B5CF6),
-                              isDark,
-                            ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _buildHorizontalBarChart(
+                            'Routes',
+                            topRoutesData,
+                            const Color(0xFF8B5CF6),
+                            isDark,
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildHorizontalBarChart(
-                              'Maintenance by Category',
-                              maintData,
-                              const Color(0xFFEF4444),
-                              isDark,
-                            ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildHorizontalBarChart(
+                            'Maintenance by Category',
+                            maintData,
+                            const Color(0xFFEF4444),
+                            isDark,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ],
                 ],
@@ -524,6 +522,7 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
       isDark ? 0.18 : 0.07,
     )!;
     return Container(
+      height: 116,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: fill,
@@ -539,9 +538,10 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: 18, color: color),
               const SizedBox(width: 10),
@@ -563,21 +563,16 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
             ],
           ),
           const SizedBox(height: 12),
-          Flexible(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  value,
-                  maxLines: 1,
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    color: isDark ? Colors.white : const Color(0xFF0F172A),
-                  ),
-                ),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              maxLines: 1,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
               ),
             ),
           ),

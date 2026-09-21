@@ -77,8 +77,18 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
   List<int> _availableDriverYears = [];
 
   final List<String> _monthNames = const [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   @override
@@ -150,7 +160,11 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
             _metrics = [
               DashboardMetric(
                 title: 'Total Trips',
-                value: (metricsMap['totalTrips'] ?? metricsMap['ongoingTrips'] ?? 0).toString(),
+                value:
+                    (metricsMap['totalTrips'] ??
+                            metricsMap['ongoingTrips'] ??
+                            0)
+                        .toString(),
                 subTitle: '', // <-- FIX ADDED HERE
                 icon: Icons.route,
                 baseColor: const Color(0xFF3B82F6),
@@ -164,7 +178,11 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
               ),
               DashboardMetric(
                 title: 'Active Drivers',
-                value: (metricsMap['activeDrivers'] ?? metricsMap['totalDrivers'] ?? 0).toString(),
+                value:
+                    (metricsMap['activeDrivers'] ??
+                            metricsMap['totalDrivers'] ??
+                            0)
+                        .toString(),
                 subTitle: '', // <-- FIX ADDED HERE
                 icon: Icons.people_alt,
                 baseColor: const Color(0xFF06B6D4),
@@ -382,7 +400,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
         padding: const EdgeInsets.all(16),
         children: [
           if (_errorMessage != null) _buildErrorBanner(),
-          
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -390,9 +408,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
               Text(
                 'Dashboard',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
+                  fontWeight: FontWeight.w800,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -406,7 +424,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 20),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -1640,90 +1658,88 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                     ),
                   )
                 : SizedBox(
-                    height: compact ? 280 : null,
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      physics: compact
-                          ? const BouncingScrollPhysics()
-                          : const NeverScrollableScrollPhysics(),
-                      itemCount: _companyTrips.length,
-                      separatorBuilder: (_, _) => Divider(
-                        height: 12,
-                        thickness: 0.5,
-                        color: theme.dividerColor,
-                      ),
-                      itemBuilder: (context, index) {
-                        final item = _companyTrips[index];
-                        final Color color = _proceduralColorAssigner(index);
-                        final share = totalTrips > 0
-                            ? (item.tripCount / totalTrips).clamp(0.0, 1.0)
-                            : 0.0;
-                        return Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: color.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Icon(
-                                Icons.business_center,
-                                color: color,
-                                size: 16,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item.companyName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
+                    height: compact ? 270 : 260,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: PieChart(
+                            PieChartData(
+                              sectionsSpace: 2,
+                              centerSpaceRadius: compact ? 34 : 42,
+                              sections: [
+                                for (
+                                  var index = 0;
+                                  index < _companyTrips.length;
+                                  index++
+                                )
+                                  PieChartSectionData(
+                                    value: _companyTrips[index].tripCount
+                                        .toDouble(),
+                                    color: _proceduralColorAssigner(index),
+                                    radius: compact ? 54 : 66,
+                                    title: totalTrips == 0
+                                        ? ''
+                                        : '${((_companyTrips[index].tripCount / totalTrips) * 100).round()}%',
+                                    titleStyle: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: _bodyTextSize,
                                     ),
                                   ),
-                                  const SizedBox(height: 2),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            2,
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _companyTrips.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 8),
+                            itemBuilder: (context, index) {
+                              final item = _companyTrips[index];
+                              final color = _proceduralColorAssigner(index);
+                              return Row(
+                                children: [
+                                  Container(
+                                    width: 10,
+                                    height: 10,
+                                    decoration: BoxDecoration(
+                                      color: color,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      item.companyName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            fontSize: _captionTextSize,
+                                            fontWeight: FontWeight.w600,
                                           ),
-                                          child: LinearProgressIndicator(
-                                            value: share,
-                                            backgroundColor: theme
-                                                .colorScheme
-                                                .surfaceContainerHighest,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                  color,
-                                                ),
-                                            minHeight: 3,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        '${item.tripCount}/$totalTrips',
-                                        style: TextStyle(
-                                          fontSize: _captionTextSize,
-                                          fontWeight: FontWeight.bold,
-                                          color: color,
-                                        ),
-                                      ),
-                                    ],
+                                    ),
+                                  ),
+                                  Text(
+                                    '${item.tripCount}',
+                                    style: TextStyle(
+                                      color: color,
+                                      fontSize: _captionTextSize,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ],
-                              ),
-                            ),
-                          ],
-                        );
-                      },
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ),
           ],

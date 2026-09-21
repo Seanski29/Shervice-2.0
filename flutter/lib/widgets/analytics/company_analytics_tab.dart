@@ -32,7 +32,7 @@ class _CompanyAnalyticsTabState extends State<CompanyAnalyticsTab> {
   static const List<String> _statusOptions = ['All summaries', 'Completed'];
 
   String _companyName(dynamic trip) {
-    final rawCompany = trip['client_company'] ?? trip['oic_profile'];
+    final rawCompany = trip['client_company'];
     if (rawCompany is Map) {
       return (rawCompany['company_name'] ?? 'Unassigned Company').toString();
     }
@@ -503,17 +503,22 @@ class _CompanyAnalyticsTabState extends State<CompanyAnalyticsTab> {
     Color mutedColor,
   ) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           value,
+          textAlign: TextAlign.center,
           style: TextStyle(
             color: textColor,
             fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
-        Text(label, style: TextStyle(color: mutedColor, fontSize: 12)),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(color: mutedColor, fontSize: 12),
+        ),
       ],
     );
   }
