@@ -115,7 +115,7 @@ class _AdminCompaniesState extends State<AdminCompanies> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: EnterpriseColors.generativeAction,
+              backgroundColor: const Color(0xFF3B82F6),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(4),
               ),
@@ -365,7 +365,7 @@ class _AdminCompaniesState extends State<AdminCompanies> {
         actions: [
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: EnterpriseColors.generativeAction,
+              backgroundColor: const Color(0xFFF59E0B),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(4),
               ),
@@ -389,121 +389,6 @@ class _AdminCompaniesState extends State<AdminCompanies> {
         backgroundColor: color,
         behavior: SnackBarBehavior.floating,
       ),
-    );
-  }
-
-  Widget _buildSummaryCards(bool isDark) {
-    final int internalCount = _companies.where((c) => _isInternalCompany(c)).length;
-    final int externalCount = _companies.where((c) => !_isInternalCompany(c)).length;
-
-    final cards = [
-      (
-        'Total Companies',
-        '${_companies.length}',
-        'All registered entities',
-        Icons.business,
-        const Color(0xFF3B82F6),
-      ),
-      (
-        'Primary Company',
-        '$internalCount',
-        'Internal system owner',
-        Icons.admin_panel_settings_outlined,
-        const Color(0xFF8B5CF6),
-      ),
-      (
-        'Partner Clients',
-        '$externalCount',
-        'External organizations',
-        Icons.handshake_outlined,
-        const Color(0xFF10B981),
-      ),
-    ];
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isNarrow = constraints.maxWidth < 800;
-
-        final cardWidgets = cards.map((card) {
-          final Color baseColor = card.$5;
-          return Container(
-            constraints: const BoxConstraints(minHeight: 112),
-            width: isNarrow ? double.infinity : null,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: baseColor.withValues(alpha: 0.08),
-              border: Border.all(color: baseColor.withValues(alpha: 0.3)),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Icon(card.$4, color: baseColor, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        card.$1,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: baseColor,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  card.$2,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 28,
-                    height: 1.0,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  card.$3,
-                  style: TextStyle(
-                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList();
-
-        if (isNarrow) {
-          return Column(
-            children: cardWidgets
-                .map((c) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: c,
-                    ))
-                .toList(),
-          );
-        }
-
-        return Row(
-          children: [
-            Expanded(child: cardWidgets[0]),
-            const SizedBox(width: 16),
-            Expanded(child: cardWidgets[1]),
-            const SizedBox(width: 16),
-            Expanded(child: cardWidgets[2]),
-          ],
-        );
-      },
     );
   }
 
@@ -546,12 +431,36 @@ class _AdminCompaniesState extends State<AdminCompanies> {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    SizedBox(
+                      width: 280,
+                      height: 42,
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (value) => setState(() => _searchQuery = value),
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 13),
+                        decoration: InputDecoration(
+                          hintText: 'Search company name',
+                          hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                          prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
+                          filled: true,
+                          fillColor: Theme.of(context).cardColor,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4),
+                            borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
                     FilledButton.icon(
                       onPressed: _addCompanyDialog,
                       icon: const Icon(Icons.add_business_outlined, size: 17),
                       label: const Text('Add company'),
                       style: FilledButton.styleFrom(
-                        backgroundColor: EnterpriseColors.generativeAction,
+                       
+                        minimumSize: const Size(0, 42),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -559,75 +468,14 @@ class _AdminCompaniesState extends State<AdminCompanies> {
                       onPressed: _isLoading ? null : _fetchCompanies,
                       icon: const Icon(Icons.refresh, size: 17),
                       label: const Text('Refresh'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 42),
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-
-            // 2. KPI CARDS
-            if (_isLoading)
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isNarrow = constraints.maxWidth < 800;
-                  if (isNarrow) {
-                    return Column(
-                      children: List.generate(
-                        3,
-                        (_) => const Padding(
-                          padding: EdgeInsets.only(bottom: 16),
-                          child: SizedBox(
-                            height: 112,
-                            width: double.infinity,
-                            child: EnterpriseSummaryCardSkeleton(),
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-                  return Row(
-                    children: const [
-                      Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
-                      SizedBox(width: 16),
-                      Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
-                      SizedBox(width: 16),
-                      Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
-                    ],
-                  );
-                },
-              )
-            else
-              _buildSummaryCards(isDark),
-
-            const SizedBox(height: 32),
-
-            // 3. SEARCH (Anchored Left)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: SizedBox(
-                width: 340,
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (value) => setState(() => _searchQuery = value),
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: 'Search company name',
-                    hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-                    prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
-                    filled: true,
-                    fillColor: Theme.of(context).cardColor,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(4),
-                      borderSide: BorderSide(color: Theme.of(context).dividerColor),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
 
             // 4. MAIN WORKSPACE TABLE
             Expanded(
@@ -682,8 +530,8 @@ class _AdminCompaniesState extends State<AdminCompanies> {
                                 : 'Partner client',
                             style: TextStyle(
                               color: _isInternalCompany(company)
-                                  ? EnterpriseColors.information
-                                  : EnterpriseColors.success,
+                                  ? const Color(0xFF10B981)
+                                  : const Color(0xFF3B82F6),
                               fontWeight: FontWeight.w700,
                             ),
                           ),

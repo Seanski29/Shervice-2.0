@@ -545,13 +545,6 @@ class _PayrollState extends State<Payroll> {
                           ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      'Calculate driver earnings and deductions.',
-                      style: TextStyle(
-                        color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
-                        fontSize: 13,
-                      ),
-                    ),
                   ],
                 ),
                 OutlinedButton.icon(

@@ -342,13 +342,6 @@ class _AdminUsersState extends State<AdminUsers> {
                           ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      'Manage system access and account roles.',
-                      style: TextStyle(
-                        color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
-                        fontSize: 13,
-                      ),
-                    ),
                   ],
                 ),
                 Row(
@@ -373,44 +366,6 @@ class _AdminUsersState extends State<AdminUsers> {
               ],
             ),
             const SizedBox(height: 24),
-
-            // 2. CARDS BEFORE FILTERS
-            if (_isLoading)
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isNarrow = constraints.maxWidth < 900;
-                  if (isNarrow) {
-                    return Column(
-                      children: List.generate(
-                        4,
-                        (_) => const Padding(
-                          padding: EdgeInsets.only(bottom: 16),
-                          child: SizedBox(
-                            height: 112,
-                            width: double.infinity,
-                            child: EnterpriseSummaryCardSkeleton(),
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-                  return Row(
-                    children: const [
-                      Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
-                      SizedBox(width: 16),
-                      Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
-                      SizedBox(width: 16),
-                      Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
-                      SizedBox(width: 16),
-                      Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
-                    ],
-                  );
-                },
-              )
-            else
-              _buildSummaryCards(isDark),
-
-            const SizedBox(height: 32),
 
             // 3. MAIN WORKSPACE TABLE (WITH FILTERS ANCHORED LEFT)
             Expanded(
@@ -484,22 +439,6 @@ class _AdminUsersState extends State<AdminUsers> {
                           label: 'Permission',
                           width: 150,
                           value: (user) => (user['permission'] ?? 'Standard').toString(),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Status',
-                          width: 130,
-                          value: (user) => (user['status'] ?? 'Active').toString(),
-                          cellBuilder: (context, user) {
-                            final status = (user['status'] ?? 'Active').toString();
-                            final active = status.toLowerCase() == 'active';
-                            return Text(
-                              status,
-                              style: TextStyle(
-                                color: active ? EnterpriseColors.success : EnterpriseColors.warning,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            );
-                          },
                         ),
                         EnterpriseGridColumn(
                           label: 'Record actions',

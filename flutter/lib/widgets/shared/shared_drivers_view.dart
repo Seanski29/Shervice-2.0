@@ -170,7 +170,6 @@ class SharedDriversViewState extends State<SharedDriversView> {
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
                     ),
-                    const SizedBox(height: 4),
                     Text(
                       widget.subtitle,
                       style: TextStyle(
@@ -196,7 +195,7 @@ class SharedDriversViewState extends State<SharedDriversView> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 10),
 
             // 2. CARDS BEFORE FILTERS
             if (_isLoading)
@@ -234,7 +233,7 @@ class SharedDriversViewState extends State<SharedDriversView> {
             else
               _buildSummaryCards(isDark),
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 15),
 
             // 3. FILTERS (Anchored Left)
             Align(
@@ -242,7 +241,7 @@ class SharedDriversViewState extends State<SharedDriversView> {
               child: _buildFilters(isDark),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 10),
 
             // 4. MAIN WORKSPACE TABLE
             Expanded(

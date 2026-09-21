@@ -2135,7 +2135,6 @@ class _AttendanceState extends State<Attendance> {
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
                       ),
-                      const SizedBox(height: 1),
                     ],
                   ),
                   Row(
