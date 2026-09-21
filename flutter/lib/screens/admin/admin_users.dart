@@ -2,14 +2,12 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import '../../widgets/shared/enterprise_states.dart';
-import '../../widgets/shared/enterprise_data_grid.dart';
+import '../../layouts/enterprise/enterprise_states.dart';
+import '../../layouts/enterprise/enterprise_data_grid.dart';
 import 'package:http/http.dart' as http;
-import 'package:skeletonizer/skeletonizer.dart';
 import '../../constant.dart';
 import '../../utils/file_download.dart';
-import '../../theme/enterprise_theme.dart';
-import '../../widgets/shared/universal_pagination.dart';
+import '../../layouts/enterprise/enterprise_theme.dart';
 
 // --- MAIN DASHBOARD COMPONENT ---
 class AdminUsers extends StatefulWidget {
@@ -31,10 +29,6 @@ class _AdminUsersState extends State<AdminUsers> {
   String _currentSort = 'Name (A to Z)';
   final List<String> _sortOptions = ['Name (A to Z)', 'Name (Z to A)', 'Role'];
 
-  // Pagination Parameters
-  int _currentPage = 0;
-  final int _itemsPerPage = 10;
-
   @override
   void initState() {
     super.initState();
@@ -48,6 +42,7 @@ class _AdminUsersState extends State<AdminUsers> {
   }
 
   Future<void> _fetchSystemUsers() async {
+    setState(() => _isLoading = true);
     try {
       final response = await http
           .get(Uri.parse('$backendUrl/auth/system-users'))
@@ -98,38 +93,9 @@ class _AdminUsersState extends State<AdminUsers> {
 
     setState(() {
       _filteredUsers = temp;
-      _currentPage = 0;
       _isLoading = false;
     });
   }
-
-  int get _totalPages => (_filteredUsers.length / _itemsPerPage).ceil();
-
-  // Skeletonizer Mock Data Intercept
-  List<dynamic> get _paginatedUsers {
-    if (_isLoading) {
-      return List.generate(
-        5,
-        (index) => {
-          'id': index + 1,
-          'name': 'Loading User Name Data',
-          'status': 'Active',
-          'company': 'Loading Company',
-          'email': 'loading@example.com',
-          'role': 'Staff',
-          'permission': 'Standard',
-        },
-      );
-    }
-    if (_filteredUsers.isEmpty) return [];
-    int start = _currentPage * _itemsPerPage;
-    int end = min(start + _itemsPerPage, _filteredUsers.length);
-    return _filteredUsers.sublist(start, end);
-  }
-
-  void _nextPage() =>
-      _currentPage < _totalPages - 1 ? setState(() => _currentPage++) : null;
-  void _prevPage() => _currentPage > 0 ? setState(() => _currentPage--) : null;
 
   Future<void> _confirmPurgeUser(Map<String, dynamic> user) async {
     final confirmed = await showEnterpriseDestructiveConfirmation(
@@ -147,17 +113,6 @@ class _AdminUsersState extends State<AdminUsers> {
         EnterpriseToasts.error(context, 'Unable to delete user: $error');
       }
     }
-  }
-
-  void _showSnackBar(String message, Color color) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(color: Colors.white)),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
 
   void _showUserModal(BuildContext context, {Map<String, dynamic>? user}) {
@@ -217,638 +172,370 @@ class _AdminUsersState extends State<AdminUsers> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final users = _filteredUsers
-        .map((user) => Map<String, dynamic>.from(user as Map))
-        .toList();
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              _UserMetadata(label: '${_allUsers.length} user accounts'),
-              const _UserMetadata(label: 'Owner: Admin'),
-              FilledButton.icon(
-                onPressed: () => _showUserModal(context),
-                icon: const Icon(Icons.person_add_alt_1, size: 17),
-                label: const Text('Register user'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: EnterpriseDataGrid<Map<String, dynamic>>(
-              loading: _isLoading,
-              rows: users,
-              rowKey: (user) => user['id'] ?? user.hashCode,
-              height: double.infinity,
-              columns: [
-                EnterpriseGridColumn(
-                  label: 'User ID',
-                  width: 130,
-                  value: (user) => (user['id'] ?? '').toString(),
-                ),
-                EnterpriseGridColumn(
-                  label: 'Name',
-                  width: 230,
-                  value: (user) => (user['name'] ?? 'System User').toString(),
-                ),
-                EnterpriseGridColumn(
-                  label: 'Email',
-                  width: 260,
-                  value: (user) => (user['email'] ?? 'Not provided').toString(),
-                ),
-                EnterpriseGridColumn(
-                  label: 'Company',
-                  width: 220,
-                  value: (user) => (user['company'] ?? 'Internal').toString(),
-                ),
-                EnterpriseGridColumn(
-                  label: 'Role',
-                  width: 130,
-                  value: (user) => (user['role'] ?? 'Staff').toString(),
-                ),
-                EnterpriseGridColumn(
-                  label: 'Permission',
-                  width: 150,
-                  value: (user) =>
-                      (user['permission'] ?? 'Standard').toString(),
-                ),
-                EnterpriseGridColumn(
-                  label: 'Status',
-                  width: 130,
-                  value: (user) => (user['status'] ?? 'Active').toString(),
-                  cellBuilder: (context, user) {
-                    final status = (user['status'] ?? 'Active').toString();
-                    final active = status.toLowerCase() == 'active';
-                    return Text(
-                      status,
-                      style: TextStyle(
-                        color: active
-                            ? EnterpriseColors.success
-                            : EnterpriseColors.warning,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    );
-                  },
-                ),
-                EnterpriseGridColumn(
-                  label: 'Record actions',
-                  width: 170,
-                  value: (_) => '',
-                  cellBuilder: (context, user) => TextButton.icon(
-                    onPressed: () => _showUserModal(context, user: user),
-                    icon: const Icon(Icons.open_in_new, size: 15),
-                    label: const Text('Open / edit'),
-                  ),
-                ),
-              ],
-              filterFields: [
-                SizedBox(
-                  width: 340,
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (value) {
-                      _searchQuery = value;
-                      _applyFiltersAndSort();
-                    },
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search),
-                      labelText: 'Search user name, email, or company',
-                      isDense: true,
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                ),
-                SizedBox(
-                  width: 190,
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _currentSort,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.filter_list),
-                      labelText: 'Filter',
-                      isDense: true,
-                      border: OutlineInputBorder(),
-                    ),
-                    items: _sortOptions
-                        .map(
-                          (option) => DropdownMenuItem(
-                            value: option,
-                            child: Text(option),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      _currentSort = value ?? _currentSort;
-                      _applyFiltersAndSort();
-                    },
-                  ),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _fetchSystemUsers,
-                  icon: const Icon(Icons.refresh, size: 17),
-                  label: const Text('Refresh'),
-                ),
-              ],
-              emptyTitle: _allUsers.isEmpty
-                  ? 'Register the first user'
-                  : 'Nothing matches the current search or filters',
-              emptyMessage: _allUsers.isEmpty
-                  ? 'Create an account to establish role-based access to Shervice.'
-                  : 'No user accounts match the current search and sort criteria.',
-              emptyActionLabel: _allUsers.isEmpty
-                  ? 'Register first user'
-                  : null,
-              onEmptyAction: _allUsers.isEmpty
-                  ? () => _showUserModal(context)
-                  : null,
-              onDelete: _deleteUserDirect,
-              onBulkDelete: _deleteUsers,
-              onExportSelection: _exportUsers,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildSummaryCards(bool isDark) {
+    final int total = _allUsers.length;
+    final int active = _allUsers.where((u) => (u['status'] ?? '').toString().toLowerCase() == 'active').length;
+    final int admins = _allUsers.where((u) => (u['role'] ?? '').toString().toLowerCase().contains('admin')).length;
+    final int staff = total - admins;
 
-  Widget _buildLegacyDirectory(BuildContext context) {
-    final bool isMobile = MediaQuery.of(context).size.width < 950;
-    final double horizontalPadding = isMobile ? 12.0 : 24.0;
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final cards = [
+      ('Total Users', '$total', Icons.people_alt_outlined, const Color(0xFF3B82F6)),
+      ('Active', '$active', Icons.check_circle_outline, const Color(0xFF10B981)),
+      ('Administrators', '$admins', Icons.admin_panel_settings_outlined, const Color(0xFF8B5CF6)),
+      ('Staff', '$staff', Icons.badge_outlined, const Color(0xFFF59E0B)),
+    ];
 
-    final Widget actionControls = Skeleton.ignore(
-      child: Wrap(
-        spacing: 10,
-        runSpacing: 10,
-        alignment: isMobile ? WrapAlignment.start : WrapAlignment.end,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: isMobile ? double.infinity : 280,
-            ),
-            child: SizedBox(
-              height: 42,
-              child: TextField(
-                onChanged: (value) {
-                  _searchQuery = value;
-                  _applyFiltersAndSort();
-                },
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
-                  fontSize: 14,
-                ),
-                decoration: InputDecoration(
-                  hintText: 'Search system accounts...',
-                  hintStyle: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade500,
-                  ),
-                  prefixIcon: const Icon(
-                    Icons.search,
-                    size: 18,
-                    color: Color(0xFF64748B),
-                  ),
-                  filled: true,
-                  fillColor: Theme.of(context).inputDecorationTheme.fillColor,
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 0,
-                    horizontal: 12,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: BorderSide(
-                      color: isDark
-                          ? Colors.grey.shade800
-                          : Colors.grey.shade300,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: BorderSide(
-                      color: isDark
-                          ? Colors.grey.shade800
-                          : Colors.grey.shade300,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(4),
-                    borderSide: const BorderSide(
-                      color: Color(0xFF3B82F6),
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: isMobile ? double.infinity : 160,
-            ),
-            child: SizedBox(
-              height: 42,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  border: Border.all(
-                    color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
-                  ),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    isExpanded: true,
-                    value: _currentSort,
-                    dropdownColor: Theme.of(context).cardColor,
-                    icon: const Icon(
-                      Icons.sort,
-                      size: 18,
-                      color: Color(0xFF64748B),
-                    ),
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                    items: _sortOptions
-                        .map(
-                          (String value) => DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (newValue) {
-                      if (newValue != null) {
-                        _currentSort = newValue;
-                        _applyFiltersAndSort();
-                      }
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(
-            height: 42,
-            width: 42,
-            child: OutlinedButton(
-              onPressed: () {
-                setState(() => _isLoading = true);
-                _fetchSystemUsers();
-              },
-              style: OutlinedButton.styleFrom(
-                padding: EdgeInsets.zero,
-                side: const BorderSide(color: Color(0xFF3B82F6), width: 1.2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              child: const Icon(
-                Icons.refresh,
-                color: Color(0xFF3B82F6),
-                size: 20,
-              ),
-            ),
-          ),
-          SizedBox(
-            height: 42,
-            child: ElevatedButton.icon(
-              onPressed: () => _showUserModal(context),
-              icon: const Icon(Icons.add, color: Colors.white, size: 18),
-              label: const Text(
-                'Register User',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3B82F6),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                elevation: 0,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    final Widget headerTitle = Skeleton.ignore(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          border: Border.all(color: Theme.of(context).dividerColor),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(
-          '${_allUsers.length} user accounts  |  Owner: Admin',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-      ),
-    );
-
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Skeletonizer(
-        enabled: _isLoading,
-        child: RefreshIndicator(
-          onRefresh: _fetchSystemUsers,
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: horizontalPadding,
-              vertical: 16.0,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 900;
+        final cardWidgets = cards.map((card) {
+          final Color baseColor = card.$4;
+          return Container(
+            constraints: const BoxConstraints(minHeight: 112),
+            width: isNarrow ? double.infinity : null,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: baseColor.withValues(alpha: 0.08),
+              border: Border.all(color: baseColor.withValues(alpha: 0.3)),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min, // Prevents vertical overflow
               children: [
-                if (isMobile) ...[
-                  headerTitle,
-                  const SizedBox(height: 16),
-                  actionControls,
-                ] else ...[
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(child: headerTitle),
-                      const SizedBox(width: 16),
-                      actionControls,
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 20),
-                Expanded(
-                  child: !_isLoading && _filteredUsers.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.people_outline,
-                                size: 64,
-                                color: isDark
-                                    ? Colors.grey.shade700
-                                    : Colors.grey.shade400,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'No system users found.',
-                                style: TextStyle(
-                                  color: isDark
-                                      ? Colors.grey.shade500
-                                      : Colors.grey.shade600,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: _paginatedUsers.length,
-                          itemBuilder: (context, index) {
-                            final user = _paginatedUsers[index];
-                            final String status = user['status'] ?? 'Active';
-                            final Color statusColor = (status == 'Active')
-                                ? const Color(0xFF10B981)
-                                : const Color(0xFFF59E0B);
-
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).cardColor,
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: Theme.of(context).dividerColor,
-                                ),
-                                boxShadow: [
-                                  if (!isDark)
-                                    BoxShadow(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.02,
-                                      ),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                ],
-                              ),
-                              child: Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(4),
-                                  onTap: () => _showUserModal(
-                                    context,
-                                    user: Map<String, dynamic>.from(user),
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
-                                    ),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        Container(
-                                          width: 4,
-                                          height: 36,
-                                          margin: const EdgeInsets.only(
-                                            right: 12,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: statusColor,
-                                            borderRadius: BorderRadius.circular(
-                                              4,
-                                            ),
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Flexible(
-                                                    child: Text(
-                                                      user['name'] ??
-                                                          'System User',
-                                                      style: TextStyle(
-                                                        fontSize: 15,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color: Theme.of(
-                                                          context,
-                                                        ).colorScheme.onSurface,
-                                                      ),
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 6),
-                                                  Container(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 6,
-                                                          vertical: 1,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color: statusColor
-                                                          .withValues(
-                                                            alpha: 0.15,
-                                                          ),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            10,
-                                                          ),
-                                                    ),
-                                                    child: Text(
-                                                      status,
-                                                      style: TextStyle(
-                                                        color: statusColor,
-                                                        fontSize: 8,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Wrap(
-                                                spacing: 10,
-                                                runSpacing: 2,
-                                                children: [
-                                                  _iconText(
-                                                    Icons.business,
-                                                    user['company'] ??
-                                                        'Internal',
-                                                    isDark,
-                                                  ),
-                                                  _iconText(
-                                                    Icons.email_outlined,
-                                                    user['email'] ?? 'No Email',
-                                                    isDark,
-                                                  ),
-                                                  _iconText(
-                                                    Icons
-                                                        .admin_panel_settings_outlined,
-                                                    user['role'] ?? 'Staff',
-                                                    isDark,
-                                                  ),
-                                                  _iconText(
-                                                    Icons
-                                                        .verified_user_outlined,
-                                                    user['permission'] ??
-                                                        'Standard',
-                                                    isDark,
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        const Icon(
-                                          Icons.arrow_forward_ios,
-                                          size: 14,
-                                          color: Color(0xFF94A3B8),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
+                Row(
+                  children: [
+                    Icon(card.$3, color: baseColor, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        card.$1,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: baseColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
                         ),
-                ),
-                if (!_isLoading && _filteredUsers.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: UniversalPagination(
-                      currentPage: _currentPage,
-                      totalPages: _totalPages,
-                      totalItems: _filteredUsers.length,
-                      itemsPerPage: _itemsPerPage,
-                      itemName: 'users',
-                      onNextPage: _currentPage < _totalPages - 1
-                          ? _nextPage
-                          : null,
-                      onPrevPage: _currentPage > 0 ? _prevPage : null,
+                      ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  card.$2,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 28,
+                    height: 1.0, // Trims internal font padding
                   ),
+                ),
+                const SizedBox(height: 4),
               ],
             ),
-          ),
-        ),
-      ),
+          );
+        }).toList();
+
+        if (isNarrow) {
+          return Column(
+            children: cardWidgets
+                .map((c) => Padding(padding: const EdgeInsets.only(bottom: 16), child: c))
+                .toList(),
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: cardWidgets[0]),
+            const SizedBox(width: 16),
+            Expanded(child: cardWidgets[1]),
+            const SizedBox(width: 16),
+            Expanded(child: cardWidgets[2]),
+            const SizedBox(width: 16),
+            Expanded(child: cardWidgets[3]),
+          ],
+        );
+      },
     );
   }
 
-  Widget _iconText(IconData icon, String text, bool isDark) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          size: 12,
-          color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w500,
-            color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _UserMetadata extends StatelessWidget {
-  const _UserMetadata({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _sortDropdown(bool isDark) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      height: 34,
+      width: 180,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         border: Border.all(color: Theme.of(context).dividerColor),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(label, style: Theme.of(context).textTheme.bodySmall),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _currentSort,
+          isExpanded: true,
+          isDense: true,
+          icon: const Padding(
+            padding: EdgeInsets.only(left: 8.0),
+            child: Icon(Icons.sort, size: 16),
+          ),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+          dropdownColor: Theme.of(context).cardColor,
+          selectedItemBuilder: (BuildContext context) {
+            return _sortOptions.map((String value) {
+              return Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Sort: $value',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              );
+            }).toList();
+          },
+          items: _sortOptions
+              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+              .toList(),
+          onChanged: (val) {
+            if (val != null) {
+              setState(() {
+                _currentSort = val;
+                _applyFiltersAndSort();
+              });
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final users = _filteredUsers.map((user) => Map<String, dynamic>.from(user as Map)).toList();
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 1. TOP ROW: Title on Left, Actions on Right
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Users',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Manage system access and account roles.',
+                      style: TextStyle(
+                        color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: () => _showUserModal(context),
+                      icon: const Icon(Icons.person_add_alt_1, size: 17),
+                      label: const Text('Register user'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: EnterpriseColors.generativeAction,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    OutlinedButton.icon(
+                      onPressed: _isLoading ? null : _fetchSystemUsers,
+                      icon: const Icon(Icons.refresh, size: 17),
+                      label: const Text('Refresh'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // 2. CARDS BEFORE FILTERS
+            if (_isLoading)
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isNarrow = constraints.maxWidth < 900;
+                  if (isNarrow) {
+                    return Column(
+                      children: List.generate(
+                        4,
+                        (_) => const Padding(
+                          padding: EdgeInsets.only(bottom: 16),
+                          child: SizedBox(
+                            height: 112,
+                            width: double.infinity,
+                            child: EnterpriseSummaryCardSkeleton(),
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  return Row(
+                    children: const [
+                      Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
+                      SizedBox(width: 16),
+                      Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
+                      SizedBox(width: 16),
+                      Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
+                      SizedBox(width: 16),
+                      Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
+                    ],
+                  );
+                },
+              )
+            else
+              _buildSummaryCards(isDark),
+
+            const SizedBox(height: 32),
+
+            // 3. MAIN WORKSPACE TABLE (WITH FILTERS ANCHORED LEFT)
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: EnterpriseDataGrid<Map<String, dynamic>>(
+                      loading: _isLoading,
+                      rows: users,
+                      rowKey: (user) => user['id'] ?? user.hashCode,
+                      height: double.infinity,
+                      showDateRange: false, // Disables Date Range control
+                      filterFields: [
+                        SizedBox(
+                          width: 320,
+                          height: 34,
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: (value) {
+                              setState(() {
+                                _searchQuery = value;
+                                _applyFiltersAndSort();
+                              });
+                            },
+                            style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 13),
+                            decoration: InputDecoration(
+                              hintText: 'Search user name, email, or company',
+                              hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                              prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
+                              filled: true,
+                              fillColor: Theme.of(context).cardColor,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                              ),
+                            ),
+                          ),
+                        ),
+                        _sortDropdown(isDark),
+                      ],
+                      columns: [
+                        EnterpriseGridColumn(
+                          label: 'User ID',
+                          width: 130,
+                          value: (user) => (user['id'] ?? '').toString(),
+                        ),
+                        EnterpriseGridColumn(
+                          label: 'Name',
+                          width: 230,
+                          value: (user) => (user['name'] ?? 'System User').toString(),
+                        ),
+                        EnterpriseGridColumn(
+                          label: 'Email',
+                          width: 260,
+                          value: (user) => (user['email'] ?? 'Not provided').toString(),
+                        ),
+                        EnterpriseGridColumn(
+                          label: 'Company',
+                          width: 220,
+                          value: (user) => (user['company'] ?? 'Internal').toString(),
+                        ),
+                        EnterpriseGridColumn(
+                          label: 'Role',
+                          width: 130,
+                          value: (user) => (user['role'] ?? 'Staff').toString(),
+                        ),
+                        EnterpriseGridColumn(
+                          label: 'Permission',
+                          width: 150,
+                          value: (user) => (user['permission'] ?? 'Standard').toString(),
+                        ),
+                        EnterpriseGridColumn(
+                          label: 'Status',
+                          width: 130,
+                          value: (user) => (user['status'] ?? 'Active').toString(),
+                          cellBuilder: (context, user) {
+                            final status = (user['status'] ?? 'Active').toString();
+                            final active = status.toLowerCase() == 'active';
+                            return Text(
+                              status,
+                              style: TextStyle(
+                                color: active ? EnterpriseColors.success : EnterpriseColors.warning,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            );
+                          },
+                        ),
+                        EnterpriseGridColumn(
+                          label: 'Record actions',
+                          width: 170,
+                          value: (_) => '',
+                          cellBuilder: (context, user) => OutlinedButton(
+                            onPressed: () => _showUserModal(context, user: user),
+                            child: const Text('Update'),
+                          ),
+                        ),
+                      ],
+                      emptyTitle: _allUsers.isEmpty
+                          ? 'Register the first user'
+                          : 'Nothing matches the current search or filters',
+                      emptyMessage: _allUsers.isEmpty
+                          ? 'Create an account to establish role-based access to Shervice.'
+                          : 'No user accounts match the current search and sort criteria.',
+                      emptyActionLabel: _allUsers.isEmpty ? 'Register first user' : null,
+                      onEmptyAction: _allUsers.isEmpty ? () => _showUserModal(context) : null,
+                      onDelete: _deleteUserDirect,
+                      onBulkDelete: _deleteUsers,
+                      onExportSelection: _exportUsers,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
 // ============================================================================
-// REGISTER USER DIALOG (NOW FULLY DYNAMIC COMPANIES)
+// REGISTER USER DIALOG
 // ============================================================================
 class RegisterUserDialog extends StatefulWidget {
   final Map<String, dynamic>? user;
@@ -872,6 +559,7 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
   String? _selectedRole;
   String? _selectedCompany;
   List<String> _companyOptions = ['GT LANTIN INTERNAL'];
+
   @override
   void initState() {
     super.initState();
@@ -893,8 +581,7 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
           : widget.user!['company'];
     }
 
-    if (_selectedCompany != null &&
-        !_companyOptions.contains(_selectedCompany)) {
+    if (_selectedCompany != null && !_companyOptions.contains(_selectedCompany)) {
       _companyOptions.add(_selectedCompany!);
     }
 
@@ -917,9 +604,7 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
             if (fetched.isNotEmpty) {
               _companyOptions = fetched;
             }
-            // Ensure selected company matches one of the options
-            if (_selectedCompany != null &&
-                !_companyOptions.contains(_selectedCompany)) {
+            if (_selectedCompany != null && !_companyOptions.contains(_selectedCompany)) {
               _companyOptions.add(_selectedCompany!);
             }
           });
@@ -1013,9 +698,7 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
 
           final passData = jsonDecode(passResponse.body);
           if (passResponse.statusCode != 200 || passData['success'] != true) {
-            throw Exception(
-              passData['message'] ?? "Failed to override password.",
-            );
+            throw Exception(passData['message'] ?? "Failed to override password.");
           }
         }
       } else {
@@ -1043,9 +726,7 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isEditMode
-                  ? "Account profile synchronized!"
-                  : "User registered successfully!",
+              isEditMode ? "Account profile synchronized!" : "User registered successfully!",
               style: const TextStyle(color: Colors.white),
             ),
             backgroundColor: const Color(0xFF10B981),
@@ -1053,18 +734,13 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
           ),
         );
       } else {
-        throw Exception(
-          responseData['message'] ?? "Request operation rejected.",
-        );
+        throw Exception(responseData['message'] ?? "Request operation rejected.");
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            e.toString(),
-            style: const TextStyle(color: Colors.white),
-          ),
+          content: Text(e.toString(), style: const TextStyle(color: Colors.white)),
           backgroundColor: const Color(0xFFEF4444),
           behavior: SnackBarBehavior.floating,
         ),
@@ -1099,7 +775,7 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0),
           ),
@@ -1130,9 +806,7 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
                   onPressed: () => Navigator.pop(context),
                   icon: Icon(
                     Icons.close,
-                    color: isDark
-                        ? Colors.grey.shade400
-                        : const Color(0xFF64748B),
+                    color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
                   ),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -1150,56 +824,34 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
                       TextFormField(
                         controller: _nameController,
                         readOnly: !_isWritingUnlocked,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                        validator: (val) =>
-                            val == null || val.isEmpty ? "Required" : null,
-                        decoration: _fieldStyle(
-                          context,
-                          label: 'Full Name',
-                          icon: Icons.person,
-                        ),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                        validator: (val) => val == null || val.isEmpty ? "Required" : null,
+                        decoration: _fieldStyle(context, label: 'Full Name', icon: Icons.person),
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _emailController,
                         readOnly: !_isWritingUnlocked,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                        validator: (val) => val == null || !val.contains('@')
-                            ? "Enter a valid email"
-                            : null,
-                        decoration: _fieldStyle(
-                          context,
-                          label: 'Email Address',
-                          icon: Icons.email,
-                        ),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                        validator: (val) => val == null || !val.contains('@') ? "Enter a valid email" : null,
+                        decoration: _fieldStyle(context, label: 'Email Address', icon: Icons.email),
                       ),
                       const SizedBox(height: 14),
                       TextFormField(
                         controller: _passwordController,
                         obscureText: true,
                         readOnly: !_isWritingUnlocked,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
                         decoration: _fieldStyle(
                           context,
-                          label: isEditMode
-                              ? 'Reset Password (Leave empty to keep current)'
-                              : 'Secure Password',
+                          label: isEditMode ? 'Reset Password (Leave empty to keep current)' : 'Secure Password',
                           icon: Icons.lock_reset,
                         ),
                         validator: (val) {
                           if (!isEditMode && (val == null || val.length < 6)) {
                             return "Minimum 6 characters required";
                           }
-                          if (isEditMode &&
-                              val != null &&
-                              val.isNotEmpty &&
-                              val.length < 6) {
+                          if (isEditMode && val != null && val.isNotEmpty && val.length < 6) {
                             return "Minimum 6 characters required";
                           }
                           return null;
@@ -1207,50 +859,31 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
                       ),
                       const SizedBox(height: 14),
                       DropdownButtonFormField<String>(
-                        initialValue: _selectedRole,
-                        validator: (val) =>
-                            val == null ? "Select a role" : null,
+                        value: _selectedRole,
+                        validator: (val) => val == null ? "Select a role" : null,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 15,
                         ),
-                        decoration: _fieldStyle(
-                          context,
-                          label: 'Assign Role',
-                          icon: Icons.admin_panel_settings,
-                        ),
-                        onChanged: !_isWritingUnlocked
-                            ? null
-                            : (value) => setState(() => _selectedRole = value),
+                        decoration: _fieldStyle(context, label: 'Assign Role', icon: Icons.admin_panel_settings),
+                        onChanged: !_isWritingUnlocked ? null : (value) => setState(() => _selectedRole = value),
                         dropdownColor: Theme.of(context).cardColor,
                         items: ['Administrator', 'Dispatch Staff']
-                            .map(
-                              (e) => DropdownMenuItem(value: e, child: Text(e)),
-                            )
+                            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                             .toList(),
                       ),
                       const SizedBox(height: 14),
-                      // --- DYNAMIC COMPANY DROPDOWN ---
                       DropdownButtonFormField<String>(
                         value: _selectedCompany,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 15,
                         ),
-                        decoration: _fieldStyle(
-                          context,
-                          label: 'Assign Company Account',
-                          icon: Icons.business,
-                        ),
-                        onChanged: !_isWritingUnlocked
-                            ? null
-                            : (value) =>
-                                  setState(() => _selectedCompany = value),
+                        decoration: _fieldStyle(context, label: 'Assign Company Account', icon: Icons.business),
+                        onChanged: !_isWritingUnlocked ? null : (value) => setState(() => _selectedCompany = value),
                         dropdownColor: Theme.of(context).cardColor,
                         items: _companyOptions
-                            .map(
-                              (e) => DropdownMenuItem(value: e, child: Text(e)),
-                            )
+                            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                             .toList(),
                       ),
                     ],
@@ -1267,21 +900,14 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
               children: [
                 if (isEditMode)
                   TextButton(
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                    ),
+                    style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero),
                     onPressed: () {
                       Navigator.pop(context);
                       if (widget.onDelete != null) widget.onDelete!();
                     },
                     child: const Text(
                       'Delete',
-                      style: TextStyle(
-                        color: Color(0xFFEF4444),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   )
                 else
@@ -1292,9 +918,7 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
                     TextButton(
                       onPressed: () => Navigator.pop(context),
                       style: TextButton.styleFrom(
-                        foregroundColor: isDark
-                            ? Colors.grey.shade400
-                            : Colors.grey.shade700,
+                        foregroundColor: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
                       ),
                       child: const Text('Cancel'),
                     ),
@@ -1303,54 +927,32 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF64748B),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         ),
-                        onPressed: () =>
-                            setState(() => _isWritingUnlocked = true),
+                        onPressed: () => setState(() => _isWritingUnlocked = true),
                         child: const Text(
                           'Edit Details',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                       )
                     else
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF3B82F6),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 10,
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         ),
                         onPressed: _isLoading ? null : _submitUserForm,
                         child: _isLoading
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: EnterpriseLoadingIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
+                                child: EnterpriseLoadingIndicator(color: Colors.white, strokeWidth: 2),
                               )
                             : Text(
                                 isEditMode ? 'Save Changes' : 'Register User',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                               ),
                       ),
                   ],

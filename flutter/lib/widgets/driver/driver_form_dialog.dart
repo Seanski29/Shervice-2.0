@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../shared/enterprise_states.dart';
+import '../../layouts/enterprise/enterprise_states.dart';
 import 'package:http/http.dart' as http;
 import 'driver_profile_model.dart';
 import '../../constant.dart';
+import '../../layouts/enterprise/enterprise_theme.dart';
 
 class DriverFormDialogs {
   // --- 1. VIEW DRIVER MODAL (WEB FRIENDLY) ---
@@ -35,9 +36,7 @@ class DriverFormDialogs {
       builder: (ctx) {
         return Dialog(
           backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(4),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 450),
             child: Padding(
@@ -359,7 +358,7 @@ class DriverFormDialogs {
                           }
                         },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
+                    backgroundColor: EnterpriseColors.generativeAction,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(4),

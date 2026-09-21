@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../../widgets/shared/enterprise_states.dart';
+import '../../layouts/enterprise/enterprise_states.dart';
 import 'package:http/http.dart' as http;
 import 'package:skeletonizer/skeletonizer.dart';
 import '../../constant.dart';
@@ -682,54 +682,78 @@ class _StaffSchedulesState extends State<StaffSchedules> {
 
     Widget buildCard(Map<String, dynamic> stat) {
       final isSelected = _statusFilter == stat['filter'];
+      final color = stat['color'] as Color;
+      final fill = Color.lerp(
+        isDark ? const Color(0xFF1E293B) : Colors.white,
+        color,
+        isDark ? 0.18 : 0.07,
+      )!;
       return InkWell(
         onTap: () {
           setState(() => _statusFilter = stat['filter']);
         },
-        borderRadius: BorderRadius.circular(40),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          height: 108,
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: isSelected
-                ? stat['color'].withValues(alpha: 0.1)
-                : (isDark ? const Color(0xFF1E293B) : Colors.white),
-            borderRadius: BorderRadius.circular(40),
+            color: fill,
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isSelected
-                  ? stat['color']
-                  : (isDark ? Colors.grey.shade800 : Colors.grey.shade300),
+              color: color.withValues(alpha: isSelected ? 0.75 : 0.38),
               width: isSelected ? 2.0 : 1.0,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.14),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-          child: Row(
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(stat['icon'], color: stat['color'], size: 28),
-              const SizedBox(width: 12),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
+              Row(
                 children: [
-                  Text(
-                    stat['value'],
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: isDark ? Colors.white : const Color(0xFF0F172A),
-                      height: 1.1,
-                    ),
-                  ),
-                  Text(
-                    stat['label'],
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark
-                          ? Colors.grey.shade400
-                          : const Color(0xFF64748B),
-                      fontWeight: FontWeight.w600,
+                  Icon(stat['icon'], color: color, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      stat['label'],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.72)
+                            : const Color(0xFF64748B),
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              Flexible(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      stat['value'],
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        height: 1.1,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -786,7 +810,7 @@ class _StaffSchedulesState extends State<StaffSchedules> {
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(16),
               ),
-              border: Border(bottom: BorderSide(color: borderColor)),
+              border: Border.all(color: borderColor),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1015,7 +1039,7 @@ class _StaffSchedulesState extends State<StaffSchedules> {
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(16),
               ),
-              border: Border(bottom: BorderSide(color: borderColor)),
+              border: Border.all(color: borderColor),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

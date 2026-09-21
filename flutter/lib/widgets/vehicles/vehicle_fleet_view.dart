@@ -4,13 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:math';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:skeletonizer/skeletonizer.dart';
 import '../../constant.dart';
-import '../../theme/enterprise_theme.dart';
+import '../../layouts/enterprise/enterprise_theme.dart';
 import '../../utils/file_download.dart';
-import 'enterprise_data_grid.dart';
-import 'enterprise_states.dart';
-import 'universal_pagination.dart';
+import '../../layouts/enterprise/enterprise_data_grid.dart';
+import '../../layouts/enterprise/enterprise_states.dart';
+import '../interface/universal_pagination.dart';
 
 class VehicleFleetView extends StatefulWidget {
   final String userRole;
@@ -105,6 +104,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
   }
 
   void _applyFiltersAndSort() {
+    if (!mounted) return;
     List<dynamic> temp = _allVehicles.where((v) {
       final plate = (v['plate_number'] ?? '').toString().toLowerCase();
       final type = (v['bus_type'] ?? '').toString().toLowerCase();
@@ -155,7 +155,6 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
 
   List<dynamic> get _paginatedVehicles {
     if (_isLoading) {
-      // Mock data for Skeletonizer
       return List.generate(
         5,
         (index) => {
@@ -187,15 +186,15 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
         type.contains(_searchQuery.toLowerCase());
   });
 
-  int get _totalVehicles => _isLoading ? 12 : _baseVehicles.length;
+  int get _totalVehicles => _isLoading ? 0 : _baseVehicles.length;
   int get _availableVehicles => _isLoading
-      ? 10
+      ? 0
       : _baseVehicles.where((v) {
           final s = (v['health_status'] ?? 'Good').toString().toLowerCase();
           return s == 'good' || s == 'excellent';
         }).length;
   int get _maintenanceVehicles => _isLoading
-      ? 2
+      ? 0
       : _baseVehicles.where((v) {
           final s = (v['health_status'] ?? '').toString().toLowerCase();
           return s.contains('maintenance') || s.contains('repair');
@@ -239,6 +238,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
     );
   }
 
+  // --- MODALS AND LOGIC METHODS (FULLY PRESERVED) ---
   void _showVehicleModal(
     BuildContext context, {
     Map<String, dynamic>? vehicle,
@@ -313,739 +313,6 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final vehicles = _filteredVehicles
-        .map((vehicle) => Map<String, dynamic>.from(vehicle as Map))
-        .toList();
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final cards = <Widget>[
-                if (_isLoading) ...[
-                  const EnterpriseSummaryCardSkeleton(),
-                  const EnterpriseSummaryCardSkeleton(),
-                  const EnterpriseSummaryCardSkeleton(),
-                ] else ...[
-                  EnterpriseSummaryCard(
-                    label: 'Total vehicles',
-                    value: '$_totalVehicles',
-                    icon: Icons.directions_bus_outlined,
-                    color: EnterpriseColors.information,
-                  ),
-                  EnterpriseSummaryCard(
-                    label: 'Available',
-                    value: '$_availableVehicles',
-                    icon: Icons.check_circle_outline,
-                    color: EnterpriseColors.success,
-                  ),
-                  EnterpriseSummaryCard(
-                    label: 'Needs maintenance',
-                    value: '$_maintenanceVehicles',
-                    icon: Icons.build_circle_outlined,
-                    color: EnterpriseColors.danger,
-                  ),
-                ],
-              ];
-              final action = _isAdmin
-                  ? FilledButton.icon(
-                      onPressed: () => _showVehicleModal(context),
-                      icon: const Icon(Icons.add, size: 17),
-                      label: const Text('Add vehicle'),
-                    )
-                  : null;
-              if (constraints.maxWidth >= 900) {
-                return Row(
-                  children: [
-                    for (final card in cards) Expanded(child: card),
-                    if (action != null) ...[const SizedBox(width: 12), action],
-                  ],
-                );
-              }
-              return Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                alignment: WrapAlignment.center,
-                children: [...cards, if (action != null) action],
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: EnterpriseDataGrid<Map<String, dynamic>>(
-              loading: _isLoading,
-              rows: vehicles,
-              rowKey: (vehicle) =>
-                  vehicle['vehicle_id'] ?? vehicle['id'] ?? vehicle.hashCode,
-              height: double.infinity,
-              columns: [
-                EnterpriseGridColumn(
-                  label: 'Vehicle ID',
-                  width: 110,
-                  value: (vehicle) =>
-                      (vehicle['vehicle_id'] ?? vehicle['id'] ?? '').toString(),
-                ),
-                EnterpriseGridColumn(
-                  label: 'Plate number',
-                  width: 170,
-                  value: (vehicle) =>
-                      (vehicle['plate_number'] ?? 'Unassigned').toString(),
-                ),
-                EnterpriseGridColumn(
-                  label: 'Vehicle type',
-                  width: 260,
-                  value: (vehicle) =>
-                      (vehicle['bus_type'] ?? 'Not specified').toString(),
-                ),
-                EnterpriseGridColumn(
-                  label: 'Health status',
-                  width: 190,
-                  value: (vehicle) =>
-                      (vehicle['health_status'] ?? 'Good').toString(),
-                  cellBuilder: (context, vehicle) => _FleetStatusLabel(
-                    status: (vehicle['health_status'] ?? 'Good').toString(),
-                  ),
-                ),
-                EnterpriseGridColumn(
-                  label: 'Record actions',
-                  width: 280,
-                  value: (_) => '',
-                  cellBuilder: (context, vehicle) => Row(
-                    children: [
-                      TextButton.icon(
-                        onPressed: () =>
-                            _showVehicleModal(context, vehicle: vehicle),
-                        icon: const Icon(Icons.open_in_new, size: 15),
-                        label: Text(_isAdmin ? 'Open / edit' : 'Open'),
-                      ),
-                      TextButton.icon(
-                        onPressed: () async {
-                          final vehicleId =
-                              int.tryParse(
-                                (vehicle['vehicle_id'] ?? '0').toString(),
-                              ) ??
-                              0;
-                          final logs = await _fetchVehicleLogHistory(vehicleId);
-                          if (context.mounted) {
-                            _showMaintenanceManagerModal(
-                              context,
-                              vehicle,
-                              logs,
-                            );
-                          }
-                        },
-                        icon: const Icon(Icons.build_outlined, size: 15),
-                        label: const Text('Maintenance'),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              filterFields: [
-                SizedBox(
-                  width: 340,
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.search),
-                      labelText: 'Search plate or vehicle type',
-                      isDense: true,
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (value) {
-                      _searchQuery = value;
-                      if (value.trim().isEmpty) {
-                        _statusFilter = 'All';
-                      }
-                      _applyFiltersAndSort();
-                    },
-                  ),
-                ),
-                SizedBox(
-                  width: 190,
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _statusFilter,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.filter_list),
-                      labelText: 'Filter',
-                      isDense: true,
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'All',
-                        child: Text('All statuses'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Available',
-                        child: Text('Available'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'Needs Maintenance',
-                        child: Text('Needs maintenance'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      _statusFilter = value ?? 'All';
-                      _applyFiltersAndSort();
-                    },
-                  ),
-                ),
-                OutlinedButton.icon(
-                  onPressed: _isRefreshing ? null : _fetchLiveFleetData,
-                  icon: const Icon(Icons.refresh, size: 17),
-                  label: const Text('Refresh'),
-                ),
-              ],
-              emptyTitle: _allVehicles.isEmpty
-                  ? 'Register the first vehicle'
-                  : 'Nothing matches the current search or filters',
-              emptyMessage: _allVehicles.isEmpty
-                  ? 'Vehicle records are required before fleet assignments and maintenance can be tracked.'
-                  : 'No vehicle records match the current plate, type, and status filters.',
-              emptyActionLabel: _allVehicles.isEmpty && _isAdmin
-                  ? 'Add first vehicle'
-                  : null,
-              onEmptyAction: _allVehicles.isEmpty && _isAdmin
-                  ? () => _showVehicleModal(context)
-                  : null,
-              onDelete: _isAdmin ? _purgeVehicleDirect : null,
-              onBulkDelete: _isAdmin ? _bulkPurgeVehicles : null,
-              onExportSelection: _exportVehicles,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTitleArea(bool isDark) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          widget.title,
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            color: isDark ? Colors.white : const Color(0xFF0F172A),
-            letterSpacing: -0.5,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          widget.subtitle,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-            color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSearchAndFilterRow(bool isDark, bool isMobile) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        SizedBox(
-          width: isMobile ? double.infinity : 220,
-          height: 44,
-          child: TextField(
-            onChanged: (value) {
-              _searchQuery = value;
-              _applyFiltersAndSort();
-            },
-            style: TextStyle(
-              color: isDark ? Colors.white : Colors.black87,
-              fontSize: 13,
-            ),
-            decoration: InputDecoration(
-              hintText: 'Search plate/model...',
-              hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-              prefixIcon: const Icon(
-                Icons.search,
-                size: 18,
-                color: Color(0xFF64748B),
-              ),
-              filled: true,
-              fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 0,
-                horizontal: 12,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
-                borderSide: BorderSide(
-                  color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
-                ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
-                borderSide: BorderSide(
-                  color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
-                ),
-              ),
-            ),
-          ),
-        ),
-        Container(
-          height: 44,
-          width: isMobile ? double.infinity : 160,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-            border: Border.all(
-              color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
-            ),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              isExpanded: true,
-              value: _currentSort,
-              icon: const Icon(Icons.sort, size: 18, color: Color(0xFF64748B)),
-              style: TextStyle(
-                fontSize: 13,
-                color: isDark ? Colors.white : const Color(0xFF0F172A),
-                fontWeight: FontWeight.bold,
-              ),
-              dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-              items: _sortOptions
-                  .map(
-                    (String value) => DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (val) {
-                if (val != null) {
-                  setState(() {
-                    _currentSort = val;
-                    _applyFiltersAndSort();
-                  });
-                }
-              },
-            ),
-          ),
-        ),
-        Container(
-          height: 44,
-          width: 44,
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : Colors.white,
-            border: Border.all(color: Colors.blue.shade600, width: 1.5),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: IconButton(
-            onPressed: _isRefreshing ? null : _fetchLiveFleetData,
-            icon: _isRefreshing
-                ? const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: EnterpriseLoadingIndicator(
-                      strokeWidth: 2,
-                      color: Colors.blue,
-                    ),
-                  )
-                : const Icon(Icons.refresh, color: Colors.blue, size: 20),
-            padding: EdgeInsets.zero,
-          ),
-        ),
-        if (_isAdmin)
-          SizedBox(
-            height: 44,
-            child: ElevatedButton.icon(
-              onPressed: () => _showVehicleModal(context),
-              icon: const Icon(Icons.add, color: Colors.white, size: 18),
-              label: const Text(
-                'Add Vehicle',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3B82F6),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                elevation: 0,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildTopSummaryStats(bool isDark, bool isMobile) {
-    final List<Map<String, dynamic>> stats = [
-      {
-        'label': 'Total Fleet',
-        'value': _totalVehicles.toString(),
-        'icon': Icons.directions_bus_outlined,
-        'color': isDark ? Colors.grey.shade300 : Colors.grey.shade700,
-        'filter': 'All',
-      },
-      {
-        'label': 'Available',
-        'value': _availableVehicles.toString(),
-        'icon': Icons.check_circle_outline,
-        'color': const Color(0xFF10B981),
-        'filter': 'Available',
-      },
-      {
-        'label': 'Needs Maint.',
-        'value': _maintenanceVehicles.toString(),
-        'icon': Icons.build_circle_outlined,
-        'color': const Color(0xFFEF4444),
-        'filter': 'Needs Maintenance',
-      },
-    ];
-
-    Widget buildCard(Map<String, dynamic> stat) {
-      final isSelected = _statusFilter == stat['filter'];
-      return InkWell(
-        onTap: () {
-          setState(() {
-            _statusFilter = stat['filter'];
-            _applyFiltersAndSort();
-          });
-        },
-        borderRadius: BorderRadius.circular(40),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? stat['color'].withValues(alpha: 0.1)
-                : (isDark ? const Color(0xFF1E293B) : Colors.white),
-            borderRadius: BorderRadius.circular(40),
-            border: Border.all(
-              color: isSelected
-                  ? stat['color']
-                  : (isDark ? Colors.grey.shade800 : Colors.grey.shade300),
-              width: isSelected ? 2.0 : 1.0,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(stat['icon'], color: stat['color'], size: 28),
-              const SizedBox(width: 12),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    stat['value'],
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: isDark ? Colors.white : const Color(0xFF0F172A),
-                      height: 1.1,
-                    ),
-                  ),
-                  Text(
-                    stat['label'],
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark
-                          ? Colors.grey.shade400
-                          : const Color(0xFF64748B),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (isMobile) {
-      return Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 12,
-        runSpacing: 12,
-        children: stats.map((stat) => buildCard(stat)).toList(),
-      );
-    } else {
-      return Row(
-        children: stats.map((stat) {
-          return Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(right: stat == stats.last ? 0 : 16.0),
-              child: buildCard(stat),
-            ),
-          );
-        }).toList(),
-      );
-    }
-  }
-
-  Widget _buildEmptyState(bool isDark) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 60),
-      child: Center(
-        child: Column(
-          children: [
-            Icon(
-              Icons.directions_car_filled_outlined,
-              size: 64,
-              color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No vehicle assets matched parameters.',
-              style: TextStyle(
-                color: isDark ? Colors.grey.shade500 : Colors.grey.shade500,
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildVehicleCard(Map<String, dynamic> v, bool isDark, bool isLast) {
-    final String plate = v['plate_number'] ?? 'UNKNOWN';
-    final String rawBusType = v['bus_type'] ?? 'Unknown Model';
-    final String status = v['health_status'] ?? 'Good Condition';
-
-    final String modelDisplay = rawBusType.contains(' - ')
-        ? rawBusType.split(' - ').last
-        : rawBusType;
-    final String seatCapacity = rawBusType.contains(' - ')
-        ? rawBusType.split(' - ').first
-        : 'Configured Seats';
-
-    final Color statusColor = _getStatusColor(status);
-    final borderColor = isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0);
-
-    final int vehicleId =
-        int.tryParse((v['vehicle_id'] ?? v['id'] ?? '0').toString()) ?? 0;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        border: isLast ? null : Border(bottom: BorderSide(color: borderColor)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 4,
-            height: 36,
-            margin: const EdgeInsets.only(right: 16, top: 4),
-            decoration: BoxDecoration(
-              color: statusColor,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    InkWell(
-                      onTap: () => _showVehicleModal(
-                        context,
-                        vehicle: Map<String, dynamic>.from(v),
-                      ),
-                      child: Text(
-                        plate,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: isDark
-                              ? Colors.white
-                              : const Color(0xFF0F172A),
-                          decoration: TextDecoration.underline,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            status.toUpperCase(),
-                            style: TextStyle(
-                              color: statusColor,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        if (_isAdmin)
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.redAccent,
-                              size: 20,
-                            ),
-                            onPressed: () => _confirmPurgeVehicle(
-                              Map<String, dynamic>.from(v),
-                            ),
-                            tooltip: 'Delete Vehicle',
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 6,
-                  children: [
-                    _cardIconText(
-                      Icons.directions_bus_outlined,
-                      modelDisplay,
-                      isDark,
-                    ),
-                    _cardIconText(Icons.group_outlined, seatCapacity, isDark),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                if (!_isAdmin)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        if (vehicleId > 0) {
-                          showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (c) => const Center(
-                              child: EnterpriseLoadingIndicator(),
-                            ),
-                          );
-                          final logs = await _fetchVehicleLogHistory(vehicleId);
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                            _showMaintenanceManagerModal(
-                              context,
-                              Map<String, dynamic>.from(v),
-                              logs,
-                            );
-                          }
-                        }
-                      },
-                      icon: const Icon(
-                        Icons.build_circle,
-                        size: 16,
-                        color: Colors.white,
-                      ),
-                      label: const Text(
-                        "Manage Maintenance",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue.shade700,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _cardIconText(IconData icon, String text, bool isDark) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          size: 14,
-          color: isDark ? Colors.grey.shade500 : const Color(0xFF64748B),
-        ),
-        const SizedBox(width: 4),
-        Flexible(
-          child: Text(
-            text,
-            style: TextStyle(
-              fontWeight: FontWeight.w500,
-              color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
-              fontSize: 12,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPaginationFooter(bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
-        border: Border(
-          top: BorderSide(
-            color: isDark ? Colors.grey.shade800 : const Color(0xFFE2E8F0),
-          ),
-        ),
-      ),
-      child: UniversalPagination(
-        currentPage: _currentPage,
-        totalPages: _totalPages,
-        totalItems: _filteredVehicles.length,
-        itemsPerPage: _itemsPerPage,
-        itemName: 'vehicles',
-        onNextPage: _currentPage < _totalPages - 1 ? _nextPage : null,
-        onPrevPage: _currentPage > 0 ? _prevPage : null,
-      ),
-    );
-  }
-
-  // --- MAINTENANCE LOGIC DIALOGS ---
   void _showLogIssueDialog(Map<String, dynamic> vehicle) {
     final formKey = GlobalKey<FormState>();
     String description = '';
@@ -1142,22 +409,21 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                             borderSide: BorderSide(color: borderColor),
                           ),
                         ),
-                        items:
-                            [
-                                  'General',
-                                  'Engine',
-                                  'Exterior',
-                                  'Interior',
-                                  'Electrical',
-                                  'Tires/Wheels',
-                                ]
-                                .map(
-                                  (s) => DropdownMenuItem<String>(
-                                    value: s,
-                                    child: Text(s),
-                                  ),
-                                )
-                                .toList(),
+                        items: [
+                          'General',
+                          'Engine',
+                          'Exterior',
+                          'Interior',
+                          'Electrical',
+                          'Tires/Wheels',
+                        ]
+                            .map(
+                              (s) => DropdownMenuItem<String>(
+                                value: s,
+                                child: Text(s),
+                              ),
+                            )
+                            .toList(),
                         onChanged: (val) => setModalState(
                           () => chosenCategory = val ?? 'General',
                         ),
@@ -1780,18 +1046,18 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                                               Container(
                                                 padding:
                                                     const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 2,
-                                                    ),
+                                                  horizontal: 8,
+                                                  vertical: 2,
+                                                ),
                                                 decoration: BoxDecoration(
                                                   color: isResolved
                                                       ? Colors.green.withValues(
                                                           alpha: 0.2,
                                                         )
                                                       : Colors.orange
-                                                            .withValues(
+                                                          .withValues(
                                                               alpha: 0.2,
-                                                            ),
+                                                          ),
                                                   borderRadius:
                                                       BorderRadius.circular(4),
                                                 ),
@@ -1893,6 +1159,400 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
       ),
     );
   }
+
+  // ---------------------------------------------------------
+  // UI BUILD METHODS
+  // ---------------------------------------------------------
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final vehicles = _filteredVehicles
+        .map((vehicle) => Map<String, dynamic>.from(vehicle as Map))
+        .toList();
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: ListView(
+        padding: const EdgeInsets.all(24),
+        children: [
+          // 1. TOP ROW: Title on Left, Reload/Actions on Right
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.title,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.subtitle,
+                    style: TextStyle(
+                      color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_isAdmin) ...[
+                    FilledButton.icon(
+                      onPressed: () => _showVehicleModal(context),
+                      icon: const Icon(Icons.add, size: 17),
+                      label: const Text('Add Vehicle'),
+                      style: FilledButton.styleFrom(
+                          backgroundColor: EnterpriseColors.generativeAction),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _fetchLiveFleetData,
+                    icon: const Icon(Icons.refresh, size: 17),
+                    label: const Text('Refresh'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // 2. CARDS BEFORE FILTERS
+          // 2. CARDS BEFORE FILTERS
+          if (_isLoading)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 800;
+                if (isNarrow) {
+                  return Column(
+                    children: List.generate(
+                      3,
+                      (_) => const Padding(
+                        padding: EdgeInsets.only(bottom: 16),
+                        child: SizedBox(
+                          height: 112,
+                          width: double.infinity,
+                          child: EnterpriseSummaryCardSkeleton(),
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                return Row(
+                  children: const [
+                    Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
+                    SizedBox(width: 16),
+                    Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
+                    SizedBox(width: 16),
+                    Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
+                  ],
+                );
+              },
+            )
+          else
+            _buildSummaryCards(isDark),
+
+          const SizedBox(height: 32),
+
+          // 3. FILTERS (Anchored Left)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _buildFilters(isDark),
+          ),
+
+          const SizedBox(height: 24),
+
+          // 4. MAIN WORKSPACE TABLE
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              EnterpriseDataGrid<Map<String, dynamic>>(
+                loading: _isLoading,
+                rows: vehicles,
+                rowKey: (vehicle) =>
+                    vehicle['vehicle_id'] ?? vehicle['id'] ?? vehicle.hashCode,
+                height: 560, // Fixed height to prevent unbounded vertical overflow inside ListView
+                columns: [
+                  EnterpriseGridColumn(
+                    label: 'Vehicle ID',
+                    width: 110,
+                    value: (vehicle) =>
+                        (vehicle['vehicle_id'] ?? vehicle['id'] ?? '').toString(),
+                  ),
+                  EnterpriseGridColumn(
+                    label: 'Plate number',
+                    width: 170,
+                    value: (vehicle) =>
+                        (vehicle['plate_number'] ?? 'Unassigned').toString(),
+                  ),
+                  EnterpriseGridColumn(
+                    label: 'Vehicle type',
+                    width: 260,
+                    value: (vehicle) =>
+                        (vehicle['bus_type'] ?? 'Not specified').toString(),
+                  ),
+                  EnterpriseGridColumn(
+                    label: 'Health status',
+                    width: 190,
+                    value: (vehicle) =>
+                        (vehicle['health_status'] ?? 'Good').toString(),
+                    cellBuilder: (context, vehicle) => _FleetStatusLabel(
+                      status: (vehicle['health_status'] ?? 'Good').toString(),
+                    ),
+                  ),
+                  EnterpriseGridColumn(
+                    label: 'Action',
+                    width: 105,
+                    value: (_) => 'Open',
+                    cellBuilder: (context, vehicle) => OutlinedButton(
+                      onPressed: () =>
+                          _showVehicleModal(context, vehicle: vehicle),
+                      child: Text(_isAdmin ? 'Update' : 'View'),
+                    ),
+                  ),
+                ],
+                filterFields: const [], // Cleared to prevent middle rendering
+                emptyTitle: _allVehicles.isEmpty
+                    ? 'Register the first vehicle'
+                    : 'Nothing matches the current search or filters',
+                emptyMessage: _allVehicles.isEmpty
+                    ? 'Vehicle records are required before fleet assignments and maintenance can be tracked.'
+                    : 'No vehicle records match the current plate, type, and status filters.',
+                emptyActionLabel: null,
+                onEmptyAction: null,
+                onDelete: _isAdmin ? _purgeVehicleDirect : null,
+                onBulkDelete: _isAdmin ? _bulkPurgeVehicles : null,
+                onExportSelection: _exportVehicles,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+Widget _buildSummaryCards(bool isDark) {
+    final cards = [
+      (
+        'Total Fleet',
+        '$_totalVehicles',
+        Icons.directions_bus_outlined,
+        const Color(0xFF3B82F6),
+      ),
+      (
+        'Available',
+        '$_availableVehicles',
+        Icons.check_circle_outline,
+        const Color(0xFF10B981),
+      ),
+      (
+        'Needs Maintenance',
+        '$_maintenanceVehicles',
+        Icons.build_circle_outlined,
+        const Color(0xFFEF4444),
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 800;
+
+        final cardWidgets = cards.map((card) {
+          final Color baseColor = card.$4;
+          return Container(
+            constraints: const BoxConstraints(minHeight: 112),
+            width: isNarrow ? double.infinity : null, 
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: baseColor.withValues(alpha: 0.08),
+              border: Border.all(color: baseColor.withValues(alpha: 0.3)),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min, // Prevents vertical overflow
+              children: [
+                Row(
+                  children: [
+                    Icon(card.$3, color: baseColor, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        card.$1,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: baseColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  card.$2,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 28,
+                    height: 1.0, // Trims internal font padding
+                  ),
+                ),
+                const SizedBox(height: 4),
+              ],
+            ),
+          );
+        }).toList();
+
+        if (isNarrow) {
+          return Column(
+            children: cardWidgets
+                .map((c) => Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: c,
+                    ))
+                .toList(),
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: cardWidgets[0]),
+            const SizedBox(width: 16),
+            Expanded(child: cardWidgets[1]),
+            const SizedBox(width: 16),
+            Expanded(child: cardWidgets[2]),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildFilters(bool isDark) {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      alignment: WrapAlignment.start,
+      children: [
+        SizedBox(
+          width: 260,
+          height: 42,
+          child: TextField(
+            controller: _searchController,
+            onChanged: (value) => setState(() {
+              _searchQuery = value;
+              if (value.trim().isEmpty) _statusFilter = 'All';
+              _applyFiltersAndSort();
+            }),
+            style: TextStyle(
+              color: isDark ? Colors.white : Colors.black87,
+              fontSize: 13,
+            ),
+            decoration: _inputDecoration(
+              isDark,
+              'Search plate or vehicle type',
+              Icons.search,
+            ),
+          ),
+        ),
+        _dropdown(
+          isDark: isDark,
+          width: 170,
+          value: _statusFilter,
+          values: ['All', 'Available', 'Needs Maintenance'],
+          onChanged: (value) {
+            setState(() {
+              _statusFilter = value ?? 'All';
+              _applyFiltersAndSort();
+            });
+          },
+        ),
+        _dropdown(
+          isDark: isDark,
+          width: 170,
+          value: _currentSort,
+          values: _sortOptions,
+          onChanged: (value) {
+            setState(() {
+              _currentSort = value ?? 'Plate (A to Z)';
+              _applyFiltersAndSort();
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  InputDecoration _inputDecoration(bool isDark, String hint, IconData icon) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+      prefixIcon: Icon(icon, size: 18, color: const Color(0xFF64748B)),
+      filled: true,
+      fillColor: Theme.of(context).cardColor,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(4),
+        borderSide: BorderSide(color: Theme.of(context).dividerColor),
+      ),
+    );
+  }
+
+  Widget _dropdown({
+    required bool isDark,
+    required double width,
+    required String value,
+    required List<String> values,
+    required ValueChanged<String?> onChanged,
+  }) {
+    final safeValue = values.contains(value) ? value : values.first;
+    return Container(
+      width: width,
+      height: 42,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        border: Border.all(color: Theme.of(context).dividerColor),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: safeValue,
+          isExpanded: true,
+          dropdownColor: Theme.of(context).cardColor,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+          items: values
+              .toSet()
+              .map(
+                (item) => DropdownMenuItem(
+                  value: item,
+                  child: Text(item == 'All' ? 'All statuses' : item),
+                ),
+              )
+              .toList(),
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
 }
 
 class _FleetStatusLabel extends StatelessWidget {
@@ -1905,8 +1565,8 @@ class _FleetStatusLabel extends StatelessWidget {
     final normalized = status.toLowerCase();
     final color =
         normalized.contains('maintenance') || normalized.contains('repair')
-        ? EnterpriseColors.danger
-        : EnterpriseColors.success;
+            ? EnterpriseColors.danger
+            : EnterpriseColors.success;
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
@@ -2025,7 +1685,7 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
     final bool active = _isWritingUnlocked;
     final fillColor = active
         ? (isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9))
-        : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0));
+        : Theme.of(context).cardColor;
     final textColor = isDark ? Colors.grey.shade400 : const Color(0xFF64748B);
     final borderColor = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
 
@@ -2186,7 +1846,7 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
     final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
 
     return AlertDialog(
-      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+      backgroundColor: Theme.of(context).cardColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       title: Text(
         isEditMode ? 'Fleet Vehicle Specification' : 'Register System Vehicle',
@@ -2277,9 +1937,7 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: _selectedCapacity,
-                        dropdownColor: isDark
-                            ? const Color(0xFF1E293B)
-                            : Colors.white,
+                        dropdownColor: Theme.of(context).cardColor,
                         style: TextStyle(color: textColor),
                         decoration: _fieldStyle(
                           context: context,
@@ -2291,7 +1949,10 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
                             : (val) => setState(() => _selectedCapacity = val!),
                         items: ['12 Seats', '15 Seats', '18 Seats']
                             .map(
-                              (e) => DropdownMenuItem(value: e, child: Text(e)),
+                              (e) => DropdownMenuItem(
+                                value: e,
+                                child: Text(e),
+                              ),
                             )
                             .toList(),
                       ),
@@ -2466,7 +2127,7 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
                     ),
                     onPressed: () => setState(() => _isWritingUnlocked = true),
                     child: const Text(
-                      'Edit Details',
+                      'Update Details',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,

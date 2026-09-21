@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import '../../widgets/shared/enterprise_states.dart';
+import '../../layouts/enterprise/enterprise_states.dart';
 import 'package:http/http.dart' as http;
 import '../../constant.dart';
 import '../../theme/dark_mode_toggle.dart';
-import '../../widgets/shared/legal_policies_button.dart'; // Make sure this path is correct for LegalPoliciesLinks
+import '../../widgets/interface/legal_policies_button.dart'; // Make sure this path is correct for LegalPoliciesLinks
 
 class StaffSettings extends StatefulWidget {
   final String staffId;

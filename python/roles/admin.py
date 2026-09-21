@@ -457,12 +457,22 @@ def import_attendance_records():
 
 @admin_bp.route('/api/dashboard/metrics', methods=['GET'])
 def get_dashboard_metrics():
+    def safe_query(label, query, default=None):
+        try:
+            result = query()
+            return result.data or default or []
+        except Exception as query_error:
+            print(f"Dashboard metrics query failed for {label}: {query_error}")
+            return default or []
+
     try:
         # FIX: Removed 'user_id' from the select statement and removed the separate user mapping
-        drivers_query = supabase.table('driver_profile').select(
-            'driver_id, full_name, phone_no, employment_status, date_hired, birthday'
-        ).execute()
-        all_drivers = drivers_query.data or []
+        all_drivers = safe_query(
+            'driver_profile',
+            lambda: supabase.table('driver_profile').select(
+                'driver_id, full_name, phone_no, employment_status, date_hired, birthday'
+            ).execute()
+        )
         
         total_drivers = len(all_drivers)
         active_driver_rows = [
@@ -483,36 +493,50 @@ def get_dashboard_metrics():
             for driver in all_drivers
         ]
 
-        vehicles_query = supabase.table('vehicle').select('vehicle_id, plate_number').eq('is_available', True).execute()
-        active_vehicles = len(vehicles_query.data) if vehicles_query.data else 0
+        available_vehicles = safe_query(
+            'available vehicles',
+            lambda: supabase.table('vehicle')
+            .select('vehicle_id, plate_number')
+            .eq('is_available', True)
+            .execute()
+        )
+        active_vehicles = len(available_vehicles)
         vehicle_details = [
             {"label": vehicle.get('plate_number') or f"Vehicle {vehicle.get('vehicle_id', 'Unknown')}"}
-            for vehicle in (vehicles_query.data or [])
+            for vehicle in available_vehicles
         ]
 
-        alerts_count_query = supabase.table('vehicle').select('vehicle_id').eq('is_available', False).execute()
-        maintenance_alerts_count = len(alerts_count_query.data) if alerts_count_query.data else 0
-
-        alerts_log_query = supabase.table('maintenance_log')\
-            .select('maintenance_id, description, vehicle_id, vehicle(plate_number)')\
-            .order('repair_date', desc=True)\
-            .limit(100)\
+        unavailable_vehicles = safe_query(
+            'maintenance vehicle count',
+            lambda: supabase.table('vehicle')
+            .select('vehicle_id')
+            .eq('is_available', False)
             .execute()
+        )
+        maintenance_alerts_count = len(unavailable_vehicles)
+
+        alerts_log = safe_query(
+            'maintenance alert logs',
+            lambda: supabase.table('maintenance_log')
+            .select('maintenance_id, description, vehicle_id, vehicle(plate_number)')
+            .order('repair_date', desc=True)
+            .limit(100)
+            .execute()
+        )
 
         formatted_alerts = []
-        if alerts_log_query.data:
-            for log in alerts_log_query.data:
-                raw_v_id = log.get('vehicle_id')
-                vehicle = log.get('vehicle') or {}
-                if isinstance(vehicle, list):
-                    vehicle = vehicle[0] if vehicle else {}
-                resolved_plate = vehicle.get('plate_number', f"Asset {raw_v_id}")
-                formatted_alerts.append({
-                    "id": str(log.get('maintenance_id')),
-                    "vehicle_id": resolved_plate,
-                    "plate_number": resolved_plate,
-                    "description": log.get('description', 'No details provided.')
-                })
+        for log in alerts_log:
+            raw_v_id = log.get('vehicle_id')
+            vehicle = log.get('vehicle') or {}
+            if isinstance(vehicle, list):
+                vehicle = vehicle[0] if vehicle else {}
+            resolved_plate = vehicle.get('plate_number', f"Asset {raw_v_id}")
+            formatted_alerts.append({
+                "id": str(log.get('maintenance_id')),
+                "vehicle_id": resolved_plate,
+                "plate_number": resolved_plate,
+                "description": log.get('description', 'No details provided.')
+            })
 
         selected_month = int(request.args.get('month', datetime.now().month))
         selected_year = int(request.args.get('year', datetime.now().year))
@@ -526,12 +550,14 @@ def get_dashboard_metrics():
         period_start = period_start_dt.date().isoformat()
         period_end = period_end_dt.date().isoformat()
 
-        monthly_trips_query = supabase.table('trip_schedule')\
-            .select('trip_id, passenger_count, route_name, schedule_date')\
-            .gte('schedule_date', period_start)\
-            .lt('schedule_date', period_end)\
+        monthly_trips = safe_query(
+            'monthly trips',
+            lambda: supabase.table('trip_schedule')
+            .select('trip_id, passenger_count, route_name, schedule_date')
+            .gte('schedule_date', period_start)
+            .lt('schedule_date', period_end)
             .execute()
-        monthly_trips = monthly_trips_query.data or []
+        )
         total_trips_count = len(monthly_trips)
         total_passengers_count = sum(int(trip.get('passenger_count') or 0) for trip in monthly_trips)
         total_trip_details = [
@@ -551,12 +577,14 @@ def get_dashboard_metrics():
             for trip in monthly_trips
         ]
 
-        monthly_maintenance_query = supabase.table('maintenance_log')\
-            .select('maintenance_id, description, repair_date, incident_date, vehicle_id, vehicle(plate_number)')\
-            .gte('repair_date', period_start)\
-            .lt('repair_date', period_end)\
+        monthly_maintenance = safe_query(
+            'monthly maintenance',
+            lambda: supabase.table('maintenance_log')
+            .select('maintenance_id, description, repair_date, incident_date, vehicle_id, vehicle(plate_number)')
+            .gte('repair_date', period_start)
+            .lt('repair_date', period_end)
             .execute()
-        monthly_maintenance = monthly_maintenance_query.data or []
+        )
         monthly_maintenance_count = len(monthly_maintenance)
         monthly_maintenance_details = []
         for log in monthly_maintenance:
@@ -570,10 +598,10 @@ def get_dashboard_metrics():
             })
 
         company_monthly_metrics = []
+        company_map = {}
         try:
             companies_fetch = supabase.table('client_company').select('company_id, company_name').execute()
             
-            company_map = {}
             company_list = []
             if companies_fetch.data:
                 for c in companies_fetch.data:

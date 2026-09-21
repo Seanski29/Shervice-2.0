@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../theme/enterprise_theme.dart';
+import 'enterprise_theme.dart';
 import 'enterprise_states.dart';
-import 'universal_pagination.dart';
+import '../../widgets/interface/universal_pagination.dart';
 
 typedef EnterpriseCellChanged<T> = Future<void> Function(T row, String value);
 
@@ -63,9 +63,6 @@ class EnterpriseDataGrid<T> extends StatefulWidget {
   final List<Widget> filterFields;
   final bool showDateRange;
   final double height;
-
-  /// Tables show at most ten rows by default. Set false when the caller
-  /// already supplies a paginated page and renders its own pager.
   final bool paginate;
 
   @override
@@ -186,9 +183,10 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
               decoration: BoxDecoration(
                 color: theme.cardColor,
                 border: Border.all(color: theme.dividerColor),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildToolbar(theme),
                   Expanded(
@@ -266,13 +264,14 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
   Widget _buildToolbar(ThemeData theme) {
     return Container(
       constraints: const BoxConstraints(minHeight: 46),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: theme.dividerColor)),
       ),
       child: Wrap(
-        spacing: 6,
-        runSpacing: 6,
+        spacing: 12,
+        runSpacing: 12,
+        alignment: WrapAlignment.start, // Anchors to the Top-Left perfectly
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           ...widget.filterFields,
@@ -292,7 +291,7 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
               tooltip: 'Clear date range',
               icon: const Icon(Icons.filter_alt_off_outlined),
             ),
-          const SizedBox(width: 2),
+          const SizedBox(width: 4),
           _buildZoomControl(theme),
         ],
       ),
@@ -303,10 +302,10 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
     final canZoomOut = _zoom > _minZoom;
     final canZoomIn = _zoom < _maxZoom;
     return Container(
-      height: 28,
+      height: 32,
       decoration: BoxDecoration(
         border: Border.all(color: theme.dividerColor),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
       ),
       clipBehavior: Clip.antiAlias,
       child: Row(
@@ -325,7 +324,7 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
                 : null,
           ),
           Container(
-            constraints: const BoxConstraints(minWidth: 42),
+            constraints: const BoxConstraints(minWidth: 46),
             alignment: Alignment.center,
             padding: const EdgeInsets.symmetric(horizontal: 5),
             child: Text(
@@ -361,9 +360,7 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
     return Container(
       width: totalWidth,
       height: 40,
-      color: theme.brightness == Brightness.dark
-          ? EnterpriseColors.darkSurfaceMuted
-          : EnterpriseColors.lightSurfaceMuted,
+      color: theme.cardColor,
       child: Row(
         children: [
           SizedBox(
@@ -382,7 +379,7 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
                     });
                   },
                 ),
-                const Text('#'),
+                Text('#', style: TextStyle(color: theme.colorScheme.onSurface)),
               ],
             ),
           ),
@@ -406,20 +403,23 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
                       Expanded(
                         child: Text(
                           widget.columns[index].label,
-                          style: theme.textTheme.labelLarge,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            color: theme.colorScheme.onSurface,
+                            fontWeight: FontWeight.w700,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       Icon(
                         _sortColumn == index
                             ? (_sortAscending
-                                  ? Icons.arrow_upward
-                                  : Icons.arrow_downward)
+                                ? Icons.arrow_upward
+                                : Icons.arrow_downward)
                             : Icons.unfold_more,
                         size: 14,
                         color: _sortColumn == index
                             ? EnterpriseColors.primary
-                            : theme.textTheme.bodySmall?.color,
+                            : theme.colorScheme.onSurface.withValues(alpha: 0.55),
                       ),
                     ],
                   ),
@@ -579,7 +579,7 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
     final totalPages = (rowCount / _rowsPerPage).ceil();
     return Container(
       constraints: const BoxConstraints(minHeight: 36),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: Theme.of(context).dividerColor)),
       ),
@@ -851,11 +851,11 @@ class _ZoomButton extends StatelessWidget {
       child: InkWell(
         onTap: onPressed,
         child: SizedBox(
-          width: 30,
-          height: 28,
+          width: 32,
+          height: 30,
           child: Icon(
             icon,
-            size: 15,
+            size: 16,
             color: enabled
                 ? Theme.of(context).colorScheme.onSurface
                 : Theme.of(context).disabledColor,

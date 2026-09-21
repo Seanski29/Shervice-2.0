@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../widgets/shared/vehicle_fleet_view.dart';
+import '../../widgets/vehicles/vehicle_fleet_view.dart';
 
 class AdminFleet extends StatefulWidget {
   const AdminFleet({super.key});
@@ -28,7 +28,7 @@ class _AdminFleetState extends State<AdminFleet> {
         userRole: 'admin',
         onRefreshNeeded: _triggerInstantRefresh,
         title: 'Vehicles',
-        subtitle: 'Owner: Admin',
+        subtitle: '',
       ),
     );
   }

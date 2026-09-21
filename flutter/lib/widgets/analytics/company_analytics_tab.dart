@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class CompanyAnalyticsTab extends StatefulWidget {
   final List<dynamic> trips;
@@ -428,32 +429,66 @@ class _CompanyAnalyticsTabState extends State<CompanyAnalyticsTab> {
     Color textColor,
     Color mutedColor,
   ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fill = Color.lerp(cardColor, color, isDark ? 0.18 : 0.07)!;
     return SizedBox(
       width: width,
       child: Container(
-        padding: const EdgeInsets.all(14),
+        height: 108,
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: mutedColor.withValues(alpha: 0.2)),
+          color: fill,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.38)),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.14),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 23),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+            Icon(icon, color: color, size: 24),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Flexible(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          value,
+                          maxLines: 1,
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                Text(label, style: TextStyle(color: mutedColor, fontSize: 12)),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.montserrat(
+                      color: mutedColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

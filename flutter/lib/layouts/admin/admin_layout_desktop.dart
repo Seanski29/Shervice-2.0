@@ -13,9 +13,9 @@ import '../../screens/admin/admin_users.dart';
 import '../../screens/admin/admin_vehicles.dart';
 import '../../session_manager.dart';
 import '../../widgets/admin/admin_profile_button.dart';
-import '../../widgets/shared/enterprise_shell.dart';
-import '../../widgets/shared/notification_bell.dart';
-import '../../widgets/shared/shared_analytics_hub.dart';
+import '../enterprise/enterprise_shell.dart';
+import '../../widgets/notifcations/notification_bell.dart';
+import '../../widgets/analytics/shared_analytics_hub.dart';
 
 class AdminDesktopLayout extends StatelessWidget {
   const AdminDesktopLayout({
@@ -47,13 +47,7 @@ class AdminDesktopLayout extends StatelessWidget {
           screen: AdminSchedules(),
           keywords: ['dispatch', 'calendar', 'assignments'],
         ),
-        const EnterpriseNavigationItem(
-          label: 'Drivers',
-          icon: Icons.badge_outlined,
-          section: 'Operations',
-          screen: AdminDriver(),
-          keywords: ['operators', 'profiles'],
-        ),
+        
         const EnterpriseNavigationItem(
           label: 'Vehicles',
           icon: Icons.directions_bus_outlined,
@@ -90,6 +84,13 @@ class AdminDesktopLayout extends StatelessWidget {
           keywords: ['timecard', 'hours'],
         ),
         const EnterpriseNavigationItem(
+          label: 'Drivers',
+          icon: Icons.badge_outlined,
+          section: 'Workforce',
+          screen: AdminDriver(),
+          keywords: ['operators', 'profiles'],
+        ),
+        const EnterpriseNavigationItem(
           label: 'Payroll',
           icon: Icons.payments_outlined,
           section: 'Workforce',
@@ -103,10 +104,11 @@ class AdminDesktopLayout extends StatelessWidget {
           screen: SharedAnalyticsHub(),
           keywords: ['performance', 'reports', 'insights'],
         ),
+        // NOTE: No 'const' keyword here because adminId is dynamic
         EnterpriseNavigationItem(
           label: 'Settings',
           icon: Icons.settings_outlined,
-          section: 'System',
+          section: 'Hidden',
           screen: AdminSettings(adminId: adminId),
           keywords: const ['preferences', 'theme', 'account'],
         ),

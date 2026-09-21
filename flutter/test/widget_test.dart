@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:shervice_flutter/session_manager.dart';
 import 'package:shervice_flutter/theme/theme_manager.dart';
-import 'package:shervice_flutter/widgets/shared/enterprise_data_grid.dart';
+import 'package:shervice_flutter/layouts/enterprise/enterprise_data_grid.dart';
 
 void main() {
   testWidgets('enterprise grid exposes spreadsheet controls and navigation', (

@@ -10,10 +10,10 @@ import '../../screens/staff/staff_settings.dart';
 import '../../screens/staff/staff_trips.dart';
 import '../../screens/staff/staff_vehicle.dart';
 import '../../session_manager.dart';
-import '../../widgets/shared/enterprise_shell.dart';
-import '../../widgets/shared/notification_bell.dart';
-import '../../widgets/shared/shared_analytics_hub.dart';
-import '../../widgets/staff/staff_profile_button.dart';
+import '../enterprise/enterprise_shell.dart';
+import '../../widgets/notifcations/notification_bell.dart';
+import '../../widgets/analytics/shared_analytics_hub.dart';
+import '../../widgets/interface/staff_profile_button.dart';
 
 class StaffLayoutDesktop extends StatelessWidget {
   const StaffLayoutDesktop({
@@ -60,7 +60,7 @@ class StaffLayoutDesktop extends StatelessWidget {
         const EnterpriseNavigationItem(
           label: 'Drivers',
           icon: Icons.badge_outlined,
-          section: 'Operations',
+          section: 'Workforce',
           screen: StaffDrivers(),
           keywords: ['operators', 'profiles'],
         ),
@@ -95,7 +95,7 @@ class StaffLayoutDesktop extends StatelessWidget {
         EnterpriseNavigationItem(
           label: 'Settings',
           icon: Icons.settings_outlined,
-          section: 'System',
+          section: 'Hidden',
           screen: StaffSettings(
             staffId: staffId,
             staffName: staffName,

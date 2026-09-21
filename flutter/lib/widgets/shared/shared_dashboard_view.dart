@@ -2,14 +2,16 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import '../../theme/enterprise_theme.dart';
+import '../../layouts/enterprise/enterprise_theme.dart';
 import '../../utils/file_download.dart';
-import 'enterprise_data_grid.dart';
-import 'enterprise_states.dart';
+import '../../layouts/enterprise/enterprise_data_grid.dart';
+import '../../layouts/enterprise/enterprise_data_table2.dart';
+import '../../layouts/enterprise/enterprise_states.dart';
 import 'package:http/http.dart' as http;
 import 'package:fl_chart/fl_chart.dart';
-import 'dashboard_metric.dart';
-import 'maintenance_alert.dart';
+import 'shared_dashboard_metric.dart';
+import '../../layouts/enterprise/enterprise_kpi_row.dart';
+import '../notifcations/maintenance_alert.dart';
 import '../../constant.dart';
 
 class CompanyTripMetric {
@@ -75,18 +77,8 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
   List<int> _availableDriverYears = [];
 
   final List<String> _monthNames = const [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
   ];
 
   @override
@@ -158,44 +150,36 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
             _metrics = [
               DashboardMetric(
                 title: 'Total Trips',
-                value:
-                    (metricsMap['totalTrips'] ??
-                            metricsMap['ongoingTrips'] ??
-                            0)
-                        .toString(),
-                subTitle: 'This month',
+                value: (metricsMap['totalTrips'] ?? metricsMap['ongoingTrips'] ?? 0).toString(),
+                subTitle: '', // <-- FIX ADDED HERE
                 icon: Icons.route,
                 baseColor: const Color(0xFF3B82F6),
               ),
               DashboardMetric(
                 title: 'Total Passengers',
                 value: (metricsMap['totalPassengers'] ?? 0).toString(),
-                subTitle: 'This month',
+                subTitle: '', // <-- FIX ADDED HERE
                 icon: Icons.groups_outlined,
                 baseColor: const Color(0xFF8B5CF6),
               ),
               DashboardMetric(
                 title: 'Active Drivers',
-                value:
-                    (metricsMap['activeDrivers'] ??
-                            metricsMap['totalDrivers'] ??
-                            0)
-                        .toString(),
-                subTitle: 'Available profiles',
+                value: (metricsMap['activeDrivers'] ?? metricsMap['totalDrivers'] ?? 0).toString(),
+                subTitle: '', // <-- FIX ADDED HERE
                 icon: Icons.people_alt,
                 baseColor: const Color(0xFF06B6D4),
               ),
               DashboardMetric(
                 title: 'Active Vehicles',
                 value: (metricsMap['activeVehicles'] ?? 0).toString(),
-                subTitle: 'Ready for operation',
+                subTitle: '', // <-- FIX ADDED HERE
                 icon: Icons.directions_car,
                 baseColor: const Color(0xFF10B981),
               ),
               DashboardMetric(
                 title: 'Maintenance Alerts',
                 value: (metricsMap['maintenanceAlerts'] ?? 0).toString(),
-                subTitle: 'Attention required',
+                subTitle: '', // <-- FIX ADDED HERE
                 icon: Icons.build_circle,
                 baseColor: const Color(0xFFEF4444),
               ),
@@ -222,9 +206,12 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
           throw Exception('Dashboard metrics request was unsuccessful.');
         }
       } else {
-        throw Exception();
+        throw Exception(
+          'Dashboard metrics returned ${response.statusCode}: ${response.body}',
+        );
       }
     } catch (e) {
+      debugPrint('Dashboard metrics failed to load: $e');
       if (mounted) {
         setState(() {
           _errorMessage = "Could not sync backend data fields safely.";
@@ -395,27 +382,31 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
         padding: const EdgeInsets.all(16),
         children: [
           if (_errorMessage != null) _buildErrorBanner(),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
+          
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _DashboardMetadata(
-                icon: Icons.sync_outlined,
-                label: _isLoading ? 'Synchronizing operational data' : 'Live',
+              Text(
+                'Dashboard',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
               ),
-              _DashboardMetadata(
-                icon: Icons.star_outline,
-                label:
-                    '⭐ ${_averageDriverRating.toStringAsFixed(1)} average across $_ratedDriverCount rated drivers',
-              ),
-              OutlinedButton.icon(
-                onPressed: _isLoading ? null : _reloadDashboard,
-                icon: const Icon(Icons.refresh, size: 17),
-                label: const Text('Refresh'),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _reloadDashboard,
+                    icon: const Icon(Icons.refresh, size: 17),
+                    label: const Text('Refresh'),
+                  ),
+                ],
               ),
             ],
           ),
+          
           const SizedBox(height: 20),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -512,11 +503,6 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                       _parseInt(first.value).compareTo(_parseInt(second.value)),
                 ),
                 EnterpriseGridColumn(
-                  label: 'Scope',
-                  width: 220,
-                  value: (metric) => metric.subTitle,
-                ),
-                EnterpriseGridColumn(
                   label: 'Detail records',
                   width: 180,
                   value: (metric) =>
@@ -537,37 +523,31 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
-              EnterpriseDataGrid<Map<String, dynamic>>(
+              EnterpriseDataTable2<Map<String, dynamic>>(
                 rows: monthlyRows,
                 rowKey: (row) => row['month']!,
                 height: 440,
+                loading: _isTripsChartLoading,
+                emptyTitle: 'No monthly operations yet',
+                emptyMessage:
+                    'Synchronize trip activity to populate the monthly operations table.',
+                emptyActionLabel: 'Synchronize operations',
+                onEmptyAction: _reloadDashboard,
                 columns: [
-                  EnterpriseGridColumn(
+                  EnterpriseTableColumn(
                     label: 'Month',
-                    width: 180,
                     value: (row) => row['month'].toString(),
                   ),
-                  EnterpriseGridColumn(
+                  EnterpriseTableColumn(
                     label: 'Trips',
-                    width: 160,
                     value: (row) => row['trips'].toString(),
-                    compare: (first, second) => (first['trips'] as int)
-                        .compareTo(second['trips'] as int),
                   ),
-                  EnterpriseGridColumn(
+                  EnterpriseTableColumn(
                     label: 'Maintenance events',
-                    width: 220,
                     value: (row) => row['maintenance'].toString(),
-                    compare: (first, second) => (first['maintenance'] as int)
-                        .compareTo(second['maintenance'] as int),
                   ),
                 ],
-                emptyTitle: 'Select an operating period',
-                emptyMessage:
-                    'Monthly trip and maintenance activity will appear for the selected year.',
-                emptyActionLabel: 'Use current year',
-                onEmptyAction: _reloadDashboard,
-                onExportSelection: _exportMonthlyOperations,
+                onExport: _exportMonthlyOperations,
               ),
               const SizedBox(height: 16),
               Text(
@@ -713,7 +693,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
     final buffer = StringBuffer('Measure,Value,Scope\n');
     for (final metric in metrics) {
       buffer.writeln(
-        '"${metric.title}","${metric.value}","${metric.subTitle}"',
+        '"${metric.title}","${metric.value}","${metric.subTitle ?? ''}"',
       );
     }
     await _downloadDashboardCsv('shervice-dashboard-summary.csv', buffer);
@@ -773,83 +753,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
   }
 
   Widget _buildKpiGrid(BuildContext context, double width, double spacing) {
-    final theme = Theme.of(context);
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: spacing,
-      runSpacing: spacing,
-      children: _metrics.map((m) {
-        final Color color = m.baseColor;
-        return InkWell(
-          onTap: () => _showMetricDetails(m),
-          borderRadius: BorderRadius.circular(18),
-          child: Container(
-            width: width,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: theme.dividerColor),
-              boxShadow: [
-                BoxShadow(
-                  color: theme.shadowColor.withValues(alpha: 0.02),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        m.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: _bodyTextSize,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Icon(m.icon, color: color, size: 18),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  m.value,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  m.subTitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: _captionTextSize,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
+    return EnterpriseKpiRow(metrics: _metrics, onMetricTap: _showMetricDetails);
   }
 
   Future<void> _showMetricDetails(DashboardMetric metric) async {

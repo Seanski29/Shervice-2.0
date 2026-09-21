@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../widgets/shared/vehicle_fleet_view.dart';
+import '../../widgets/vehicles/vehicle_fleet_view.dart';
 
 class StaffVehicle extends StatefulWidget {
   final String staffId;
@@ -31,7 +31,7 @@ class _StaffVehicleState extends State<StaffVehicle> {
         userId: widget.staffId,
         onRefreshNeeded: _triggerInstantRefresh,
         title: 'Vehicles',
-        subtitle: 'Owner: Staff',
+        subtitle: '',
       ),
     );
   }
