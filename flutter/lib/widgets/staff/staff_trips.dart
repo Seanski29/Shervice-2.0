@@ -50,18 +50,18 @@ class _StaffTripsState extends State<StaffTrips> {
 
   List<int> _availableYears = [DateTime.now().year];
   final List<String> _monthNames = const [
-    'January',
-    'February',
-    'March',
-    'April',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
     'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sept',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
 
   int _activeTab = 0;

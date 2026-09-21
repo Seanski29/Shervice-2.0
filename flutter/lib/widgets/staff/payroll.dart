@@ -689,8 +689,8 @@ class _PayrollState extends State<Payroll> {
           ),
           children: [
             Wrap(
-              spacing: 12,
-              runSpacing: 12,
+              spacing: 15,
+              runSpacing: 15,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 _amountField('Regular pay/day', _regularPayController, isDark),
