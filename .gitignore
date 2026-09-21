@@ -12,6 +12,11 @@ Thumbs.db
 *.iml
 *.ipr
 *.iws
+*.swp
+.history
+.atom/
+.svn/
+.swiftpm/
 
 # Dart and Flutter generated state
 **/.dart_tool/
@@ -34,8 +39,15 @@ Thumbs.db
 **/android/.gradle/
 **/android/local.properties
 **/android/key.properties
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
 **/*.keystore
 **/*.jks
+
+# Symbolication and Obfuscation
+**/app.*.symbols
+**/app.*.map.json
 
 # Python caches, environments, tests, and coverage
 **/__pycache__/
@@ -55,3 +67,4 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
