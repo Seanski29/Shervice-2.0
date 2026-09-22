@@ -28,6 +28,7 @@ class _PayrollState extends State<Payroll> {
   final Map<String, String> _routeNamesById = {};
 
   bool _isLoading = true;
+  bool _isSavingRates = false;
   bool _ratesExpanded = false;
   String? _error;
   String _searchQuery = '';
@@ -83,6 +84,7 @@ class _PayrollState extends State<Payroll> {
       final attendance = _asList(payload['attendance']);
       final trips = _asList(payload['trips']);
       final destinations = _asList(payload['destinations']);
+      final settings = payload['settings'];
 
       if (!mounted) return;
       setState(() {
@@ -90,6 +92,7 @@ class _PayrollState extends State<Payroll> {
         _attendance = attendance;
         _trips = trips;
         _destinations = destinations;
+        _applyPayrollSettings(settings);
         _syncRouteRates();
       });
     } catch (error) {
@@ -98,6 +101,76 @@ class _PayrollState extends State<Payroll> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _applyPayrollSettings(dynamic value) {
+    if (value is! Map) return;
+    final settings = Map<String, dynamic>.from(value);
+    _setControllerValue(_regularPayController, settings['regular_pay']);
+    _setControllerValue(
+      _halfDayDeductionController,
+      settings['half_day_deduction'],
+    );
+    _setControllerValue(
+      _absentDeductionController,
+      settings['absent_deduction'],
+    );
+    _setControllerValue(_overtimePayController, settings['overtime_pay']);
+  }
+
+  void _setControllerValue(TextEditingController controller, dynamic value) {
+    final amount = double.tryParse('$value');
+    if (amount != null) controller.text = amount.toStringAsFixed(2);
+  }
+
+  Future<void> _savePayrollSettings() async {
+    final values = <String, double?>{
+      'regular_pay': double.tryParse(_regularPayController.text.trim()),
+      'half_day_deduction': double.tryParse(
+        _halfDayDeductionController.text.trim(),
+      ),
+      'absent_deduction': double.tryParse(
+        _absentDeductionController.text.trim(),
+      ),
+      'overtime_pay': double.tryParse(_overtimePayController.text.trim()),
+    };
+    if (values.values.any((value) => value == null || value < 0)) {
+      _showRateMessage(
+        'Enter non-negative numbers for every rate.',
+        isError: true,
+      );
+      return;
+    }
+
+    setState(() => _isSavingRates = true);
+    try {
+      final response = await http.put(
+        Uri.parse('$backendUrl/payroll/settings'),
+        headers: const {'Content-Type': 'application/json'},
+        body: jsonEncode(values),
+      );
+      final payload = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode != 200 || payload['success'] != true) {
+        throw Exception(payload['message'] ?? 'Unable to save payroll rates.');
+      }
+      _applyPayrollSettings(payload['settings']);
+      _showRateMessage('Payroll rates saved.');
+      if (mounted) setState(() {});
+    } catch (error) {
+      _showRateMessage('Unable to save payroll rates: $error', isError: true);
+    } finally {
+      if (mounted) setState(() => _isSavingRates = false);
+    }
+  }
+
+  void _showRateMessage(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? Colors.red.shade700 : Colors.green.shade700,
+      ),
+    );
   }
 
   Future<Map<String, dynamic>> _getJson(String url) async {
@@ -469,8 +542,18 @@ class _PayrollState extends State<Payroll> {
 
   String _dateLabel(DateTime date) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
@@ -539,7 +622,8 @@ class _PayrollState extends State<Payroll> {
                   children: [
                     Text(
                       'Payroll',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
                             fontWeight: FontWeight.w800,
                             color: Theme.of(context).colorScheme.onSurface,
                           ),
@@ -572,89 +656,92 @@ class _PayrollState extends State<Payroll> {
               child: _isLoading
                   ? const EnterpriseTableSkeleton(columns: 9)
                   : _error != null
-                      ? EnterpriseEmptyState(
-                          icon: Icons.error_outline,
-                          title: 'Error Loading Payroll',
-                          message: _error!,
-                          actionLabel: 'Retry',
-                          onAction: _loadPayrollData,
-                        )
-                      : EnterpriseDataGrid<_PayrollRow>(
-                          rows: rows,
-                          rowKey: (row) => row.driverId,
-                          height: double.infinity,
-                          showDateRange: false,
-                          filterFields: const [], // Cleared to prevent middle rendering
-                          columns: [
-                            EnterpriseGridColumn(
-                              label: 'Driver',
-                              width: 250,
-                              value: (row) => '${row.driverName}  #${row.driverId}',
-                            ),
-                            EnterpriseGridColumn(
-                              label: 'Present',
-                              width: 110,
-                              value: (row) => '${row.presentDays}',
-                              compare: (first, second) =>
-                                  first.presentDays.compareTo(second.presentDays),
-                            ),
-                            EnterpriseGridColumn(
-                              label: 'Half day',
-                              width: 110,
-                              value: (row) => '${row.halfDays}',
-                            ),
-                            EnterpriseGridColumn(
-                              label: 'Absent',
-                              width: 110,
-                              value: (row) => '${row.absentDays}',
-                            ),
-                            EnterpriseGridColumn(
-                              label: 'Trips',
-                              width: 110,
-                              value: (row) => '${row.tripCount}',
-                            ),
-                            EnterpriseGridColumn(
-                              label: 'Regular pay',
-                              width: 160,
-                              value: (row) => _moneyLabel(row.regularPay),
-                              compare: (first, second) =>
-                                  first.regularPay.compareTo(second.regularPay),
-                            ),
-                            EnterpriseGridColumn(
-                              label: 'Deductions',
-                              width: 160,
-                              value: (row) => '-${_moneyLabel(row.totalDeductions)}',
-                              compare: (first, second) =>
-                                  first.totalDeductions.compareTo(second.totalDeductions),
-                            ),
-                            EnterpriseGridColumn(
-                              label: 'Overtime',
-                              width: 150,
-                              value: (row) => _moneyLabel(row.overtimePay),
-                            ),
-                            EnterpriseGridColumn(
-                              label: 'Route pay',
-                              width: 150,
-                              value: (row) => _moneyLabel(row.tripPay),
-                            ),
-                            EnterpriseGridColumn(
-                              label: 'Total pay',
-                              width: 170,
-                              value: (row) => _moneyLabel(row.netPay),
-                              compare: (first, second) => first.netPay.compareTo(second.netPay),
-                              cellBuilder: (context, row) => Text(
-                                _moneyLabel(row.netPay),
-                                style: const TextStyle(fontWeight: FontWeight.w800),
-                              ),
-                            ),
-                          ],
-                          emptyTitle: 'Prepare this payroll period',
-                          emptyMessage:
-                              'Attendance and trip records are required before driver payroll can be calculated.',
-                          emptyActionLabel: 'Refresh payroll data',
-                          onEmptyAction: _loadPayrollData,
-                          onExportSelection: _exportPayrollSelection,
+                  ? EnterpriseEmptyState(
+                      icon: Icons.error_outline,
+                      title: 'Error Loading Payroll',
+                      message: _error!,
+                      actionLabel: 'Retry',
+                      onAction: _loadPayrollData,
+                    )
+                  : EnterpriseDataGrid<_PayrollRow>(
+                      rows: rows,
+                      rowKey: (row) => row.driverId,
+                      height: double.infinity,
+                      showDateRange: false,
+                      filterFields:
+                          const [], // Cleared to prevent middle rendering
+                      columns: [
+                        EnterpriseGridColumn(
+                          label: 'Driver',
+                          width: 250,
+                          value: (row) => '${row.driverName}  #${row.driverId}',
                         ),
+                        EnterpriseGridColumn(
+                          label: 'Present',
+                          width: 110,
+                          value: (row) => '${row.presentDays}',
+                          compare: (first, second) =>
+                              first.presentDays.compareTo(second.presentDays),
+                        ),
+                        EnterpriseGridColumn(
+                          label: 'Half day',
+                          width: 110,
+                          value: (row) => '${row.halfDays}',
+                        ),
+                        EnterpriseGridColumn(
+                          label: 'Absent',
+                          width: 110,
+                          value: (row) => '${row.absentDays}',
+                        ),
+                        EnterpriseGridColumn(
+                          label: 'Trips',
+                          width: 110,
+                          value: (row) => '${row.tripCount}',
+                        ),
+                        EnterpriseGridColumn(
+                          label: 'Regular pay',
+                          width: 160,
+                          value: (row) => _moneyLabel(row.regularPay),
+                          compare: (first, second) =>
+                              first.regularPay.compareTo(second.regularPay),
+                        ),
+                        EnterpriseGridColumn(
+                          label: 'Deductions',
+                          width: 160,
+                          value: (row) =>
+                              '-${_moneyLabel(row.totalDeductions)}',
+                          compare: (first, second) => first.totalDeductions
+                              .compareTo(second.totalDeductions),
+                        ),
+                        EnterpriseGridColumn(
+                          label: 'Overtime',
+                          width: 150,
+                          value: (row) => _moneyLabel(row.overtimePay),
+                        ),
+                        EnterpriseGridColumn(
+                          label: 'Route pay',
+                          width: 150,
+                          value: (row) => _moneyLabel(row.tripPay),
+                        ),
+                        EnterpriseGridColumn(
+                          label: 'Total pay',
+                          width: 170,
+                          value: (row) => _moneyLabel(row.netPay),
+                          compare: (first, second) =>
+                              first.netPay.compareTo(second.netPay),
+                          cellBuilder: (context, row) => Text(
+                            _moneyLabel(row.netPay),
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                        ),
+                      ],
+                      emptyTitle: 'Prepare this payroll period',
+                      emptyMessage:
+                          'Attendance and trip records are required before driver payroll can be calculated.',
+                      emptyActionLabel: 'Refresh payroll data',
+                      onEmptyAction: _loadPayrollData,
+                      onExportSelection: _exportPayrollSelection,
+                    ),
             ),
           ],
         ),
@@ -678,7 +765,11 @@ class _PayrollState extends State<Payroll> {
           onExpansionChanged: (value) => setState(() => _ratesExpanded = value),
           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
           childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          leading: Icon(Icons.tune, size: 20, color: Theme.of(context).colorScheme.primary),
+          leading: Icon(
+            Icons.tune,
+            size: 20,
+            color: Theme.of(context).colorScheme.primary,
+          ),
           title: Text(
             'Payroll Rates Configuration',
             style: TextStyle(
@@ -688,16 +779,53 @@ class _PayrollState extends State<Payroll> {
             ),
           ),
           children: [
-            Wrap(
-              spacing: 15,
-              runSpacing: 15,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                _amountField('Regular pay/day', _regularPayController, isDark),
-                _amountField('Half-day deduction', _halfDayDeductionController, isDark),
-                _amountField('Absent deduction', _absentDeductionController, isDark),
-                _amountField('Overtime/day', _overtimePayController, isDark),
-              ],
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: LayoutBuilder(
+                builder: (context, constraints) => Wrap(
+                  spacing: 15,
+                  runSpacing: 15,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _amountField(
+                      'Regular pay/day',
+                      _regularPayController,
+                      isDark,
+                    ),
+                    _amountField(
+                      'Half-day deduction',
+                      _halfDayDeductionController,
+                      isDark,
+                    ),
+                    _amountField(
+                      'Absent deduction',
+                      _absentDeductionController,
+                      isDark,
+                    ),
+                    _amountField(
+                      'Overtime/day',
+                      _overtimePayController,
+                      isDark,
+                    ),
+                    if (widget.userRole.toLowerCase() == 'admin')
+                      FilledButton.icon(
+                        onPressed: _isSavingRates ? null : _savePayrollSettings,
+                        icon: _isSavingRates
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.save_outlined, size: 16),
+                        label: Text(
+                          _isSavingRates ? 'Saving...' : 'Save rates',
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -705,12 +833,17 @@ class _PayrollState extends State<Payroll> {
     );
   }
 
-  Widget _amountField(String label, TextEditingController controller, bool isDark) {
+  Widget _amountField(
+    String label,
+    TextEditingController controller,
+    bool isDark,
+  ) {
     return SizedBox(
       width: 170,
-      height: 40,
+      height: 56,
       child: TextField(
         controller: controller,
+        readOnly: widget.userRole.toLowerCase() != 'admin',
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         style: TextStyle(
           fontSize: 13,
@@ -722,14 +855,18 @@ class _PayrollState extends State<Payroll> {
           isDense: true,
           filled: true,
           fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          contentPadding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4),
-            borderSide: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+            borderSide: BorderSide(
+              color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+            ),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(4),
-            borderSide: BorderSide(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+            borderSide: BorderSide(
+              color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+            ),
           ),
         ),
         onChanged: (_) => setState(() {}),
@@ -749,15 +886,27 @@ class _PayrollState extends State<Payroll> {
           child: TextField(
             controller: _searchController,
             onChanged: (value) => setState(() => _searchQuery = value),
-            style: TextStyle(fontSize: 13, color: isDark ? Colors.white : Colors.black87),
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
             decoration: InputDecoration(
               hintText: 'Search driver ID or name...',
               hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
-              prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
+              prefixIcon: const Icon(
+                Icons.search,
+                size: 18,
+                color: Color(0xFF64748B),
+              ),
               filled: true,
               fillColor: Theme.of(context).cardColor,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 0,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(4),
                 borderSide: BorderSide(color: Theme.of(context).dividerColor),
@@ -790,8 +939,14 @@ class _PayrollState extends State<Payroll> {
               ),
               dropdownColor: Theme.of(context).cardColor,
               selectedItemBuilder: (BuildContext context) {
-                return ['All', 'Payable', 'With Absences', 'With Half Days', 'With Overtime', 'With Trips']
-                    .map((String value) {
+                return [
+                  'All',
+                  'Payable',
+                  'With Absences',
+                  'With Half Days',
+                  'With Overtime',
+                  'With Trips',
+                ].map((String value) {
                   return Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
@@ -804,10 +959,22 @@ class _PayrollState extends State<Payroll> {
               items: const [
                 DropdownMenuItem(value: 'All', child: Text('All records')),
                 DropdownMenuItem(value: 'Payable', child: Text('Payable')),
-                DropdownMenuItem(value: 'With Absences', child: Text('With Absences')),
-                DropdownMenuItem(value: 'With Half Days', child: Text('With Half Days')),
-                DropdownMenuItem(value: 'With Overtime', child: Text('With Overtime')),
-                DropdownMenuItem(value: 'With Trips', child: Text('With Trips')),
+                DropdownMenuItem(
+                  value: 'With Absences',
+                  child: Text('With Absences'),
+                ),
+                DropdownMenuItem(
+                  value: 'With Half Days',
+                  child: Text('With Half Days'),
+                ),
+                DropdownMenuItem(
+                  value: 'With Overtime',
+                  child: Text('With Overtime'),
+                ),
+                DropdownMenuItem(
+                  value: 'With Trips',
+                  child: Text('With Trips'),
+                ),
               ],
               onChanged: (value) {
                 if (value == null) return;
@@ -831,7 +998,9 @@ class _PayrollState extends State<Payroll> {
             '${_filteredPayrollRows.length} drivers',
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
           ),
-          backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+          backgroundColor: isDark
+              ? const Color(0xFF1E293B)
+              : const Color(0xFFF1F5F9),
           side: BorderSide(color: Theme.of(context).dividerColor),
         ),
       ],

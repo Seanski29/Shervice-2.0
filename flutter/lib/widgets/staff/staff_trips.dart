@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -38,17 +37,14 @@ class _StaffTripsState extends State<StaffTrips> {
   bool _isRefreshing = false;
   List<Map<String, dynamic>> _trips = [];
   DateTime _focusedMonth = DateTime.now();
-
   DateTime? _selectedDate;
+  DateTimeRange? _selectedDateRange;
+
   String _searchQuery = '';
   String _selectedDriver = 'All Drivers';
   String _selectedVehicle = 'All Vehicles';
 
   String _currentSort = 'Date (Newest)';
-  int? _filterMonth = DateTime.now().month;
-  int? _filterYear = DateTime.now().year;
-
-  List<int> _availableYears = [DateTime.now().year];
   final List<String> _monthNames = const [
     'Jan',
     'Feb',
@@ -107,16 +103,9 @@ class _StaffTripsState extends State<StaffTrips> {
             .where(_isSummaryTrip)
             .toList();
 
-        Set<int> years = {DateTime.now().year};
-        for (var t in rows) {
-          final d = _parseDate(t['schedule_date'] ?? t['date']);
-          if (d != null) years.add(d.year);
-        }
-
         if (mounted) {
           setState(() {
             _trips = rows;
-            _availableYears = years.toList()..sort((a, b) => b.compareTo(a));
           });
         }
       }
@@ -145,13 +134,23 @@ class _StaffTripsState extends State<StaffTrips> {
     final rows = _trips.where((trip) {
       DateTime? tripDate = _parseDate(trip['schedule_date'] ?? trip['date']);
       if (tripDate == null) return false;
-
-      if (_selectedDate != null) {
-        if (_dateKey(tripDate) != _dateKey(_selectedDate!)) return false;
-      } else {
-        if (_filterYear != null && tripDate.year != _filterYear) return false;
-        if (_filterMonth != null && tripDate.month != _filterMonth)
-          return false;
+      if (_selectedDate != null &&
+          _dateKey(tripDate) != _dateKey(_selectedDate!)) {
+        return false;
+      }
+      if (_selectedDateRange != null) {
+        final day = DateTime(tripDate.year, tripDate.month, tripDate.day);
+        final start = DateTime(
+          _selectedDateRange!.start.year,
+          _selectedDateRange!.start.month,
+          _selectedDateRange!.start.day,
+        );
+        final end = DateTime(
+          _selectedDateRange!.end.year,
+          _selectedDateRange!.end.month,
+          _selectedDateRange!.end.day,
+        );
+        if (day.isBefore(start) || day.isAfter(end)) return false;
       }
 
       if (_selectedDriver != 'All Drivers' &&
@@ -405,9 +404,7 @@ class _StaffTripsState extends State<StaffTrips> {
 
           if (createdDate != null && mounted) {
             setState(() {
-              _selectedDate = createdDate;
-              _filterMonth = null;
-              _filterYear = null;
+              _focusedMonth = createdDate;
             });
             await _fetchTripSummary();
             if (mounted)
@@ -447,9 +444,7 @@ class _StaffTripsState extends State<StaffTrips> {
 
     if (createdDate == null || !mounted) return;
     setState(() {
-      _selectedDate = createdDate;
-      _filterMonth = null;
-      _filterYear = null;
+      _focusedMonth = createdDate;
     });
     await _fetchTripSummary();
     if (mounted)
@@ -638,6 +633,21 @@ class _StaffTripsState extends State<StaffTrips> {
   }
 
   // --- NEW: CALENDAR MODAL LOGIC ---
+  Future<void> _pickDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+      initialDateRange: _selectedDateRange,
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _selectedDateRange = picked;
+      _selectedDate = null;
+      _resetPagination();
+    });
+  }
+
   void _openCalendarModal(bool isDark) {
     showDialog(
       context: context,
@@ -673,7 +683,7 @@ class _StaffTripsState extends State<StaffTrips> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Select Date',
+                          'Trip Calendar',
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(fontWeight: FontWeight.bold),
                         ),
@@ -767,8 +777,7 @@ class _StaffTripsState extends State<StaffTrips> {
                           onTap: () {
                             setState(() {
                               _selectedDate = isSelected ? null : date;
-                              _filterMonth = date.month;
-                              _filterYear = date.year;
+                              _selectedDateRange = null;
                               _resetPagination();
                             });
                             Navigator.pop(context);
@@ -786,8 +795,6 @@ class _StaffTripsState extends State<StaffTrips> {
                               border: Border.all(
                                 color: isToday
                                     ? const Color(0xFFF59E0B)
-                                    : isSelected
-                                    ? Theme.of(context).colorScheme.primary
                                     : borderColor,
                               ),
                               borderRadius: BorderRadius.circular(6),
@@ -836,20 +843,6 @@ class _StaffTripsState extends State<StaffTrips> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    if (_selectedDate != null)
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: () {
-                            setState(() {
-                              _selectedDate = null;
-                              _resetPagination();
-                            });
-                            Navigator.pop(context);
-                          },
-                          child: const Text('Clear Date Selection'),
-                        ),
-                      ),
                   ],
                 );
               },
@@ -961,8 +954,8 @@ class _StaffTripsState extends State<StaffTrips> {
     String selectedLabel = 'All Time';
     if (_selectedDate != null) {
       selectedLabel = _dateKey(_selectedDate!);
-    } else if (_filterMonth != null && _filterYear != null) {
-      selectedLabel = '${_monthNames[_filterMonth! - 1]} $_filterYear';
+    } else if (_selectedDateRange != null) {
+      selectedLabel = _compactDateRange(_selectedDateRange!);
     }
 
     // Colored exactly matching the dashboard reference image style
@@ -1082,102 +1075,98 @@ class _StaffTripsState extends State<StaffTrips> {
   }
 
   Widget _buildFilters(bool isDark, bool isNarrow) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      alignment: WrapAlignment.start,
-      children: [
-        SizedBox(
-          width: 220,
-          height: 42,
-          child: TextField(
-            onChanged: (value) => setState(() {
-              _searchQuery = value;
-              _resetPagination();
-            }),
-            style: TextStyle(
-              color: isDark ? Colors.white : Colors.black87,
-              fontSize: 13,
-            ),
-            decoration: _inputDecoration(
-              isDark,
-              'Search ID, route...',
-              Icons.search,
+    const controlWidth = 155.0;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          SizedBox(
+            width: controlWidth,
+            height: 42,
+            child: TextField(
+              onChanged: (value) => setState(() {
+                _searchQuery = value;
+                _resetPagination();
+              }),
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black87,
+                fontSize: 13,
+              ),
+              decoration: _inputDecoration(
+                isDark,
+                'Search trips...',
+                Icons.search,
+              ),
             ),
           ),
-        ),
-        _dropdown(
-          isDark: isDark,
-          width: 140,
-          value: _filterMonth == null
-              ? 'All Months'
-              : _monthNames[_filterMonth! - 1],
-          values: ['All Months', ..._monthNames],
-          onChanged: (value) {
-            setState(() {
-              _selectedDate = null;
-              if (value == 'All Months') {
-                _filterMonth = null;
-              } else {
-                _filterMonth = _monthNames.indexOf(value!) + 1;
-              }
+          const SizedBox(width: 12),
+          SizedBox(
+            width: controlWidth,
+            height: 42,
+            child: OutlinedButton.icon(
+              onPressed: () => _openCalendarModal(isDark),
+              icon: const Icon(Icons.calendar_month, size: 16),
+              label: const Text('Calendar'),
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: controlWidth,
+            height: 42,
+            child: OutlinedButton.icon(
+              onPressed: _pickDateRange,
+              icon: const Icon(Icons.date_range_outlined, size: 16),
+              label: Text(
+                _selectedDateRange == null ? 'Date range' : 'Range selected',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          _dropdown(
+            isDark: isDark,
+            width: controlWidth,
+            value: _currentSort,
+            values: ['Date (Newest)', 'Date (Oldest)'],
+            onChanged: (value) => setState(() {
+              _currentSort = value ?? 'Date (Newest)';
               _resetPagination();
-            });
-          },
-        ),
-        _dropdown(
-          isDark: isDark,
-          width: 120,
-          value: _filterYear == null ? 'All Years' : _filterYear.toString(),
-          values: ['All Years', ..._availableYears.map((y) => y.toString())],
-          onChanged: (value) {
-            setState(() {
-              _selectedDate = null;
-              if (value == 'All Years') {
-                _filterYear = null;
-              } else {
-                _filterYear = int.parse(value!);
-              }
+            }),
+          ),
+          const SizedBox(width: 12),
+          _dropdown(
+            isDark: isDark,
+            width: controlWidth,
+            value: _driverOptions.contains(_selectedDriver)
+                ? _selectedDriver
+                : 'All Drivers',
+            values: _driverOptions,
+            onChanged: (value) => setState(() {
+              _selectedDriver = value ?? 'All Drivers';
               _resetPagination();
-            });
-          },
-        ),
-        _dropdown(
-          isDark: isDark,
-          width: 150,
-          value: _currentSort,
-          values: ['Date (Newest)', 'Date (Oldest)'],
-          onChanged: (value) => setState(() {
-            _currentSort = value ?? 'Date (Newest)';
-            _resetPagination();
-          }),
-        ),
-        _dropdown(
-          isDark: isDark,
-          width: 160,
-          value: _driverOptions.contains(_selectedDriver)
-              ? _selectedDriver
-              : 'All Drivers',
-          values: _driverOptions,
-          onChanged: (value) => setState(() {
-            _selectedDriver = value ?? 'All Drivers';
-            _resetPagination();
-          }),
-        ),
-        _dropdown(
-          isDark: isDark,
-          width: 160,
-          value: _vehicleOptions.contains(_selectedVehicle)
-              ? _selectedVehicle
-              : 'All Vehicles',
-          values: _vehicleOptions,
-          onChanged: (value) => setState(() {
-            _selectedVehicle = value ?? 'All Vehicles';
-            _resetPagination();
-          }),
-        ),
-      ],
+            }),
+          ),
+          const SizedBox(width: 12),
+          _dropdown(
+            isDark: isDark,
+            width: controlWidth,
+            value: _vehicleOptions.contains(_selectedVehicle)
+                ? _selectedVehicle
+                : 'All Vehicles',
+            values: _vehicleOptions,
+            onChanged: (value) => setState(() {
+              _selectedVehicle = value ?? 'All Vehicles';
+              _resetPagination();
+            }),
+          ),
+        ],
+      ),
     );
+  }
+
+  String _compactDateRange(DateTimeRange range) {
+    String shortDate(DateTime date) => '${date.month}/${date.day}/${date.year}';
+    return '${shortDate(range.start)} - ${shortDate(range.end)}';
   }
 
   InputDecoration _inputDecoration(bool isDark, String hint, IconData icon) {
@@ -1286,24 +1275,6 @@ class _StaffTripsState extends State<StaffTrips> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Top-Left Anchored Table Controls
-        Row(
-          children: [
-            Chip(
-              label: Text(
-                '${rows.length} records',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(width: 12),
-            OutlinedButton.icon(
-              onPressed: () => _openCalendarModal(isDark),
-              icon: const Icon(Icons.calendar_month, size: 16),
-              label: const Text('Open Calendar'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
         EnterpriseDataGrid<Map<String, dynamic>>(
           rows: rows,
           loading: _isLoading,
@@ -1393,7 +1364,8 @@ class _StaffTripsState extends State<StaffTrips> {
               ),
             ),
           ],
-          filterFields: const [], // Cleared to prevent middle rendering
+          filterFields: const [],
+          showDateRange: false,
           emptyTitle: 'No trips match these filters',
           emptyMessage:
               'Clear the current date and status filters to restore the trip ledger.',
@@ -1477,7 +1449,8 @@ class _StaffTripsState extends State<StaffTrips> {
               ),
             ),
           ],
-          filterFields: const [], // Cleared to prevent middle rendering
+          filterFields: const [],
+          showDateRange: false,
           emptyTitle: 'No summaries match these filters',
           emptyMessage:
               'Clear the selected reporting period to restore summary batches.',

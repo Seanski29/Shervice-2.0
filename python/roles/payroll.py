@@ -14,6 +14,17 @@ def _canonical_route_name(route_name):
     return clean_name or 'Unspecified Route'
 
 
+def _payroll_settings():
+    result = (
+        supabase.table('payroll_settings')
+        .select('regular_pay, half_day_deduction, absent_deduction, overtime_pay')
+        .eq('setting_key', 'default')
+        .limit(1)
+        .execute()
+    )
+    return (result.data or [{}])[0]
+
+
 @payroll_bp.route('/api/payroll/context', methods=['GET'])
 def get_payroll_context():
     try:
@@ -69,11 +80,45 @@ def get_payroll_context():
 
         return jsonify({
             "success": True,
+            "settings": _payroll_settings(),
             "drivers": drivers_res.data or [],
             "attendance": attendance_res.data or [],
             "trips": trips,
             "destinations": destinations,
         }), 200
+    except Exception as exc:
+        return jsonify({"success": False, "message": str(exc)}), 500
+
+
+@payroll_bp.route('/api/payroll/settings', methods=['PUT'])
+def update_payroll_settings():
+    try:
+        payload = request.get_json(silent=True) or {}
+        field_names = (
+            'regular_pay',
+            'half_day_deduction',
+            'absent_deduction',
+            'overtime_pay',
+        )
+        settings = {}
+        for field_name in field_names:
+            value = float(payload.get(field_name))
+            if value < 0 or value != value or value == float('inf'):
+                raise ValueError
+            settings[field_name] = round(value, 2)
+    except (TypeError, ValueError):
+        return jsonify({
+            "success": False,
+            "message": "Payroll rates must be non-negative numbers.",
+        }), 400
+
+    try:
+        result = (
+            supabase.table('payroll_settings')
+            .upsert({'setting_key': 'default', **settings}, on_conflict='setting_key')
+            .execute()
+        )
+        return jsonify({"success": True, "settings": (result.data or [settings])[0]}), 200
     except Exception as exc:
         return jsonify({"success": False, "message": str(exc)}), 500
 

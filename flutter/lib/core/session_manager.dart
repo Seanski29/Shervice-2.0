@@ -1,7 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SessionManager {
-  static const Duration sessionLifetime = Duration(days: 7);
+  static const Duration sessionLifetime = Duration(minutes: 30);
   static const String _sessionCreatedAtKey = 'sessionCreatedAt';
 
   static Future<void> saveUserSession(
@@ -9,6 +9,7 @@ class SessionManager {
     String userId,
     String name,
     String company,
+    String token,
   ) async {
     final prefs = await SharedPreferences.getInstance();
     await Future.wait([
@@ -16,6 +17,7 @@ class SessionManager {
       prefs.setString('userId', userId),
       prefs.setString('userName', name),
       prefs.setString('companyName', company),
+      prefs.setString('accessToken', token),
       prefs.setInt(_sessionCreatedAtKey, DateTime.now().millisecondsSinceEpoch),
       prefs.setBool('isLoggedIn', true),
     ]);
@@ -49,6 +51,7 @@ class SessionManager {
       'userId': prefs.getString('userId'),
       'userName': prefs.getString('userName'),
       'companyName': prefs.getString('companyName'),
+      'accessToken': prefs.getString('accessToken'),
     };
   }
 
@@ -59,6 +62,7 @@ class SessionManager {
       prefs.remove('userId'),
       prefs.remove('userName'),
       prefs.remove('companyName'),
+      prefs.remove('accessToken'),
       prefs.remove('isLoggedIn'),
       prefs.remove(_sessionCreatedAtKey),
     ]);

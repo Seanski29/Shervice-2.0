@@ -79,9 +79,12 @@ abstract final class EnterpriseSpacing {
 }
 
 abstract final class EnterpriseTheme {
-  static ThemeData light() => _build(Brightness.light);
+  static final ThemeData _light = _build(Brightness.light);
+  static final ThemeData _dark = _build(Brightness.dark);
 
-  static ThemeData dark() => _build(Brightness.dark);
+  static ThemeData light() => _light;
+
+  static ThemeData dark() => _dark;
 
   static ThemeData _build(Brightness brightness) {
     final isDark = brightness == Brightness.dark;

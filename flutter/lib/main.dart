@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
@@ -55,9 +57,20 @@ class SherviceApp extends StatefulWidget {
 }
 
 class _SherviceAppState extends State<SherviceApp> {
+  Timer? _sessionTimer;
+
   @override
   void initState() {
     super.initState();
+
+    _sessionTimer = Timer.periodic(const Duration(minutes: 1), (_) async {
+      if (!await SessionManager.isLoggedIn() && mounted) {
+        globalNavigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          (route) => false,
+        );
+      }
+    });
 
     // Calls the web file if on a browser, or the dummy file if on mobile!
     setupTabSync(() {
@@ -66,6 +79,12 @@ class _SherviceAppState extends State<SherviceApp> {
         (route) => false,
       );
     });
+  }
+
+  @override
+  void dispose() {
+    _sessionTimer?.cancel();
+    super.dispose();
   }
 
   @override
