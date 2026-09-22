@@ -9,10 +9,10 @@ import '../constant.dart';
 import '../layouts/admin/admin_layout.dart';
 import '../layouts/staff/staff_layout.dart';
 import '../session_manager.dart';
-import '../theme/enterprise_theme.dart';
+import '../layouts/enterprise/enterprise_theme.dart';
 import '../theme/theme_manager.dart';
 import '../utils/network_status_monitor.dart';
-import '../widgets/shared/enterprise_states.dart';
+import '../layouts/enterprise/enterprise_states.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -97,7 +97,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final userData = Map<String, dynamic>.from(responseData['data'] as Map);
       final role = (userData['role'] ?? '').toString().trim().toLowerCase();
-      final userId = (userData['user_id'] ?? userData['id'] ?? '').toString();
+      final userId =
+          (userData['auth_user_id'] ??
+                  userData['user_id'] ??
+                  userData['id'] ??
+                  '')
+              .toString();
       final displayName = (userData['name'] ?? userData['full_name'] ?? 'User')
           .toString();
       if (role != 'admin' && role != 'staff') {
@@ -109,7 +114,13 @@ class _LoginScreenState extends State<LoginScreen> {
       final company = role == 'admin'
           ? 'GT LANTIN'
           : (userData['company'] ?? 'Internal').toString();
-      await SessionManager.saveUserSession(role, userId, displayName, company);
+      await SessionManager.saveUserSession(
+        role,
+        userId,
+        displayName,
+        company,
+        (userData['token'] ?? '').toString(),
+      );
       await ThemeManager.loadSavedTheme(userId: userId);
       if (!mounted) return;
       EnterpriseToasts.success(context, 'Signed in successfully.');

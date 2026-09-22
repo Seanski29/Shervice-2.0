@@ -488,7 +488,7 @@ def upload_summary_xls():
 @schedules_bp.route('/api/schedules/staff-options', methods=['GET'])
 def get_staff_options():
     try:
-        query = supabase.table('user_account').select('user_id, full_name').eq('role', 'staff').execute()
+        query = supabase.table('user_account').select('staff_id, full_name').eq('role', 'staff').execute()
         return jsonify({"success": True, "data": query.data}), 200
     except Exception as e:
         current_app.logger.exception('Fetch staff options failed')
@@ -498,7 +498,10 @@ def get_staff_options():
 def get_dispatch_options():
     try:
         all_vehicles = supabase.table('vehicle').select('*').eq('is_available', True).execute()
-        raw_drivers = supabase.table('driver_profile').select('*').execute()
+        raw_drivers = supabase.table('driver_profile').select(
+            'driver_id, full_name, birthday, phone_no, date_hired, '
+            'employment_status, is_backup, ml_classification'
+        ).execute()
         
         all_drivers = raw_drivers.data or []
         active_drivers = [d for d in all_drivers if str(d.get('employment_status', '')).strip().lower() == 'active']
@@ -516,7 +519,12 @@ def get_dispatch_options():
 @schedules_bp.route('/api/schedules/driver/<string:driver_id>', methods=['GET'])
 def get_driver_trips(driver_id):
     try:
-        query = supabase.table('trip_schedule').select('*').eq('driver_id', driver_id).order('schedule_date', desc=True).execute()
+        query = supabase.table('trip_schedule').select(
+            'trip_id, summary_id, schedule_date, working_day, route_id, route_name, '
+            'vehicle_id, driver_id, bus_type, vehicle_type, classification, '
+            'ticket_no, seating_capacity, passenger_count, departure_time, '
+            'estimated_arrival_time, utilization_rate, remarks, trip_status'
+        ).eq('driver_id', driver_id).order('schedule_date', desc=True).execute()
         return jsonify({"success": True, "data": query.data}), 200
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
@@ -524,9 +532,15 @@ def get_driver_trips(driver_id):
 @schedules_bp.route('/api/schedules/all', methods=['GET'])
 def get_all_trips():
     try:
-        trips = supabase.table('trip_schedule').select('*').order('schedule_date', desc=True).execute()
-        vehicles = supabase.table('vehicle').select('*').execute()
-        drivers = supabase.table('driver_profile').select('*').execute()
+        trips = supabase.table('trip_schedule').select('*').order(
+            'schedule_date', desc=True
+        ).execute()
+        vehicles = supabase.table('vehicle').select(
+            'vehicle_id, plate_number, bus_type'
+        ).execute()
+        drivers = supabase.table('driver_profile').select(
+            'driver_id, full_name'
+        ).execute()
 
         v_map = {v['vehicle_id']: v['plate_number'] for v in vehicles.data if v.get('vehicle_id') is not None}
         d_map = {d['driver_id']: d['full_name'] for d in drivers.data if d.get('driver_id') is not None}
@@ -545,13 +559,17 @@ def get_all_trips():
 def get_staff_trip_summary(staff_uuid):
     try:
         query = supabase.table('trip_schedule').select('*')
-        if str(staff_uuid).lower() not in ('all', 'admin'):
-            query = query.eq('staff_id', staff_uuid)
         trips = query.order('schedule_date', desc=False).execute()
 
-        vehicles = supabase.table('vehicle').select('*').execute()
-        drivers = supabase.table('driver_profile').select('*').execute()
-        companies = supabase.table('client_company').select('*').execute()
+        vehicles = supabase.table('vehicle').select(
+            'vehicle_id, plate_number, bus_type'
+        ).execute()
+        drivers = supabase.table('driver_profile').select(
+            'driver_id, full_name'
+        ).execute()
+        companies = supabase.table('client_company').select(
+            'company_id, company_name, address'
+        ).execute()
 
         v_map = {v['vehicle_id']: v for v in (vehicles.data or []) if v.get('vehicle_id') is not None}
         d_map = {d['driver_id']: d['full_name'] for d in (drivers.data or []) if d.get('driver_id') is not None}

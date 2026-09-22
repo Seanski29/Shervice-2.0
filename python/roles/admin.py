@@ -264,26 +264,11 @@ def _save_attendance_rows(rows: List[Dict[str, Any]], source_file: str) -> List[
 @admin_bp.route('/driver/all', methods=['GET'])
 def diagnostic_database_check():
     try:
-        driver_query = supabase.table('driver_profile').select('*').limit(10000).execute()
+        driver_query = supabase.table('driver_profile').select(
+            'driver_id, full_name, birthday, phone_no, date_hired, '
+            'employment_status, is_backup, ml_classification'
+        ).limit(10000).execute()
         raw_data = driver_query.data or []
-
-        # driver_profile.user_id has no PostgREST relationship to user_account
-        # in every deployed schema, so fetch usernames separately and join by ID.
-        user_ids = list({
-            str(row['user_id']) for row in raw_data if row.get('user_id') is not None
-        })
-        usernames = {}
-        if user_ids:
-            try:
-                accounts = supabase.table('user_account').select(
-                    'user_id, username'
-                ).in_('user_id', user_ids).execute().data or []
-                usernames = {
-                    str(account['user_id']): account.get('username', '')
-                    for account in accounts if account.get('user_id') is not None
-                }
-            except Exception as account_error:
-                print(f"Driver username lookup skipped: {account_error}")
 
         evals_query = supabase.table('evaluation').select('driver_id, safety_score, punctuality_score, professionalism_score').limit(10000).execute()
         
@@ -302,7 +287,7 @@ def diagnostic_database_check():
 
         flattened_drivers = []
         for row in raw_data:
-            row['username'] = usernames.get(str(row.get('user_id')), '')
+            row['username'] = ''
             
             if not row.get('phone_no'):
                 row['phone_no'] = '09123456789'
@@ -428,7 +413,13 @@ def get_attendance_records():
     try:
         result = (
             supabase.table("attendance_record")
-            .select("*")
+            .select(
+                "attendance_id, driver_id, employee_id, employee_name, work_date, "
+                "raw_date, pay_period, day_label, morning_in, morning_out, afternoon_in, "
+                "afternoon_out, overtime_in, overtime_out, time_in, time_out, "
+                "work_time, daily_total, note, total_minutes_late, source_file, "
+                "created_at"
+            )
             .order("work_date", desc=True)
             .order("created_at", desc=True)
             .limit(10000)
@@ -466,12 +457,22 @@ def import_attendance_records():
 
 @admin_bp.route('/api/dashboard/metrics', methods=['GET'])
 def get_dashboard_metrics():
+    def safe_query(label, query, default=None):
+        try:
+            result = query()
+            return result.data or default or []
+        except Exception as query_error:
+            print(f"Dashboard metrics query failed for {label}: {query_error}")
+            return default or []
+
     try:
         # FIX: Removed 'user_id' from the select statement and removed the separate user mapping
-        drivers_query = supabase.table('driver_profile').select(
-            'driver_id, full_name, phone_no, employment_status, date_hired, birthday'
-        ).execute()
-        all_drivers = drivers_query.data or []
+        all_drivers = safe_query(
+            'driver_profile',
+            lambda: supabase.table('driver_profile').select(
+                'driver_id, full_name, phone_no, employment_status, date_hired, birthday'
+            ).execute()
+        )
         
         total_drivers = len(all_drivers)
         active_driver_rows = [
@@ -492,35 +493,50 @@ def get_dashboard_metrics():
             for driver in all_drivers
         ]
 
-        vehicles_query = supabase.table('vehicle').select('vehicle_id, plate_number').eq('is_available', True).execute()
-        active_vehicles = len(vehicles_query.data) if vehicles_query.data else 0
+        available_vehicles = safe_query(
+            'available vehicles',
+            lambda: supabase.table('vehicle')
+            .select('vehicle_id, plate_number')
+            .eq('is_available', True)
+            .execute()
+        )
+        active_vehicles = len(available_vehicles)
         vehicle_details = [
             {"label": vehicle.get('plate_number') or f"Vehicle {vehicle.get('vehicle_id', 'Unknown')}"}
-            for vehicle in (vehicles_query.data or [])
+            for vehicle in available_vehicles
         ]
 
-        alerts_count_query = supabase.table('vehicle').select('vehicle_id').eq('is_available', False).execute()
-        maintenance_alerts_count = len(alerts_count_query.data) if alerts_count_query.data else 0
-
-        alerts_log_query = supabase.table('maintenance_log')\
-            .select('maintenance_id, description, vehicle_id, vehicle(plate_number)')\
-            .order('repair_date', desc=True)\
+        unavailable_vehicles = safe_query(
+            'maintenance vehicle count',
+            lambda: supabase.table('vehicle')
+            .select('vehicle_id')
+            .eq('is_available', False)
             .execute()
+        )
+        maintenance_alerts_count = len(unavailable_vehicles)
+
+        alerts_log = safe_query(
+            'maintenance alert logs',
+            lambda: supabase.table('maintenance_log')
+            .select('maintenance_id, description, vehicle_id, vehicle(plate_number)')
+            .order('repair_date', desc=True)
+            .limit(100)
+            .execute()
+        )
 
         formatted_alerts = []
-        if alerts_log_query.data:
-            for log in alerts_log_query.data:
-                raw_v_id = log.get('vehicle_id')
-                vehicle = log.get('vehicle') or {}
-                if isinstance(vehicle, list):
-                    vehicle = vehicle[0] if vehicle else {}
-                resolved_plate = vehicle.get('plate_number', f"Asset {raw_v_id}")
-                formatted_alerts.append({
-                    "id": str(log.get('maintenance_id')),
-                    "vehicle_id": resolved_plate,
-                    "plate_number": resolved_plate,
-                    "description": log.get('description', 'No details provided.')
-                })
+        for log in alerts_log:
+            raw_v_id = log.get('vehicle_id')
+            vehicle = log.get('vehicle') or {}
+            if isinstance(vehicle, list):
+                vehicle = vehicle[0] if vehicle else {}
+            resolved_plate = vehicle.get('plate_number', f"Asset {raw_v_id}")
+            formatted_alerts.append({
+                "id": str(log.get('maintenance_id')),
+                "vehicle_id": resolved_plate,
+                "plate_number": resolved_plate,
+                "description": log.get('description', 'No details provided.')
+            })
 
         selected_month = int(request.args.get('month', datetime.now().month))
         selected_year = int(request.args.get('year', datetime.now().year))
@@ -534,12 +550,14 @@ def get_dashboard_metrics():
         period_start = period_start_dt.date().isoformat()
         period_end = period_end_dt.date().isoformat()
 
-        monthly_trips_query = supabase.table('trip_schedule')\
-            .select('trip_id, passenger_count, route_name, schedule_date')\
-            .gte('schedule_date', period_start)\
-            .lt('schedule_date', period_end)\
+        monthly_trips = safe_query(
+            'monthly trips',
+            lambda: supabase.table('trip_schedule')
+            .select('trip_id, passenger_count, route_name, schedule_date')
+            .gte('schedule_date', period_start)
+            .lt('schedule_date', period_end)
             .execute()
-        monthly_trips = monthly_trips_query.data or []
+        )
         total_trips_count = len(monthly_trips)
         total_passengers_count = sum(int(trip.get('passenger_count') or 0) for trip in monthly_trips)
         total_trip_details = [
@@ -559,12 +577,14 @@ def get_dashboard_metrics():
             for trip in monthly_trips
         ]
 
-        monthly_maintenance_query = supabase.table('maintenance_log')\
-            .select('maintenance_id, description, repair_date, incident_date, vehicle_id, vehicle(plate_number)')\
-            .gte('repair_date', period_start)\
-            .lt('repair_date', period_end)\
+        monthly_maintenance = safe_query(
+            'monthly maintenance',
+            lambda: supabase.table('maintenance_log')
+            .select('maintenance_id, description, repair_date, incident_date, vehicle_id, vehicle(plate_number)')
+            .gte('repair_date', period_start)
+            .lt('repair_date', period_end)
             .execute()
-        monthly_maintenance = monthly_maintenance_query.data or []
+        )
         monthly_maintenance_count = len(monthly_maintenance)
         monthly_maintenance_details = []
         for log in monthly_maintenance:
@@ -578,10 +598,10 @@ def get_dashboard_metrics():
             })
 
         company_monthly_metrics = []
+        company_map = {}
         try:
             companies_fetch = supabase.table('client_company').select('company_id, company_name').execute()
             
-            company_map = {}
             company_list = []
             if companies_fetch.data:
                 for c in companies_fetch.data:
@@ -730,7 +750,9 @@ def get_driver_leaderboard():
         raw_month = request.args.get('month', '0').lower()
         limit_param = request.args.get('limit', '10').lower()
         
-        drivers_res = supabase.table('driver_profile').select('*').limit(5000).execute()
+        drivers_res = supabase.table('driver_profile').select(
+            'driver_id, full_name, phone_no, employment_status, ml_classification'
+        ).limit(5000).execute()
         all_drivers = drivers_res.data or []
         
         driver_scores = {d['driver_id']: [] for d in all_drivers if d.get('driver_id') is not None}
@@ -795,7 +817,6 @@ def get_driver_leaderboard():
 
             top_drivers.append({
                 "driver_id": d_id,
-                "user_id": drv_info.get("user_id"),
                 "full_name": drv_info.get("full_name") or "Unknown Driver",
                 "ml_classification": drv_info.get("ml_classification") or "Pending Sweep",
                 "employment_status": drv_info.get("employment_status") or "Active",
@@ -831,16 +852,20 @@ def get_driver_leaderboard():
 def update_system_user(user_id):
     try:
         data = request.get_json() or {}
+        account = supabase.table("user_account").select("user_id").eq(
+            "staff_id", user_id
+        ).maybe_single().execute().data or {}
+        auth_user_id = account.get("user_id") or user_id
         new_email = data.get("email", "").strip().lower()
         raw_role = data.get("role")
-        role_map = {'Administrator': 'admin', 'Dispatch Staff': 'staff'}
+        role_map = {'Dispatch Staff': 'staff'}
         normalized_role = role_map.get(raw_role, 'staff')
 
         if new_email:
             try:
                 admin_supabase = get_admin_client()
                 admin_supabase.auth.admin.update_user_by_id(
-                    user_id,
+                    auth_user_id,
                     attributes={"email": new_email, "email_confirm": True}
                 )
             except Exception as auth_err:
@@ -850,9 +875,7 @@ def update_system_user(user_id):
             "full_name": data.get("full_name"),
             "username": new_email,
             "role": normalized_role
-        }).eq("user_id", user_id).execute()
-
-        supabase.table("oic_profile").delete().eq("user_id", user_id).execute()
+        }).eq("staff_id", user_id).execute()
 
         return jsonify({"success": True, "message": "User profiles synchronized successfully."}), 200
     except Exception as e:
@@ -862,12 +885,15 @@ def update_system_user(user_id):
 @admin_bp.route('/api/auth/delete-user/<user_id>', methods=['DELETE'])
 def delete_system_user(user_id):
     try:
-        supabase.table("oic_profile").delete().eq("user_id", user_id).execute()
-        supabase.table("user_account").delete().eq("user_id", user_id).execute()
+        account = supabase.table("user_account").select("user_id").eq(
+            "staff_id", user_id
+        ).maybe_single().execute().data or {}
+        auth_user_id = account.get("user_id") or user_id
+        supabase.table("user_account").delete().eq("staff_id", user_id).execute()
 
         try:
             admin_supabase = get_admin_client()
-            admin_supabase.auth.admin.delete_user(user_id)
+            admin_supabase.auth.admin.delete_user(auth_user_id)
         except Exception as auth_err:
             print(f"⚠️ Auth microservice reference absent or skipped: {auth_err}")
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../widgets/shared/attendance.dart';
+import '../../widgets/staff/attendance.dart';
 
 class StaffReportsManager extends StatelessWidget {
   const StaffReportsManager({super.key});

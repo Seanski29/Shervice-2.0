@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../widgets/shared/route_management.dart';
+import '../../widgets/routes/route_management.dart';
 
 class StaffRoutes extends StatelessWidget {
   const StaffRoutes({super.key});

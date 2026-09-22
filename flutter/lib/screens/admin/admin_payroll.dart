@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../widgets/shared/payroll.dart';
+import '../../widgets/staff/payroll.dart';
 
 class AdminPayroll extends StatelessWidget {
   const AdminPayroll({super.key});

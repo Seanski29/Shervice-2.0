@@ -2,14 +2,16 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import '../../theme/enterprise_theme.dart';
+import '../../layouts/enterprise/enterprise_theme.dart';
 import '../../utils/file_download.dart';
-import 'enterprise_data_grid.dart';
-import 'enterprise_states.dart';
+import '../../layouts/enterprise/enterprise_data_grid.dart';
+import '../../layouts/enterprise/enterprise_data_table2.dart';
+import '../../layouts/enterprise/enterprise_states.dart';
 import 'package:http/http.dart' as http;
 import 'package:fl_chart/fl_chart.dart';
-import 'dashboard_metric.dart';
-import 'maintenance_alert.dart';
+import 'shared_dashboard_metric.dart';
+import '../../layouts/enterprise/enterprise_kpi_row.dart';
+import '../notifcations/maintenance_alert.dart';
 import '../../constant.dart';
 
 class CompanyTripMetric {
@@ -63,6 +65,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
   int _selectedMaintenanceYear = DateTime.now().year;
   bool _isRatingLoading = false;
   bool _isMaintenanceLoading = false;
+  int _selectedMonthTripTotal = 0;
 
   double _averageDriverRating = 0.0;
   int _ratedDriverCount = 0;
@@ -162,14 +165,14 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                             metricsMap['ongoingTrips'] ??
                             0)
                         .toString(),
-                subTitle: 'This month',
+                subTitle: '', // <-- FIX ADDED HERE
                 icon: Icons.route,
                 baseColor: const Color(0xFF3B82F6),
               ),
               DashboardMetric(
                 title: 'Total Passengers',
                 value: (metricsMap['totalPassengers'] ?? 0).toString(),
-                subTitle: 'This month',
+                subTitle: '', // <-- FIX ADDED HERE
                 icon: Icons.groups_outlined,
                 baseColor: const Color(0xFF8B5CF6),
               ),
@@ -180,21 +183,21 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                             metricsMap['totalDrivers'] ??
                             0)
                         .toString(),
-                subTitle: 'Available profiles',
+                subTitle: '', // <-- FIX ADDED HERE
                 icon: Icons.people_alt,
                 baseColor: const Color(0xFF06B6D4),
               ),
               DashboardMetric(
                 title: 'Active Vehicles',
                 value: (metricsMap['activeVehicles'] ?? 0).toString(),
-                subTitle: 'Ready for operation',
+                subTitle: '', // <-- FIX ADDED HERE
                 icon: Icons.directions_car,
                 baseColor: const Color(0xFF10B981),
               ),
               DashboardMetric(
                 title: 'Maintenance Alerts',
                 value: (metricsMap['maintenanceAlerts'] ?? 0).toString(),
-                subTitle: 'Attention required',
+                subTitle: '', // <-- FIX ADDED HERE
                 icon: Icons.build_circle,
                 baseColor: const Color(0xFFEF4444),
               ),
@@ -205,6 +208,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
             _companyTrips = companyList
                 .map((json) => CompanyTripMetric.fromJson(json))
                 .toList();
+            _selectedMonthTripTotal = _parseInt(metricsMap['totalTrips']);
             _metricDetails = detailsMap.map(
               (key, value) =>
                   MapEntry(key, value is List ? value : <dynamic>[]),
@@ -220,9 +224,12 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
           throw Exception('Dashboard metrics request was unsuccessful.');
         }
       } else {
-        throw Exception();
+        throw Exception(
+          'Dashboard metrics returned ${response.statusCode}: ${response.body}',
+        );
       }
     } catch (e) {
+      debugPrint('Dashboard metrics failed to load: $e');
       if (mounted) {
         setState(() {
           _errorMessage = "Could not sync backend data fields safely.";
@@ -245,7 +252,8 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
               ? 2
               : 1;
           final spacing = 16.0;
-          final cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+          final cardWidth =
+              (constraints.maxWidth - (spacing * (columns - 1))) / columns;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -269,7 +277,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                       decoration: BoxDecoration(
                         color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Theme.of(context).dividerColor),
+                        border: Border.all(
+                          color: Theme.of(context).dividerColor,
+                        ),
                       ),
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -279,7 +289,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                             width: 150,
                             height: 14,
                             decoration: BoxDecoration(
-                              color: Theme.of(context).brightness == Brightness.dark
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
                                   ? EnterpriseColors.darkSurfaceMuted
                                   : const Color(0xFFE4E7EC),
                               borderRadius: BorderRadius.circular(8),
@@ -289,7 +301,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                           Expanded(
                             child: Container(
                               decoration: BoxDecoration(
-                                color: Theme.of(context).brightness == Brightness.dark
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
                                     ? EnterpriseColors.darkSurfaceMuted
                                     : const Color(0xFFE4E7EC),
                                 borderRadius: BorderRadius.circular(16),
@@ -307,7 +321,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                       decoration: BoxDecoration(
                         color: Theme.of(context).cardColor,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Theme.of(context).dividerColor),
+                        border: Border.all(
+                          color: Theme.of(context).dividerColor,
+                        ),
                       ),
                       padding: const EdgeInsets.all(16),
                       child: Column(
@@ -317,7 +333,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                             width: 120,
                             height: 14,
                             decoration: BoxDecoration(
-                              color: Theme.of(context).brightness == Brightness.dark
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
                                   ? EnterpriseColors.darkSurfaceMuted
                                   : const Color(0xFFE4E7EC),
                               borderRadius: BorderRadius.circular(8),
@@ -327,7 +345,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                           Expanded(
                             child: Container(
                               decoration: BoxDecoration(
-                                color: Theme.of(context).brightness == Brightness.dark
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
                                     ? EnterpriseColors.darkSurfaceMuted
                                     : const Color(0xFFE4E7EC),
                                 borderRadius: BorderRadius.circular(16),
@@ -380,29 +400,31 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
         padding: const EdgeInsets.all(16),
         children: [
           if (_errorMessage != null) _buildErrorBanner(),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _DashboardMetadata(
-                icon: Icons.sync_outlined,
-                label: _isLoading
-                    ? 'Synchronizing operational data'
-                    : 'Live',
+              Text(
+                'Dashboard',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
-              _DashboardMetadata(
-                icon: Icons.star_outline,
-                label:
-                    '⭐ ${_averageDriverRating.toStringAsFixed(1)} average across $_ratedDriverCount rated drivers',
-              ),
-              OutlinedButton.icon(
-                onPressed: _isLoading ? null : _reloadDashboard,
-                icon: const Icon(Icons.refresh, size: 17),
-                label: const Text('Refresh'),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _isLoading ? null : _reloadDashboard,
+                    icon: const Icon(Icons.refresh, size: 17),
+                    label: const Text('Refresh'),
+                  ),
+                ],
               ),
             ],
           ),
+
           const SizedBox(height: 20),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -422,7 +444,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                   _buildKpiGrid(context, width, spacing),
                   if (widget.showClientTrips) ...[
                     const SizedBox(height: 20),
-                    if (compact)
+                    if (compact || constraints.maxWidth < 900)
                       Column(
                         children: [
                           _buildClientTripsCard(),
@@ -499,11 +521,6 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                       _parseInt(first.value).compareTo(_parseInt(second.value)),
                 ),
                 EnterpriseGridColumn(
-                  label: 'Scope',
-                  width: 220,
-                  value: (metric) => metric.subTitle,
-                ),
-                EnterpriseGridColumn(
                   label: 'Detail records',
                   width: 180,
                   value: (metric) =>
@@ -524,37 +541,31 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
-              EnterpriseDataGrid<Map<String, dynamic>>(
+              EnterpriseDataTable2<Map<String, dynamic>>(
                 rows: monthlyRows,
                 rowKey: (row) => row['month']!,
                 height: 440,
+                loading: _isTripsChartLoading,
+                emptyTitle: 'No monthly operations yet',
+                emptyMessage:
+                    'Synchronize trip activity to populate the monthly operations table.',
+                emptyActionLabel: 'Synchronize operations',
+                onEmptyAction: _reloadDashboard,
                 columns: [
-                  EnterpriseGridColumn(
+                  EnterpriseTableColumn(
                     label: 'Month',
-                    width: 180,
                     value: (row) => row['month'].toString(),
                   ),
-                  EnterpriseGridColumn(
+                  EnterpriseTableColumn(
                     label: 'Trips',
-                    width: 160,
                     value: (row) => row['trips'].toString(),
-                    compare: (first, second) => (first['trips'] as int)
-                        .compareTo(second['trips'] as int),
                   ),
-                  EnterpriseGridColumn(
+                  EnterpriseTableColumn(
                     label: 'Maintenance events',
-                    width: 220,
                     value: (row) => row['maintenance'].toString(),
-                    compare: (first, second) => (first['maintenance'] as int)
-                        .compareTo(second['maintenance'] as int),
                   ),
                 ],
-                emptyTitle: 'Select an operating period',
-                emptyMessage:
-                    'Monthly trip and maintenance activity will appear for the selected year.',
-                emptyActionLabel: 'Use current year',
-                onEmptyAction: _reloadDashboard,
-                onExportSelection: _exportMonthlyOperations,
+                onExport: _exportMonthlyOperations,
               ),
               const SizedBox(height: 16),
               Text(
@@ -700,7 +711,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
     final buffer = StringBuffer('Measure,Value,Scope\n');
     for (final metric in metrics) {
       buffer.writeln(
-        '"${metric.title}","${metric.value}","${metric.subTitle}"',
+        '"${metric.title}","${metric.value}","${metric.subTitle ?? ''}"',
       );
     }
     await _downloadDashboardCsv('shervice-dashboard-summary.csv', buffer);
@@ -760,83 +771,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
   }
 
   Widget _buildKpiGrid(BuildContext context, double width, double spacing) {
-    final theme = Theme.of(context);
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: spacing,
-      runSpacing: spacing,
-      children: _metrics.map((m) {
-        final Color color = m.baseColor;
-        return InkWell(
-          onTap: () => _showMetricDetails(m),
-          borderRadius: BorderRadius.circular(18),
-          child: Container(
-            width: width,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: theme.dividerColor),
-              boxShadow: [
-                BoxShadow(
-                  color: theme.shadowColor.withValues(alpha: 0.02),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        m.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          fontSize: _bodyTextSize,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Icon(m.icon, color: color, size: 18),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  m.value,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  m.subTitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: _captionTextSize,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
+    return EnterpriseKpiRow(metrics: _metrics, onMetricTap: _showMetricDetails);
   }
 
   Future<void> _showMetricDetails(DashboardMetric metric) async {
@@ -1029,10 +964,11 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
           color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
         ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          DropdownButtonHideUnderline(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final narrow =
+              constraints.maxWidth.isFinite && constraints.maxWidth < 220;
+          final monthDropdown = DropdownButtonHideUnderline(
             child: DropdownButton<int?>(
               value: _selectedDriverYear == null ? null : _selectedDriverMonth,
               isDense: true,
@@ -1063,14 +999,8 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                 _loadDriverRating();
               },
             ),
-          ),
-          Container(
-            width: 1,
-            height: 14,
-            color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
-            margin: const EdgeInsets.symmetric(horizontal: 8),
-          ),
-          DropdownButtonHideUnderline(
+          );
+          final yearDropdown = DropdownButtonHideUnderline(
             child: DropdownButton<int?>(
               value: _selectedDriverYear,
               isDense: true,
@@ -1095,8 +1025,37 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                 _loadDriverRating();
               },
             ),
-          ),
-        ],
+          );
+
+          if (narrow) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                monthDropdown,
+                Divider(
+                  height: 1,
+                  color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                ),
+                yearDropdown,
+              ],
+            );
+          }
+
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              monthDropdown,
+              Container(
+                width: 1,
+                height: 14,
+                color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+              yearDropdown,
+            ],
+          );
+        },
       ),
     );
   }
@@ -1123,19 +1082,29 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Top Performing Drivers',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontSize: _sectionTitleSize,
-                    fontWeight: FontWeight.bold,
-                  ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final title = Text(
+                'Top Performing Drivers',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontSize: _sectionTitleSize,
+                  fontWeight: FontWeight.bold,
                 ),
-              ),
-              _buildSmallDriverFilter(isDark),
-            ],
+              );
+              final filter = _buildSmallDriverFilter(isDark);
+              if (constraints.maxWidth < 360) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [title, const SizedBox(height: 8), filter],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: title),
+                  filter,
+                ],
+              );
+            },
           ),
           SizedBox(height: compact ? 10 : 14),
           if (_isRatingLoading)
@@ -1663,6 +1632,12 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
   Widget _buildClientTripsCard({bool compact = false}) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final totalTrips = _selectedMonthTripTotal > 0
+        ? _selectedMonthTripTotal
+        : _companyTrips.fold<int>(
+            0,
+            (total, company) => total + company.tripCount,
+          );
     return InkWell(
       onTap: _showClientTripDetails,
       borderRadius: BorderRadius.circular(4),
@@ -1717,87 +1692,88 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                     ),
                   )
                 : SizedBox(
-                    height: compact ? 280 : null,
-                    child: ListView.separated(
-                      shrinkWrap: true,
-                      physics: compact
-                          ? const BouncingScrollPhysics()
-                          : const NeverScrollableScrollPhysics(),
-                      itemCount: _companyTrips.length,
-                      separatorBuilder: (_, _) => Divider(
-                        height: 12,
-                        thickness: 0.5,
-                        color: theme.dividerColor,
-                      ),
-                      itemBuilder: (context, index) {
-                        final item = _companyTrips[index];
-                        final Color color = _proceduralColorAssigner(index);
-                        return Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: color.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Icon(
-                                Icons.business_center,
-                                color: color,
-                                size: 16,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    item.companyName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
+                    height: compact ? 270 : 260,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: PieChart(
+                            PieChartData(
+                              sectionsSpace: 2,
+                              centerSpaceRadius: compact ? 34 : 42,
+                              sections: [
+                                for (
+                                  var index = 0;
+                                  index < _companyTrips.length;
+                                  index++
+                                )
+                                  PieChartSectionData(
+                                    value: _companyTrips[index].tripCount
+                                        .toDouble(),
+                                    color: _proceduralColorAssigner(index),
+                                    radius: compact ? 54 : 66,
+                                    title: totalTrips == 0
+                                        ? ''
+                                        : '${((_companyTrips[index].tripCount / totalTrips) * 100).round()}%',
+                                    titleStyle: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: _bodyTextSize,
                                     ),
                                   ),
-                                  const SizedBox(height: 2),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            2,
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
+                          child: ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _companyTrips.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 8),
+                            itemBuilder: (context, index) {
+                              final item = _companyTrips[index];
+                              final color = _proceduralColorAssigner(index);
+                              return Row(
+                                children: [
+                                  Container(
+                                    width: 10,
+                                    height: 10,
+                                    decoration: BoxDecoration(
+                                      color: color,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      item.companyName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            fontSize: _captionTextSize,
+                                            fontWeight: FontWeight.w600,
                                           ),
-                                          child: LinearProgressIndicator(
-                                            value: item.utilization,
-                                            backgroundColor: theme
-                                                .colorScheme
-                                                .surfaceContainerHighest,
-                                            valueColor:
-                                                AlwaysStoppedAnimation<Color>(
-                                                  color,
-                                                ),
-                                            minHeight: 3,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        '${item.tripCount}',
-                                        style: TextStyle(
-                                          fontSize: _captionTextSize,
-                                          fontWeight: FontWeight.bold,
-                                          color: color,
-                                        ),
-                                      ),
-                                    ],
+                                    ),
+                                  ),
+                                  Text(
+                                    '${item.tripCount}',
+                                    style: TextStyle(
+                                      color: color,
+                                      fontSize: _captionTextSize,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ],
-                              ),
-                            ),
-                          ],
-                        );
-                      },
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ),
           ],
@@ -2106,6 +2082,10 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                   ),
                 )
                 .toList();
+            final metrics = decoded is Map ? decoded['metrics'] : null;
+            if (metrics is Map) {
+              _selectedMonthTripTotal = _parseInt(metrics['totalTrips']);
+            }
           });
         }
       }

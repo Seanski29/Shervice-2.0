@@ -14,16 +14,11 @@ class NetworkStatusProbe {
   NetworkStatusProbe(this.onStatus);
 
   final void Function(NetworkQuality) onStatus;
-  final List<StreamSubscription<html.Event>> _subscriptions = [];
   Timer? _latencyTimer;
   bool _probeRunning = false;
 
   void start() {
-    if (_subscriptions.isNotEmpty) return;
-    _subscriptions.add(
-      html.window.onOffline.listen((_) => onStatus(NetworkQuality.offline)),
-    );
-    _subscriptions.add(html.window.onOnline.listen((_) => _probeLatency()));
+    if (_latencyTimer != null) return;
     _probeLatency();
     _latencyTimer = Timer.periodic(
       const Duration(seconds: 15),
@@ -65,10 +60,6 @@ class NetworkStatusProbe {
   }
 
   void stop() {
-    for (final subscription in _subscriptions) {
-      subscription.cancel();
-    }
-    _subscriptions.clear();
     _latencyTimer?.cancel();
     _latencyTimer = null;
   }
