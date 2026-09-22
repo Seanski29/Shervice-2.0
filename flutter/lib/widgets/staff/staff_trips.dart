@@ -1100,26 +1100,6 @@ class _StaffTripsState extends State<StaffTrips> {
             ),
           ),
           const SizedBox(width: 12),
-          Container(
-            width: controlWidth,
-            height: 42,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              border: Border.all(color: Theme.of(context).dividerColor),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              '${_visibleTrips.length} records',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
           SizedBox(
             width: controlWidth,
             height: 42,

@@ -444,7 +444,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                   _buildKpiGrid(context, width, spacing),
                   if (widget.showClientTrips) ...[
                     const SizedBox(height: 20),
-                    if (compact)
+                    if (compact || constraints.maxWidth < 900)
                       Column(
                         children: [
                           _buildClientTripsCard(),

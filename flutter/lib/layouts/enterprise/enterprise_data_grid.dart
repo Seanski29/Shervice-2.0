@@ -619,14 +619,6 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
               style: Theme.of(context).textTheme.bodySmall,
             ),
           if (!widget.paginate || rowCount == 0) const Spacer(),
-          Flexible(
-            child: Text(
-              'Arrow keys move cells | Tab advances | F2 edits',
-              textAlign: TextAlign.right,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
         ],
       ),
     );

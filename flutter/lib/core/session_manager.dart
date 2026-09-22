@@ -1,7 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SessionManager {
-  static const Duration sessionLifetime = Duration(days: 7);
+  static const Duration sessionLifetime = Duration(minutes: 30);
   static const String _sessionCreatedAtKey = 'sessionCreatedAt';
 
   static Future<void> saveUserSession(
