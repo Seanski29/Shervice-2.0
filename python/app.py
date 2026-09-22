@@ -24,20 +24,31 @@ class TransportBackendApp:
         load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
         self.app = Flask(__name__)
         
+        allowed_origins = [
+            origin.strip()
+            for origin in os.getenv(
+                "CORS_ALLOWED_ORIGINS",
+                r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+            ).split(",")
+            if origin.strip()
+        ]
         CORS(self.app, resources={
             r"/*": {
-                "origins": "*",
+                "origins": allowed_origins,
                 "allow_headers": ["Content-Type", "Authorization", "Accept"],
                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
             }
         })
+        self.app.config["MAX_CONTENT_LENGTH"] = int(
+            os.getenv("MAX_CONTENT_LENGTH", str(16 * 1024 * 1024))
+        )
         
         # 3. Setup core unified database engine connection parameters
         self.supabase_url = os.getenv("SUPABASE_URL")
-        self.supabase_key = os.getenv("SUPABASE_ANON_KEY") or os.getenv("SUPABASE_KEY")
+        self.supabase_key = os.getenv("SUPABASE_ANON_KEY")
         
         if not self.supabase_url or not self.supabase_key:
-            raise ValueError("Missing SUPABASE_URL or SUPABASE_ANON_KEY inside your backend .env file!")
+            raise ValueError("Missing SUPABASE_URL or SUPABASE_ANON_KEY environment variables.")
             
         self.supabase: Client = create_client(self.supabase_url, self.supabase_key)
         
@@ -82,10 +93,12 @@ class TransportBackendApp:
         self.app.register_blueprint(driver_ml_module.driver_ml_bp)
         self.app.register_blueprint(route_ml_module.route_ml_bp)
     def run(self):
-        # Force alignment to explicit loopback addresses
-        # Disable the auto-reloader and debug mode for stability during testing
-        # (the development reloader can cause transient connection resets)
-        self.app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+        self.app.run(
+            host=os.getenv("FLASK_HOST", "127.0.0.1"),
+            port=int(os.getenv("FLASK_PORT", "5000")),
+            debug=False,
+            use_reloader=False,
+        )
 
 
 # 1. Create the server instance globally so Gunicorn can find it

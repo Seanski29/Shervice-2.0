@@ -964,10 +964,11 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
           color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
         ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          DropdownButtonHideUnderline(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final narrow =
+              constraints.maxWidth.isFinite && constraints.maxWidth < 220;
+          final monthDropdown = DropdownButtonHideUnderline(
             child: DropdownButton<int?>(
               value: _selectedDriverYear == null ? null : _selectedDriverMonth,
               isDense: true,
@@ -998,14 +999,8 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                 _loadDriverRating();
               },
             ),
-          ),
-          Container(
-            width: 1,
-            height: 14,
-            color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
-            margin: const EdgeInsets.symmetric(horizontal: 8),
-          ),
-          DropdownButtonHideUnderline(
+          );
+          final yearDropdown = DropdownButtonHideUnderline(
             child: DropdownButton<int?>(
               value: _selectedDriverYear,
               isDense: true,
@@ -1030,8 +1025,37 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                 _loadDriverRating();
               },
             ),
-          ),
-        ],
+          );
+
+          if (narrow) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                monthDropdown,
+                Divider(
+                  height: 1,
+                  color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                ),
+                yearDropdown,
+              ],
+            );
+          }
+
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              monthDropdown,
+              Container(
+                width: 1,
+                height: 14,
+                color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+              yearDropdown,
+            ],
+          );
+        },
       ),
     );
   }
@@ -1058,19 +1082,29 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Top Performing Drivers',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontSize: _sectionTitleSize,
-                    fontWeight: FontWeight.bold,
-                  ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final title = Text(
+                'Top Performing Drivers',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontSize: _sectionTitleSize,
+                  fontWeight: FontWeight.bold,
                 ),
-              ),
-              _buildSmallDriverFilter(isDark),
-            ],
+              );
+              final filter = _buildSmallDriverFilter(isDark);
+              if (constraints.maxWidth < 360) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [title, const SizedBox(height: 8), filter],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: title),
+                  filter,
+                ],
+              );
+            },
           ),
           SizedBox(height: compact ? 10 : 14),
           if (_isRatingLoading)

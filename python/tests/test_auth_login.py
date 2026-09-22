@@ -40,6 +40,9 @@ class FakeTable:
     def in_(self, *_args, **_kwargs):
         return self
 
+    def limit(self, *_args, **_kwargs):
+        return self
+
     def execute(self):
         return type('Result', (), {'data': self.data})()
 
@@ -60,6 +63,43 @@ def test_login_success_for_staff_account():
     assert payload['success'] is True
     assert payload['data']['role'] == 'staff'
     assert payload['data']['token'] == 'secret-token'
+
+
+def test_login_rejects_user_without_account():
+    auth_module.supabase = type('Supabase', (), {
+        'auth': FakeAuth(),
+        'table': lambda *_args, **_kwargs: FakeTable([]),
+    })()
+
+    client = app.test_client()
+    response = client.post('/api/auth/login', json={'email': 'unknown@company.com', 'password': 'secret'})
+
+    assert response.status_code == 401
+    assert response.get_json()['success'] is False
+
+
+def test_login_accepts_legacy_account_matched_by_email():
+    table_calls = 0
+
+    def table_factory(_client, table_name, *_args, **_kwargs):
+        nonlocal table_calls
+        table_calls += 1
+        if table_name == 'user_account' and table_calls == 2:
+            return FakeTable([
+                {'user_id': 'legacy-user', 'username': 'jane@company.com', 'role': 'admin'}
+            ])
+        return FakeTable([])
+
+    auth_module.supabase = type('Supabase', (), {
+        'auth': FakeAuth(),
+        'table': table_factory,
+    })()
+
+    client = app.test_client()
+    response = client.post('/api/auth/login', json={'email': 'jane@company.com', 'password': 'secret'})
+
+    assert response.status_code == 200
+    assert response.get_json()['data']['role'] == 'admin'
 
 
 def test_login_error_logs_traceback_and_returns_401(caplog):

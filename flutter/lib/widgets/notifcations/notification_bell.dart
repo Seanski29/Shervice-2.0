@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../layouts/enterprise/enterprise_states.dart';
 import 'package:http/http.dart' as http;
 import '../../constant.dart';
+import '../../core/session_manager.dart';
 
 class NotificationBell extends StatefulWidget {
   final String role;
@@ -88,6 +89,9 @@ class _NotificationBellState extends State<NotificationBell> {
     setState(() => _isLoading = true);
 
     try {
+      final session = await SessionManager.getUserData();
+      final token = session['accessToken'];
+      if (token == null || token.isEmpty) return;
       final uri = Uri.parse('$backendUrl/notifications').replace(
         queryParameters: {
           'user_id': widget.userId,
@@ -96,7 +100,9 @@ class _NotificationBellState extends State<NotificationBell> {
         },
       );
 
-      final response = await http.get(uri).timeout(const Duration(seconds: 8));
+      final response = await http
+          .get(uri, headers: _authHeaders(token))
+          .timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         final body = jsonDecode(response.body);
         if (body['success'] == true && body['data'] != null) {
@@ -128,9 +134,11 @@ class _NotificationBellState extends State<NotificationBell> {
     dialogSetState?.call(() {});
 
     try {
+      final token = (await SessionManager.getUserData())['accessToken'];
+      if (token == null || token.isEmpty) return;
       await http.put(
         Uri.parse('$backendUrl/notifications/${entry.id}/read'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _authHeaders(token),
       );
       if (mounted)
         EnterpriseToasts.success(context, 'Notification marked as read.');
@@ -154,9 +162,11 @@ class _NotificationBellState extends State<NotificationBell> {
     dialogSetState(() {});
 
     try {
+      final token = (await SessionManager.getUserData())['accessToken'];
+      if (token == null || token.isEmpty) return;
       await http.put(
         Uri.parse('$backendUrl/notifications/read-all'),
-        headers: {'Content-Type': 'application/json'},
+        headers: _authHeaders(token),
         body: jsonEncode({'user_id': widget.userId, 'role': widget.role}),
       );
       if (mounted)
@@ -182,7 +192,12 @@ class _NotificationBellState extends State<NotificationBell> {
     dialogSetState(() {});
 
     try {
-      await http.delete(Uri.parse('$backendUrl/notifications/${entry.id}'));
+      final token = (await SessionManager.getUserData())['accessToken'];
+      if (token == null || token.isEmpty) return;
+      await http.delete(
+        Uri.parse('$backendUrl/notifications/${entry.id}'),
+        headers: _authHeaders(token),
+      );
       if (mounted) EnterpriseToasts.success(context, 'Notification dismissed.');
     } catch (e) {
       debugPrint('Failed to delete notification: $e');
@@ -190,6 +205,11 @@ class _NotificationBellState extends State<NotificationBell> {
         EnterpriseToasts.error(context, 'Notification could not be dismissed.');
     }
   }
+
+  Map<String, String> _authHeaders(String token) => {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer $token',
+  };
 
   // Instant Redirection Handler
   void _handleNotificationTap(
@@ -457,64 +477,68 @@ class _NotificationBellState extends State<NotificationBell> {
             child: const Icon(Icons.delete_outline, color: Colors.white),
           ),
           onDismissed: (_) => _deleteNotification(notification, dialogSetState),
-          child: ListTile(
-            onTap: () => _handleNotificationTap(notification, dialogSetState),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 0,
-              vertical: 4,
-            ),
-            leading: CircleAvatar(
-              backgroundColor: notification.isRead
-                  ? (isDark ? Colors.grey.shade800 : Colors.grey.shade200)
-                  : (isDark
-                        ? Colors.blue.shade900.withValues(alpha: 0.5)
-                        : Colors.blue.shade50),
-              child: Icon(
-                notification.isRead
-                    ? Icons.mark_email_read
-                    : Icons.mark_email_unread,
-                color: notification.isRead
-                    ? (isDark ? Colors.grey.shade400 : Colors.grey.shade700)
-                    : (isDark ? Colors.blue.shade200 : Colors.blue.shade700),
-                size: 18,
-              ),
-            ),
-            title: Text(
-              notification.title,
-              style: TextStyle(
-                fontWeight: notification.isRead
-                    ? FontWeight.normal
-                    : FontWeight.bold,
-                // STRICT OVERRIDE: Force text to match the surface contrast
-                color: notification.isRead
-                    ? theme.colorScheme.onSurfaceVariant
-                    : theme.colorScheme.onSurface,
-              ),
-            ),
-            subtitle: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  notification.message,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  notification.sourceTag,
-                  style: TextStyle(
-                    color: isDark ? Colors.blue.shade300 : Colors.blue.shade700,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-            tileColor: notification.isRead
+          child: Material(
+            color: notification.isRead
                 ? Colors.transparent
                 : (isDark
                       ? Colors.blue.withValues(alpha: 0.15)
                       : Colors.blue.shade50.withValues(alpha: 0.5)),
+            child: ListTile(
+              onTap: () => _handleNotificationTap(notification, dialogSetState),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 0,
+                vertical: 4,
+              ),
+              leading: CircleAvatar(
+                backgroundColor: notification.isRead
+                    ? (isDark ? Colors.grey.shade800 : Colors.grey.shade200)
+                    : (isDark
+                          ? Colors.blue.shade900.withValues(alpha: 0.5)
+                          : Colors.blue.shade50),
+                child: Icon(
+                  notification.isRead
+                      ? Icons.mark_email_read
+                      : Icons.mark_email_unread,
+                  color: notification.isRead
+                      ? (isDark ? Colors.grey.shade400 : Colors.grey.shade700)
+                      : (isDark ? Colors.blue.shade200 : Colors.blue.shade700),
+                  size: 18,
+                ),
+              ),
+              title: Text(
+                notification.title,
+                style: TextStyle(
+                  fontWeight: notification.isRead
+                      ? FontWeight.normal
+                      : FontWeight.bold,
+                  // STRICT OVERRIDE: Force text to match the surface contrast
+                  color: notification.isRead
+                      ? theme.colorScheme.onSurfaceVariant
+                      : theme.colorScheme.onSurface,
+                ),
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    notification.message,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    notification.sourceTag,
+                    style: TextStyle(
+                      color: isDark
+                          ? Colors.blue.shade300
+                          : Colors.blue.shade700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         );
       },

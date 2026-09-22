@@ -1,12 +1,77 @@
 import os
 import time
 import traceback
+import logging
 from dotenv import load_dotenv
 from flask import Blueprint, request, jsonify
 from supabase import create_client
 
 notifs_bp = Blueprint('notifs', __name__)
 supabase = None
+logger = logging.getLogger(__name__)
+
+def _authenticated_account():
+    authorization = request.headers.get('Authorization', '')
+    if not authorization.startswith('Bearer '):
+        logger.warning('Notification auth rejected: bearer token missing')
+        return None
+
+    token = authorization[7:].strip()
+    if not token:
+        logger.warning('Notification auth rejected: bearer token empty')
+        return None
+
+    try:
+        supabase_client = supabase or _create_supabase_client()
+        user_response = supabase_client.auth.get_user(token)
+        user = getattr(user_response, 'user', None)
+        user_id = getattr(user, 'id', None)
+        user_email = str(getattr(user, 'email', '') or '').strip().lower()
+        if not user_id:
+            logger.warning('Notification auth rejected: Supabase returned no user')
+            return None
+
+        account_response = supabase_client.table('user_account').select(
+            'user_id, role'
+        ).eq('user_id', user_id).limit(1).execute()
+        account = (account_response.data or [None])[0]
+        if account is None and user_email:
+            legacy_response = supabase_client.table('user_account').select(
+                'user_id, role'
+            ).eq('username', user_email).limit(2).execute()
+            legacy_accounts = legacy_response.data or []
+            if len(legacy_accounts) == 1:
+                account = legacy_accounts[0]
+    except Exception:
+        logger.exception('Notification auth lookup failed')
+        return None
+
+    if not account or str(account.get('role', '')).lower() not in ('admin', 'staff'):
+        logger.warning('Notification auth rejected: account or role not found')
+        return None
+    return {
+        'user_id': str(user_id),
+        'role': str(account.get('role', '')).lower(),
+        'company': 'GT Lantin Internal',
+    }
+
+
+def _can_access_notification(notification, identity):
+    if identity['role'] == 'admin':
+        return True
+
+    target_user_id = notification.get('target_user_id')
+    target_role = str(notification.get('target_role') or '').strip().lower()
+    target_company = str(notification.get('target_company') or '').strip()
+    company = identity['company']
+
+    return (
+        str(target_user_id) == identity['user_id']
+        or (not target_role and not target_company)
+        or (not target_role and company and target_company.lower() == company.lower())
+        or (target_role == identity['role'] and not target_company)
+        or (target_role == identity['role'] and company and target_company.lower() == company.lower())
+    )
 
 def _is_schedule_blackout_notification(notification):
     # Older alerts can still exist after the blackout feature is retired.
@@ -50,15 +115,12 @@ def _execute_supabase(action, retries=3, backoff=0.25):
 @notifs_bp.route('/api/notifications', methods=['GET'])
 def get_notifications():
     try:
-        user_id = request.args.get('user_id')
-        role = (request.args.get('role') or '').strip().lower()
-        company = (request.args.get('company') or '').strip()
-        if company.lower() in ('internal', 'gt lantin internal', 'unknown'):
-            company = ''
-
-        if not user_id:
-            return jsonify({"success": False, "message": "Missing user_id parameter"}), 400
-
+        identity = _authenticated_account()
+        if not identity:
+            return jsonify({"success": False, "message": "Authentication required."}), 401
+        user_id = identity['user_id']
+        role = identity['role']
+        company = identity['company']
         supabase_client = supabase or _create_supabase_client()
         response = _execute_supabase(
             lambda: supabase_client.table('app_notification')
@@ -74,6 +136,12 @@ def get_notifications():
             notification for notification in (response.data or [])
             if not _is_schedule_blackout_notification(notification)
         ]
+        logger.info(
+            'Notification fetch: role=%s user_id_present=%s rows=%s',
+            role,
+            bool(user_id),
+            len(raw_notifs),
+        )
         filtered_notifications = []
 
         if role == 'admin':
@@ -85,22 +153,7 @@ def get_notifications():
                 target_role = (notification.get('target_role') or '').strip().lower()
                 target_company = (notification.get('target_company') or '').strip()
 
-                if str(target_user_id) == str(user_id):
-                    filtered_notifications.append(notification)
-                    continue
-                if not target_role and not target_company:
-                    filtered_notifications.append(notification)
-                    continue
-                if not target_role and company and target_company.lower() == company.lower():
-                    filtered_notifications.append(notification)
-                    continue
-                if target_role == role and not target_company:
-                    filtered_notifications.append(notification)
-                    continue
-                if target_role == role and not company:
-                    filtered_notifications.append(notification)
-                    continue
-                if target_role == role and company and target_company.lower() == company.lower():
+                if _can_access_notification(notification, identity):
                     filtered_notifications.append(notification)
 
         return jsonify({"success": True, "data": filtered_notifications}), 200
@@ -116,12 +169,19 @@ def get_notifications():
 @notifs_bp.route('/api/notifications/<int:notif_id>/read', methods=['PUT'])
 def mark_as_read(notif_id):
     try:
+        identity = _authenticated_account()
+        if not identity:
+            return jsonify({"success": False, "message": "Authentication required."}), 401
         supabase_client = supabase or _create_supabase_client()
+        notification_response = supabase_client.table('app_notification').select(
+            'target_user_id, target_role, target_company'
+        ).eq('notification_id', notif_id).limit(1).execute()
+        notification = (notification_response.data or [None])[0]
+        if not notification or not _can_access_notification(notification, identity):
+            return jsonify({"success": False, "message": "Notification not found."}), 404
+        query = supabase_client.table('app_notification').update({'is_read': True}).eq('notification_id', notif_id)
         response = _execute_supabase(
-            lambda: supabase_client.table('app_notification')
-            .update({'is_read': True})
-            .eq('notification_id', notif_id)
-            .execute()
+            lambda: query.execute()
         )
 
         if response.data:
@@ -139,12 +199,12 @@ def mark_as_read(notif_id):
 @notifs_bp.route('/api/notifications/read-all', methods=['PUT'])
 def mark_all_as_read():
     try:
+        identity = _authenticated_account()
+        if not identity:
+            return jsonify({"success": False, "message": "Authentication required."}), 401
         data = request.json or {}
-        user_id = data.get('user_id')
-        role = (data.get('role') or '').strip().lower()
-        
-        if not user_id:
-            return jsonify({"success": False, "message": "Missing user_id"}), 400
+        user_id = identity['user_id']
+        role = identity['role']
 
         supabase_client = supabase or _create_supabase_client()
         
@@ -167,7 +227,7 @@ def mark_all_as_read():
         if role == 'admin':
             ids_to_update = [n['notification_id'] for n in raw_notifs]
         else:
-            company = (data.get('company') or '').strip()
+            company = identity['company']
             if company.lower() in ('internal', 'gt lantin internal', 'unknown'):
                 company = ''
                 
@@ -176,22 +236,7 @@ def mark_all_as_read():
                 target_role = (n.get('target_role') or '').strip().lower()
                 target_company = (n.get('target_company') or '').strip()
 
-                if str(target_user_id) == str(user_id):
-                    ids_to_update.append(n['notification_id'])
-                    continue
-                if not target_role and not target_company:
-                    ids_to_update.append(n['notification_id'])
-                    continue
-                if not target_role and company and target_company.lower() == company.lower():
-                    ids_to_update.append(n['notification_id'])
-                    continue
-                if target_role == role and not target_company:
-                    ids_to_update.append(n['notification_id'])
-                    continue
-                if target_role == role and not company:
-                    ids_to_update.append(n['notification_id'])
-                    continue
-                if target_role == role and company and target_company.lower() == company.lower():
+                if _can_access_notification(n, identity):
                     ids_to_update.append(n['notification_id'])
 
         if ids_to_update:
@@ -215,13 +260,18 @@ def mark_all_as_read():
 @notifs_bp.route('/api/notifications/<int:notif_id>', methods=['DELETE'])
 def delete_notification(notif_id):
     try:
+        identity = _authenticated_account()
+        if not identity:
+            return jsonify({"success": False, "message": "Authentication required."}), 401
         supabase_client = supabase or _create_supabase_client()
-        _execute_supabase(
-            lambda: supabase_client.table('app_notification')
-            .delete()
-            .eq('notification_id', notif_id)
-            .execute()
-        )
+        notification_response = supabase_client.table('app_notification').select(
+            'target_user_id, target_role, target_company'
+        ).eq('notification_id', notif_id).limit(1).execute()
+        notification = (notification_response.data or [None])[0]
+        if not notification or not _can_access_notification(notification, identity):
+            return jsonify({"success": False, "message": "Notification not found."}), 404
+        query = supabase_client.table('app_notification').delete().eq('notification_id', notif_id)
+        _execute_supabase(lambda: query.execute())
         return jsonify({"success": True, "message": "Notification deleted."}), 200
     except Exception as e:
         print(f"❌ Notification Delete Error: {e}")

@@ -114,7 +114,13 @@ class _LoginScreenState extends State<LoginScreen> {
       final company = role == 'admin'
           ? 'GT LANTIN'
           : (userData['company'] ?? 'Internal').toString();
-      await SessionManager.saveUserSession(role, userId, displayName, company);
+      await SessionManager.saveUserSession(
+        role,
+        userId,
+        displayName,
+        company,
+        (userData['token'] ?? '').toString(),
+      );
       await ThemeManager.loadSavedTheme(userId: userId);
       if (!mounted) return;
       EnterpriseToasts.success(context, 'Signed in successfully.');

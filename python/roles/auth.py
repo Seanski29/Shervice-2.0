@@ -1,4 +1,5 @@
 import os
+import logging
 from typing import Any, Dict, cast
 from flask import Blueprint, jsonify, request
 from supabase import create_client
@@ -6,14 +7,16 @@ from supabase import create_client
 auth_bp = Blueprint('auth', __name__)
 
 supabase = None 
+logger = logging.getLogger(__name__)
 
 def get_admin_client():
     admin_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     if not admin_key or admin_key == "your_service_role_key_here":
-        admin_key = os.getenv("SUPABASE_KEY")
-    if not admin_key:
         raise RuntimeError("Missing SUPABASE_SERVICE_ROLE_KEY for admin auth operations.")
-    return create_client(os.getenv("SUPABASE_URL"), admin_key)
+    supabase_url = os.getenv("SUPABASE_URL")
+    if not supabase_url:
+        raise RuntimeError("Missing SUPABASE_URL for admin auth operations.")
+    return create_client(supabase_url, admin_key)
 
 @auth_bp.route('/api/auth/login', methods=['POST'])
 def handle_api_login():
@@ -32,20 +35,33 @@ def handle_api_login():
         user_uuid = auth_response.user.id
         token = auth_response.session.access_token
         
-        role = "admin" 
+        role = None
         display_name = "System User"
         company_str = "GT Lantin Internal"
         staff_id = None
 
         user_query = supabase.table('user_account').select('*').eq('user_id', user_uuid).execute()
-        
-        if user_query.data:
-            account = user_query.data[0]
-            role = account.get('role', '').lower()
-            if role not in ('admin', 'staff'):
-                return jsonify({"success": False, "message": "Invalid email or password credentials."}), 401
-            display_name = account.get('full_name') or "System User"
-            staff_id = account.get('staff_id')
+        account = (user_query.data or [None])[0]
+
+        # Some legacy Auth users were created before user_account.user_id was
+        # synchronized. Resolve the role by the authenticated email only when
+        # there is exactly one matching account.
+        if account is None:
+            legacy_query = supabase.table('user_account').select('*').eq(
+                'username', email
+            ).limit(2).execute()
+            legacy_accounts = legacy_query.data or []
+            if len(legacy_accounts) == 1:
+                account = legacy_accounts[0]
+
+        if account is None:
+            return jsonify({"success": False, "message": "Invalid email or password credentials."}), 401
+
+        role = str(account.get('role', '')).strip().lower()
+        if role not in ('admin', 'staff'):
+            return jsonify({"success": False, "message": "Invalid email or password credentials."}), 401
+        display_name = account.get('full_name') or "System User"
+        staff_id = account.get('staff_id')
 
         return jsonify({
             "success": True,
@@ -60,8 +76,8 @@ def handle_api_login():
             }
         }), 200
 
-    except Exception as e:
-        print(f"Login Rejected: {e}")
+    except Exception:
+        logger.exception("Login failed for email=%s", email if 'email' in locals() else "unknown")
         return jsonify({"success": False, "message": "Invalid email or password credentials."}), 401
 
 @auth_bp.route('/api/auth/register-staff', methods=['POST'])
