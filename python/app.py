@@ -28,7 +28,7 @@ class TransportBackendApp:
             origin.strip()
             for origin in os.getenv(
                 "CORS_ALLOWED_ORIGINS",
-                r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+                "*", # Defaulting to * to prevent Railway CORS blocks, override in Railway Variables
             ).split(",")
             if origin.strip()
         ]
@@ -92,14 +92,14 @@ class TransportBackendApp:
         self.app.register_blueprint(predictive_ml.predictive_bp)
         self.app.register_blueprint(driver_ml_module.driver_ml_bp)
         self.app.register_blueprint(route_ml_module.route_ml_bp)
+        
     def run(self):
         self.app.run(
-            host=os.getenv("FLASK_HOST", "127.0.0.1"),
-            port=int(os.getenv("FLASK_PORT", "5000")),
+            host=os.getenv("FLASK_HOST", "0.0.0.0"), # Updated to 0.0.0.0 for external access
+            port=int(os.getenv("PORT", os.getenv("FLASK_PORT", "5000"))), # Prioritizes Railway's native PORT variable
             debug=False,
             use_reloader=False,
         )
-
 
 # 1. Create the server instance globally so Gunicorn can find it
 backend_server = TransportBackendApp()
