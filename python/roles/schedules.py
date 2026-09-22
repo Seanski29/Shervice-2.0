@@ -559,8 +559,6 @@ def get_all_trips():
 def get_staff_trip_summary(staff_uuid):
     try:
         query = supabase.table('trip_schedule').select('*')
-        if str(staff_uuid).lower() not in ('all', 'admin'):
-            query = query.eq('staff_id', staff_uuid)
         trips = query.order('schedule_date', desc=False).execute()
 
         vehicles = supabase.table('vehicle').select(

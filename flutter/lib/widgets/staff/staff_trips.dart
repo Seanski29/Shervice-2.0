@@ -95,10 +95,10 @@ class _StaffTripsState extends State<StaffTrips> {
     try {
       final response = await http
           .get(
-            Uri.parse('$backendUrl/schedules/staff-summary/${widget.staffId}'),
+            // Replace ${widget.staffId} with 'all'
+            Uri.parse('$backendUrl/schedules/staff-summary/all'),
           )
           .timeout(const Duration(seconds: 15));
-
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
         final rows = (decoded['data'] as List? ?? [])
