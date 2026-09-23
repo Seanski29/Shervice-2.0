@@ -10,8 +10,8 @@ import '../layouts/admin/admin_layout.dart';
 import '../layouts/staff/staff_layout.dart';
 import '../session_manager.dart';
 import '../layouts/enterprise/enterprise_theme.dart';
-import '../theme/theme_manager.dart';
-import '../utils/network_status_monitor.dart';
+import '../interface/theme_manager.dart';
+import '../utilities/network_status_monitor.dart';
 import '../layouts/enterprise/enterprise_states.dart';
 
 class LoginScreen extends StatefulWidget {

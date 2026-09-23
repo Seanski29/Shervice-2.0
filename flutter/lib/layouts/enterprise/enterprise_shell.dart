@@ -3,8 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'enterprise_theme.dart';
-import '../../theme/theme_manager.dart';
-import '../../utils/network_status_monitor.dart';
+import '../../interface/theme_manager.dart';
+import '../../utilities/network_status_monitor.dart';
 
 class EnterpriseNavigationItem {
   const EnterpriseNavigationItem({

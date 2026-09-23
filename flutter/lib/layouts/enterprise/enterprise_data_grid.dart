@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'enterprise_theme.dart';
 import 'enterprise_states.dart';
-import '../../widgets/interface/universal_pagination.dart';
+import '../../interface/universal_pagination.dart';
 
 typedef EnterpriseCellChanged<T> = Future<void> Function(T row, String value);
 

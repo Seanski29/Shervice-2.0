@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'enterprise_theme.dart';
-import '../../widgets/shared/shared_dashboard_metric.dart';
+import '../../1.dashboard/shared_dashboard_metric.dart';
 
 class EnterpriseKpiRow extends StatelessWidget {
   const EnterpriseKpiRow({super.key, required this.metrics, this.onMetricTap});

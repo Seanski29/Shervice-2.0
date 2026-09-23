@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:shervice_flutter/session_manager.dart';
-import 'package:shervice_flutter/theme/theme_manager.dart';
+import 'package:shervice_flutter/interface/theme_manager.dart';
 import 'package:shervice_flutter/layouts/enterprise/enterprise_data_grid.dart';
 
 void main() {

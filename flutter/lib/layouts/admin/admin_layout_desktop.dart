@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../../login/login.dart';
-import '../../screens/admin/admin_companies.dart';
-import '../../screens/admin/admin_dashboard.dart';
-import '../../screens/admin/admin_drivers.dart';
-import '../../screens/admin/admin_payroll.dart';
-import '../../screens/admin/admin_reports_manager.dart';
-import '../../screens/admin/admin_routes.dart';
-import '../../screens/admin/admin_schedules.dart';
-import '../../screens/admin/admin_settings.dart';
-import '../../screens/admin/admin_users.dart';
-import '../../screens/admin/admin_vehicles.dart';
+import '../../6.companies/admin_companies.dart';
+import '../../admin/admin_dashboard.dart';
+import '../../admin/admin_drivers.dart';
+import '../../admin/admin_payroll.dart';
+import '../../admin/admin_reports_manager.dart';
+import '../../admin/admin_routes.dart';
+import '../../admin/admin_schedules.dart';
+import '../../admin/admin_settings.dart';
+import '../../5.users/admin_users.dart';
+import '../../admin/admin_vehicles.dart';
 import '../../session_manager.dart';
-import '../../widgets/admin/admin_profile_button.dart';
+import '../../admin/admin_profile_button.dart';
 import '../enterprise/enterprise_shell.dart';
-import '../../widgets/notifcations/notification_bell.dart';
-import '../../widgets/analytics/shared_analytics_hub.dart';
+import '../notification_bell.dart';
+import '../../10.analytics/shared_analytics_hub.dart';
 
 class AdminDesktopLayout extends StatelessWidget {
   const AdminDesktopLayout({

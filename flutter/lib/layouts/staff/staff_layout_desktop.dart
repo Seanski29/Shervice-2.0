@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 
 import '../../login/login.dart';
-import '../../screens/staff/staff_dashboard.dart';
-import '../../screens/staff/staff_drivers.dart';
-import '../../screens/staff/staff_payroll.dart';
-import '../../screens/staff/staff_reports_manager.dart';
-import '../../screens/staff/staff_routes.dart';
-import '../../screens/staff/staff_settings.dart';
-import '../../screens/staff/staff_trips.dart';
-import '../../screens/staff/staff_vehicle.dart';
+import '../../staff/staff_dashboard.dart';
+import '../../staff/staff_drivers.dart';
+import '../../staff/staff_payroll.dart';
+import '../../staff/staff_reports_manager.dart';
+import '../../staff/staff_routes.dart';
+import '../../staff/staff_settings.dart';
+import '../../staff/staff_trips.dart';
+import '../../staff/staff_vehicle.dart';
 import '../../session_manager.dart';
 import '../enterprise/enterprise_shell.dart';
-import '../../widgets/notifcations/notification_bell.dart';
-import '../../widgets/analytics/shared_analytics_hub.dart';
-import '../../widgets/interface/staff_profile_button.dart';
+import '../notification_bell.dart';
+import '../../10.analytics/shared_analytics_hub.dart';
+import '../../interface/staff_profile_button.dart';
 
 class StaffLayoutDesktop extends StatelessWidget {
   const StaffLayoutDesktop({
