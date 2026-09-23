@@ -809,7 +809,7 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: paginatedTrips.length,
-              separatorBuilder: (_, __) => Divider(
+              separatorBuilder: (_, _) => Divider(
                 height: 1,
                 color: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
               ),

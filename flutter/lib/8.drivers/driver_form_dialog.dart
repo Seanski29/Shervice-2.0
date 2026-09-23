@@ -257,8 +257,9 @@ class DriverFormDialogs {
                           keyboardType: TextInputType.phone,
                           isDark: isDark,
                           validator: (val) {
-                            if (val == null || val.trim().isEmpty)
+                            if (val == null || val.trim().isEmpty) {
                               return "Required";
+                            }
                             if (!RegExp(r'^09\d{9}$').hasMatch(val.trim())) {
                               return "Must be 11 digits starting with 09";
                             }
@@ -453,8 +454,9 @@ class DriverFormDialogs {
                           keyboardType: TextInputType.phone,
                           isDark: isDark,
                           validator: (val) {
-                            if (val == null || val.trim().isEmpty)
+                            if (val == null || val.trim().isEmpty) {
                               return "Required";
+                            }
                             if (!RegExp(r'^09\d{9}$').hasMatch(val.trim())) {
                               return "Must be 11 digits starting with 09";
                             }
@@ -463,7 +465,7 @@ class DriverFormDialogs {
                         ),
                         const SizedBox(height: 16),
                         DropdownButtonFormField<String>(
-                          value:
+                          initialValue:
                               [
                                 'Active',
                                 'On Leave',

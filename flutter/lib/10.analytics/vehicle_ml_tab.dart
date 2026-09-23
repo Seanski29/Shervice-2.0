@@ -204,11 +204,12 @@ class _VehicleMlTabState extends State<VehicleMlTab> {
                               )
                               .toList(),
                       onChanged: (val) {
-                        if (val != null)
+                        if (val != null) {
                           setState(() {
                             _currentSort = val;
                             _currentPage = 0;
                           });
+                        }
                       },
                     ),
                   ),
@@ -382,10 +383,10 @@ class _VehicleMlTabState extends State<VehicleMlTab> {
                                       ),
                                       decoration: BoxDecoration(
                                         border: Border.all(
-                                          color: mlColor.withOpacity(0.5),
+                                          color: mlColor.withValues(alpha: 0.5),
                                         ),
                                         borderRadius: BorderRadius.circular(6),
-                                        color: mlColor.withOpacity(0.08),
+                                        color: mlColor.withValues(alpha: 0.08),
                                       ),
                                       child: Text(
                                         '${daysRemaining.toStringAsFixed(0)} Days',
@@ -402,7 +403,7 @@ class _VehicleMlTabState extends State<VehicleMlTab> {
                                         vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: statusColor.withOpacity(0.1),
+                                        color: statusColor.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
@@ -538,18 +539,20 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
           _isRunning = false;
         });
       } else {
-        if (mounted)
+        if (mounted) {
           setState(() {
             _error = "Server returned ${res.statusCode}.";
             _isRunning = false;
           });
+        }
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = "Connection error.";
           _isRunning = false;
         });
+      }
     }
   }
 
@@ -683,7 +686,7 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: statusColor.withOpacity(0.3), width: 1.5),
+            border: Border.all(color: statusColor.withValues(alpha: 0.3), width: 1.5),
           ),
           child: Column(
             children: [

@@ -24,10 +24,12 @@ String formatTableHeader(String value) {
   if (lowerVal == 'in_time' || lowerVal == 'in') return 'IN';
   if (lowerVal == 'out_time' || lowerVal == 'out') return 'OUT';
   if (lowerVal == 'work_time' || lowerVal == 'work_hours') return 'Work Time';
-  if (lowerVal == 'daily_total' || lowerVal == 'total_hours')
+  if (lowerVal == 'daily_total' || lowerVal == 'total_hours') {
     return 'Daily Total';
-  if (lowerVal == 'note' || lowerVal == 'notes' || lowerVal == 'remarks')
+  }
+  if (lowerVal == 'note' || lowerVal == 'notes' || lowerVal == 'remarks') {
     return 'Note';
+  }
 
   final cleaned = value
       .replaceAll(RegExp(r'[_-]+'), ' ')
@@ -155,12 +157,14 @@ String normalizeCellValue(dynamic value) {
   if (value == null) return '';
   if (value is DateTime) return value.toIso8601String();
   if (value is num) return value.toString();
-  if (value is Map)
+  if (value is Map) {
     return value.entries
         .map((entry) => '${entry.key}: ${normalizeCellValue(entry.value)}')
         .join(', ');
-  if (value is Iterable)
+  }
+  if (value is Iterable) {
     return value.map((item) => normalizeCellValue(item)).join(', ');
+  }
   return value.toString().trim();
 }
 
@@ -181,9 +185,9 @@ class TimecardDataSource extends DataTableSource {
         String rawValue = row[column] ?? '';
         String displayValue = rawValue;
 
-        if (column == 'in_time' || column == 'out_time')
+        if (column == 'in_time' || column == 'out_time') {
           displayValue = formatTimeValue(rawValue);
-        else if (column == 'work_time' || column == 'daily_total')
+        } else if (column == 'work_time' || column == 'daily_total')
           displayValue = formatDurationValue(rawValue);
         else if (column == 'date')
           displayValue = formatDateValue(rawValue);
@@ -508,7 +512,6 @@ Uint8List convertRowsToXlsx(
 ) {
   final workbook = excel.Excel.createExcel();
   final sheet = workbook['Sheet1'];
-  if (sheet == null) return Uint8List(0);
 
   final headerCells = columns
       .map((column) => excel.TextCellValue(formatTableHeader(column)))
@@ -521,9 +524,9 @@ Uint8List convertRowsToXlsx(
       String rawValue = row[column] ?? '';
       String displayValue = rawValue;
 
-      if (column == 'in_time' || column == 'out_time')
+      if (column == 'in_time' || column == 'out_time') {
         displayValue = formatTimeValue(rawValue);
-      else if (column == 'work_time' || column == 'daily_total')
+      } else if (column == 'work_time' || column == 'daily_total')
         displayValue = formatDurationValue(rawValue);
       else if (column == 'date')
         displayValue = formatDateValue(rawValue);

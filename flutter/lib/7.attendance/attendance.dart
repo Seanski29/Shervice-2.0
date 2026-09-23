@@ -221,7 +221,7 @@ class _AttendanceState extends State<Attendance> {
         allowedExtensions: ['xls', 'xlsx', 'csv'],
       );
 
-      if (result == null || result.isEmpty) {
+      if (result.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('No spreadsheet file was selected.')),
@@ -858,10 +858,12 @@ class _AttendanceState extends State<Attendance> {
     if (lowerVal == 'overtime_out') return 'Overtime OUT';
     if (lowerVal == 'total_minutes_late') return 'Total Minutes Late';
     if (lowerVal == 'work_time' || lowerVal == 'work_hours') return 'Work Time';
-    if (lowerVal == 'daily_total' || lowerVal == 'total_hours')
+    if (lowerVal == 'daily_total' || lowerVal == 'total_hours') {
       return 'Daily Total';
-    if (lowerVal == 'note' || lowerVal == 'notes' || lowerVal == 'remarks')
+    }
+    if (lowerVal == 'note' || lowerVal == 'notes' || lowerVal == 'remarks') {
       return 'Note';
+    }
 
     final cleaned = value
         .replaceAll(RegExp(r'[_-]+'), ' ')
@@ -885,12 +887,14 @@ class _AttendanceState extends State<Attendance> {
     if (value == null) return '';
     if (value is DateTime) return value.toIso8601String();
     if (value is num) return value.toString();
-    if (value is Map)
+    if (value is Map) {
       return value.entries
           .map((e) => '${e.key}: ${_normalizeCellValue(e.value)}')
           .join(', ');
-    if (value is Iterable)
+    }
+    if (value is Iterable) {
       return value.map((i) => _normalizeCellValue(i)).join(', ');
+    }
     return value.toString().trim();
   }
 
@@ -1424,7 +1428,6 @@ class _AttendanceState extends State<Attendance> {
   Uint8List _convertRowsToXlsx(List<Map<String, String>> rows) {
     final workbook = excel.Excel.createExcel();
     final sheet = workbook['Sheet1'];
-    if (sheet == null) return Uint8List(0);
 
     // ==========================================
     // ATTENDANCE EXPORT (Grouped Format)

@@ -939,7 +939,7 @@ class _TripLineChartPainter extends CustomPainter {
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [lineColor.withOpacity(0.35), lineColor.withOpacity(0.0)],
+        colors: [lineColor.withValues(alpha: 0.35), lineColor.withValues(alpha: 0.0)],
       ).createShader(Rect.fromLTWH(0, topPadding, chartWidth, chartHeight));
     canvas.drawPath(fillPath, fillPaint);
 

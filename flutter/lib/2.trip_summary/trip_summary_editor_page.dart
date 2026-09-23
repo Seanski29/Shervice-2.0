@@ -307,8 +307,9 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
         row.capacity.text = cap;
       } else {
         final parsedCapacity = _capacityFromVehicleType(rawType);
-        if (parsedCapacity != null)
+        if (parsedCapacity != null) {
           row.capacity.text = parsedCapacity.toString();
+        }
       }
     });
   }

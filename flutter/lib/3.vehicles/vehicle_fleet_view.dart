@@ -291,7 +291,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
       final parts = rawType.split(' - ');
       final capacity = parts.length > 1 ? parts.first : '';
       final model = parts.length > 1 ? parts.sublist(1).join(' - ') : rawType;
-      final escape = (String value) => value.replaceAll('"', '""');
+      String escape(String value) => value.replaceAll('"', '""');
       buffer.writeln(
         '${vehicle['vehicle_id'] ?? vehicle['id'] ?? ''},'
         '"${escape((vehicle['plate_number'] ?? '').toString())}",'
@@ -384,7 +384,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        value: chosenCategory,
+                        initialValue: chosenCategory,
                         dropdownColor: isDark
                             ? const Color(0xFF1E293B)
                             : Colors.white,
@@ -1001,7 +1001,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                           )
                         : ListView.separated(
                             itemCount: sortedLogs.length,
-                            separatorBuilder: (_, __) =>
+                            separatorBuilder: (_, _) =>
                                 const SizedBox(height: 12),
                             itemBuilder: (context, index) {
                               final log = sortedLogs[index];
@@ -1990,7 +1990,7 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: _selectedCapacity,
+                        initialValue: _selectedCapacity,
                         dropdownColor: Theme.of(context).cardColor,
                         style: TextStyle(color: textColor),
                         decoration: _fieldStyle(

@@ -157,7 +157,7 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
                       child: Image.asset(
                         'assets/logo.jpg',
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
+                        errorBuilder: (_, _, _) => const Icon(
                           Icons.directions_car,
                           color: Colors.blue,
                           size: 18,
@@ -172,7 +172,7 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
                         height: 50,
                         alignment: Alignment.centerLeft,
                         fit: BoxFit.contain,
-                        errorBuilder: (_, __, ___) => Text(
+                        errorBuilder: (_, _, _) => Text(
                           'SHERVICE',
                           style: GoogleFonts.montserrat(
                             color: Colors.white,

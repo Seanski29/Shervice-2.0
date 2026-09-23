@@ -388,9 +388,9 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
-          color: isDark ? color.withOpacity(0.1) : color.withOpacity(0.05),
+          color: isDark ? color.withValues(alpha: 0.1) : color.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
           children: [
@@ -572,13 +572,13 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: isDark
-                ? Colors.blue.withOpacity(0.05)
-                : theme.colorScheme.primaryContainer.withOpacity(0.4),
+                ? Colors.blue.withValues(alpha: 0.05)
+                : theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isDark
-                  ? Colors.blue.withOpacity(0.2)
-                  : theme.colorScheme.primary.withOpacity(0.3),
+                  ? Colors.blue.withValues(alpha: 0.2)
+                  : theme.colorScheme.primary.withValues(alpha: 0.3),
             ),
           ),
           child: Row(
@@ -638,9 +638,9 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: _mlBadgeColor.withOpacity(0.12),
+                      color: _mlBadgeColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: _mlBadgeColor.withOpacity(0.4)),
+                      border: Border.all(color: _mlBadgeColor.withValues(alpha: 0.4)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -835,7 +835,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
                                         decoration: BoxDecoration(
                                           color: const Color(
                                             0xFF3B82F6,
-                                          ).withOpacity(0.1),
+                                          ).withValues(alpha: 0.1),
                                           borderRadius: BorderRadius.circular(
                                             8,
                                           ),
@@ -884,7 +884,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
                                         ),
                                         decoration: BoxDecoration(
                                           color: isDark
-                                              ? Colors.green.withOpacity(0.15)
+                                              ? Colors.green.withValues(alpha: 0.15)
                                               : Colors.green.shade50,
                                           borderRadius: BorderRadius.circular(
                                             8,

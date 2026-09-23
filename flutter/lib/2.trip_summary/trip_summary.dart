@@ -320,8 +320,9 @@ class _StaffTripsState extends State<StaffTrips> {
   String _timeText(dynamic value) {
     final text = (value ?? '').toString();
     if (text.isEmpty) return '--:--';
-    if (text.toUpperCase().contains('AM') || text.toUpperCase().contains('PM'))
+    if (text.toUpperCase().contains('AM') || text.toUpperCase().contains('PM')) {
       return text;
+    }
     return text.length >= 5 ? text.substring(0, 5) : text;
   }
 
@@ -384,8 +385,9 @@ class _StaffTripsState extends State<StaffTrips> {
         final decoded = jsonDecode(response.body);
         if (decoded['success'] == true) {
           final List<dynamic> rows = decoded['rows'] ?? [];
-          if (rows.isEmpty)
+          if (rows.isEmpty) {
             throw Exception("No valid trip rows found in file.");
+          }
 
           final mappedRows = rows
               .whereType<Map>()
@@ -407,12 +409,13 @@ class _StaffTripsState extends State<StaffTrips> {
               _focusedMonth = createdDate;
             });
             await _fetchTripSummary();
-            if (mounted)
+            if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Imported trips successfully added.'),
                 ),
               );
+            }
           }
         } else {
           throw Exception(decoded['error'] ?? "Upload failed.");
@@ -421,10 +424,11 @@ class _StaffTripsState extends State<StaffTrips> {
         throw Exception("Server error ${response.statusCode}");
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -447,10 +451,11 @@ class _StaffTripsState extends State<StaffTrips> {
       _focusedMonth = createdDate;
     });
     await _fetchTripSummary();
-    if (mounted)
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Trip summary batch added.')),
       );
+    }
   }
 
   // --- RESTORED ORIGINAL MODAL FUNCTIONALITY ---
@@ -757,8 +762,9 @@ class _StaffTripsState extends State<StaffTrips> {
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: daysInMonth + firstWeekday,
                       itemBuilder: (context, index) {
-                        if (index < firstWeekday)
+                        if (index < firstWeekday) {
                           return const SizedBox.shrink();
+                        }
                         final day = index - firstWeekday + 1;
                         final date = DateTime(
                           _focusedMonth.year,
@@ -1638,15 +1644,17 @@ class _SummarySheetPage extends StatelessWidget {
         bytes: fileBytes,
       );
       if (outputFile == null) return;
-      if (context.mounted)
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Export successfully triggered!')),
         );
+      }
     } catch (e) {
-      if (context.mounted)
+      if (context.mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      }
     }
   }
 
@@ -1660,15 +1668,17 @@ class _SummarySheetPage extends StatelessWidget {
         allowedExtensions: ['xlsx'],
         bytes: _generateXlsx(),
       );
-      if (outputFile != null && context.mounted)
+      if (outputFile != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Excel export completed.')),
         );
+      }
     } catch (e) {
-      if (context.mounted)
+      if (context.mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Excel export failed: $e')));
+      }
     }
   }
 
@@ -1720,8 +1730,9 @@ class _SummarySheetPage extends StatelessWidget {
                       ),
                     ),
                   );
-                  if (changed == true && context.mounted)
+                  if (changed == true && context.mounted) {
                     Navigator.pop(context, true);
+                  }
                 },
                 icon: const Icon(Icons.edit, size: 18),
                 label: const Text('Edit'),

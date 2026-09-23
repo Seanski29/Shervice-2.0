@@ -884,7 +884,7 @@ class _RegisterUserDialogState extends State<RegisterUserDialog> {
                       ),
                       const SizedBox(height: 14),
                       DropdownButtonFormField<String>(
-                        value: _selectedRole,
+                        initialValue: _selectedRole,
                         validator: (val) =>
                             val == null ? "Select a role" : null,
                         style: TextStyle(

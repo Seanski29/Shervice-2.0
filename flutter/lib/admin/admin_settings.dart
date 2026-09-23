@@ -221,8 +221,9 @@ class _AdminSettingsState extends State<AdminSettings> {
                                   onPressed: isUpdating
                                       ? null
                                       : () async {
-                                          if (!formKey.currentState!.validate())
+                                          if (!formKey.currentState!.validate()) {
                                             return;
+                                          }
                                           setModalState(
                                             () => isUpdating = true,
                                           );

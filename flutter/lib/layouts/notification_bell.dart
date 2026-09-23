@@ -140,12 +140,14 @@ class _NotificationBellState extends State<NotificationBell> {
         Uri.parse('$backendUrl/notifications/${entry.id}/read'),
         headers: _authHeaders(token),
       );
-      if (mounted)
+      if (mounted) {
         EnterpriseToasts.success(context, 'Notification marked as read.');
+      }
     } catch (e) {
       debugPrint('Failed to sync read status: $e');
-      if (mounted)
+      if (mounted) {
         EnterpriseToasts.error(context, 'Read status could not be saved.');
+      }
     }
   }
 
@@ -169,15 +171,17 @@ class _NotificationBellState extends State<NotificationBell> {
         headers: _authHeaders(token),
         body: jsonEncode({'user_id': widget.userId, 'role': widget.role}),
       );
-      if (mounted)
+      if (mounted) {
         EnterpriseToasts.success(context, 'All notifications marked as read.');
+      }
     } catch (e) {
       debugPrint('Failed to sync mark all as read: $e');
-      if (mounted)
+      if (mounted) {
         EnterpriseToasts.error(
           context,
           'Notification updates could not be saved.',
         );
+      }
     }
   }
 
@@ -201,8 +205,9 @@ class _NotificationBellState extends State<NotificationBell> {
       if (mounted) EnterpriseToasts.success(context, 'Notification dismissed.');
     } catch (e) {
       debugPrint('Failed to delete notification: $e');
-      if (mounted)
+      if (mounted) {
         EnterpriseToasts.error(context, 'Notification could not be dismissed.');
+      }
     }
   }
 

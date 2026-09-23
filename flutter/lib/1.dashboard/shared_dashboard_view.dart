@@ -734,10 +734,10 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                           height: 1.0,
                         ),
                       ),
-                      if (metric.subTitle != null && metric.subTitle!.isNotEmpty) ...[
+                      if (metric.subTitle.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(
-                          metric.subTitle!,
+                          metric.subTitle,
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
@@ -904,8 +904,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
           .whereType<Map>()
           .where((item) {
             final status = item['trip_status']?.toString().toLowerCase();
-            if (title == 'Total Trips' || title == 'Total Passengers')
+            if (title == 'Total Trips' || title == 'Total Passengers') {
               return true;
+            }
             return const {
                   'pending staff assignment',
                   'pending',
@@ -1392,8 +1393,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                             reservedSize: 24,
                             getTitlesWidget: (value, meta) {
                               final month = value.toInt();
-                              if (month < 1 || month > 12)
+                              if (month < 1 || month > 12) {
                                 return const SizedBox.shrink();
+                              }
                               return Text(
                                 _monthNames[month - 1].substring(0, 1),
                                 style: TextStyle(
@@ -1534,8 +1536,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
       final driversRes = await http
           .get(Uri.parse('$backendUrl/test-db'))
           .timeout(const Duration(seconds: 10));
-      if (driversRes.statusCode != 200)
+      if (driversRes.statusCode != 200) {
         throw Exception("Failed to load drivers");
+      }
 
       final dynamic data = jsonDecode(driversRes.body);
       final List rawDrivers = data is Map
@@ -1582,8 +1585,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                     (e['submit_date'] ?? e['created_at'] ?? '').toString(),
                   );
                   if (dt == null) return false;
-                  if (_selectedDriverMonth == null)
+                  if (_selectedDriverMonth == null) {
                     return dt.year == _selectedDriverYear; // All Months
+                  }
                   return dt.year == _selectedDriverYear &&
                       dt.month == _selectedDriverMonth;
                 }).toList();
@@ -1861,8 +1865,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
             ),
           ),
           onChanged: (month) {
-            if (month != null)
+            if (month != null) {
               _changeDispatchMonth(month, _selectedDispatchMonth.year);
+            }
           },
         ),
         const SizedBox(width: 8),
@@ -1882,8 +1887,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
               )
               .toList(),
           onChanged: (year) {
-            if (year != null)
+            if (year != null) {
               _changeDispatchMonth(_selectedDispatchMonth.month, year);
+            }
           },
         ),
       ],
@@ -2000,8 +2006,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                             interval: 1,
                             getTitlesWidget: (value, meta) {
                               final month = value.toInt();
-                              if (month < 1 || month > 12)
+                              if (month < 1 || month > 12) {
                                 return const SizedBox.shrink();
+                              }
                               return Text(
                                 _monthNames[month - 1].substring(0, 1),
                                 style: TextStyle(
@@ -2088,8 +2095,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
         final date = DateTime.tryParse(
           (rawTrip['schedule_date'] ?? rawTrip['date'])?.toString() ?? '',
         );
-        if (date != null && date.year == requestedYear)
+        if (date != null && date.year == requestedYear) {
           totals[date.month - 1]++;
+        }
       }
 
       if (mounted && requestId == _tripTotalsRequestId) {

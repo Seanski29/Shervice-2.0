@@ -201,8 +201,9 @@ class _StaffSchedulesState extends State<StaffSchedules> {
         throw Exception('The date could not be blocked.');
       }
       await _fetchStaffDashboardData();
-      if (mounted)
+      if (mounted) {
         EnterpriseToasts.success(context, 'Date blocked successfully.');
+      }
     } catch (error) {
       if (mounted) {
         EnterpriseToasts.error(context, 'Unable to block date: $error');
@@ -269,8 +270,9 @@ class _StaffSchedulesState extends State<StaffSchedules> {
         if (_statusFilter == 'Scheduled') return isScheduled;
         if (_statusFilter == 'Unassigned') return isUnassigned;
         if (_statusFilter == 'Rejected') return isRejected;
-        if (_statusFilter == 'Expired')
+        if (_statusFilter == 'Expired') {
           return statusStr.toLowerCase().contains('expired');
+        }
         return true;
       }).toList();
     }
@@ -1530,8 +1532,9 @@ class _AssignTripDialogState extends State<AssignTripDialog> {
   Future<void> _submitAssignment() async {
     if (_isBlockedDate ||
         _selectedDriverUuid == null ||
-        _selectedVehicleId == null)
+        _selectedVehicleId == null) {
       return;
+    }
     setState(() => _isSubmitting = true);
 
     try {
