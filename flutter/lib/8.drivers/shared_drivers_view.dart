@@ -396,8 +396,10 @@ class SharedDriversViewState extends State<SharedDriversView> {
                           label: 'Status',
                           width: 150,
                           value: (driver) => driver.status,
-                          cellBuilder: (context, driver) =>
-                              _StatusLabel(status: driver.status),
+                          cellBuilder: (context, driver) => Align(
+                            alignment: Alignment.center,
+                            child: _StatusLabel(status: driver.status),
+                          ),
                         ),
                         EnterpriseGridColumn(
                           label: 'Phone',
@@ -648,7 +650,7 @@ class _StatusLabel extends StatelessWidget {
             : EnterpriseColors.warning;
 
     return Align(
-      alignment: Alignment.centerLeft,
+      alignment: Alignment.center,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
         decoration: BoxDecoration(

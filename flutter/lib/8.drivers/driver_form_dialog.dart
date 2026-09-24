@@ -139,54 +139,34 @@ class DriverFormDialogs {
                       driver.mlClassification!,
                       isDark,
                     ),
-                  const SizedBox(height: 24),
-                  if (onEdit != null || onDelete != null)
+                  if (onEdit != null) ...[
+                    const SizedBox(height: 24),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        if (onEdit != null)
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () {
-                                Navigator.pop(ctx);
-                                onEdit();
-                              },
-                              icon: const Icon(Icons.edit, size: 16),
-                              label: const Text("Edit"),
-                              style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                              ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text("Cancel"),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            onEdit();
+                          },
+                          icon: const Icon(Icons.edit, size: 16),
+                          label: const Text("Edit Details"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF64748B),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
                             ),
                           ),
-                        if (onEdit != null && onDelete != null)
-                          const SizedBox(width: 12),
-                        if (onDelete != null)
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.pop(ctx);
-                                onDelete();
-                              },
-                              icon: const Icon(Icons.delete_forever, size: 16),
-                              label: const Text("Delete"),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red.shade600,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                              ),
-                            ),
-                          ),
+                        ),
                       ],
                     ),
+                  ],
                 ],
               ),
             ),

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../layouts/enterprise/enterprise_data_grid.dart';
 import '../layouts/enterprise/enterprise_states.dart';
+import '../layouts/enterprise/enterprise_theme.dart';
 import 'package:http/http.dart' as http;
 import '../constant.dart';
 import '../utilities/file_download.dart';
@@ -349,7 +350,7 @@ class _AdminCompaniesState extends State<AdminCompanies> {
   }
 
   List<Widget> _selectedCompanyActions(
-    BuildContext _,
+    BuildContext context,
     List<Map<String, dynamic>> selectedCompanies,
   ) {
     if (selectedCompanies.length != 1) return const [];

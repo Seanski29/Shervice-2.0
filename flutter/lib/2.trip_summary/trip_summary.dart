@@ -903,7 +903,7 @@ class _StaffTripsState extends State<StaffTrips> {
   }
 
   List<Widget> _groupedSummaryActions(
-    BuildContext _,
+    BuildContext context,
     List<Map<String, dynamic>> selectedRows,
   ) {
     if (selectedRows.isEmpty) return const [];

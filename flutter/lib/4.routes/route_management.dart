@@ -260,7 +260,7 @@ class _RouteDirectoryState extends State<RouteDirectory> {
   }
 
   List<Widget> _selectedRouteActions(
-    BuildContext _,
+    BuildContext context,
     List<Map<String, dynamic>> selectedRoutes,
   ) {
     if (selectedRoutes.length != 1) return const [];

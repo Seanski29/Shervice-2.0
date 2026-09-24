@@ -313,11 +313,22 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
     final vehicle = selectedVehicles.first;
 
     return [
-      PopupMenuButton<String>(
-        onSelected: (value) async {
-          if (value == 'view') {
-            _showVehicleModal(context, vehicle: vehicle);
-          } else if (value == 'log') {
+      OutlinedButton.icon(
+        onPressed: () => _showVehicleModal(context, vehicle: vehicle),
+        icon: Icon(
+          _isAdmin ? Icons.edit_outlined : Icons.visibility_outlined,
+          size: 16,
+        ),
+        label: Text(_isAdmin ? 'Update' : 'View Details'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          side: const BorderSide(color: Color(0xFF667085)),
+        ),
+      ),
+      if (!_isAdmin) ...[
+        const SizedBox(width: 6),
+        OutlinedButton.icon(
+          onPressed: () async {
             final vehicleId = int.tryParse(
                   (vehicle['vehicle_id'] ?? '').toString(),
                 ) ??
@@ -326,57 +337,15 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
             if (context.mounted) {
               _showMaintenanceManagerModal(context, vehicle, logs);
             }
-          }
-        },
-        itemBuilder: (context) => [
-          PopupMenuItem(
-            value: 'view',
-            child: Row(
-              children: [
-                Icon(_isAdmin ? Icons.edit_outlined : Icons.visibility, size: 18),
-                const SizedBox(width: 8),
-                Text(_isAdmin ? 'Update' : 'View Details'),
-              ],
-            ),
-          ),
-          if (!_isAdmin)
-            const PopupMenuItem(
-              value: 'log',
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.build_circle_outlined,
-                    size: 18,
-                    color: Colors.orange,
-                  ),
-                  SizedBox(width: 8),
-                  Text('Log Maintenance'),
-                ],
-              ),
-            ),
-        ],
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFF667085)),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Actions',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              SizedBox(width: 4),
-              Icon(Icons.arrow_drop_down, size: 16, color: Colors.white),
-            ],
+          },
+          icon: const Icon(Icons.build_circle_outlined, size: 16),
+          label: const Text('Log Maintenance'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.white,
+            side: const BorderSide(color: Color(0xFF667085)),
           ),
         ),
-      ),
+      ],
     ];
   }
 
@@ -1413,8 +1382,11 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                     width: 190,
                     value: (vehicle) =>
                         (vehicle['health_status'] ?? 'Good').toString(),
-                    cellBuilder: (context, vehicle) => _FleetStatusLabel(
-                      status: (vehicle['health_status'] ?? 'Good').toString(),
+                    cellBuilder: (context, vehicle) => Align(
+                      alignment: Alignment.center,
+                      child: _FleetStatusLabel(
+                        status: (vehicle['health_status'] ?? 'Good').toString(),
+                      ),
                     ),
                   ),
                 ],
@@ -1626,7 +1598,7 @@ class _FleetStatusLabel extends StatelessWidget {
             ? EnterpriseColors.danger
             : EnterpriseColors.success;
     return Align(
-      alignment: Alignment.centerLeft,
+      alignment: Alignment.center,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
         decoration: BoxDecoration(

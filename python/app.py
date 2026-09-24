@@ -1,5 +1,7 @@
 import os
-from flask import Flask
+import time
+from collections import defaultdict, deque
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
 from supabase import create_client, Client
@@ -20,7 +22,7 @@ import roles.route_ml as route_ml_module
 
 # Flip this only when switching between your PC backend and Railway.
 # Environment variables still override these defaults when deployed.
-USE_HOSTED_CONFIG = False
+USE_HOSTED_CONFIG = True  # Set to False for local development, True for Railway deployment
 
 LOCAL_CORS_ALLOWED_ORIGINS = [
     r"http://localhost:\d+",
@@ -30,7 +32,11 @@ LOCAL_CORS_ALLOWED_ORIGINS = [
     "http://localhost:5000",
     "http://127.0.0.1:5000",
 ]
-HOSTED_CORS_ALLOWED_ORIGINS = ["*"]
+HOSTED_CORS_ALLOWED_ORIGINS = [
+    "https://shervice-python-production.up.railway.app",
+]
+LOGIN_RATE_LIMIT_ATTEMPTS = 8
+LOGIN_RATE_LIMIT_WINDOW_SECONDS = 60
 
 
 def _env_bool(name, default):
@@ -60,16 +66,21 @@ class TransportBackendApp:
             else LOCAL_CORS_ALLOWED_ORIGINS
         )
         allowed_origins = _csv_env("CORS_ALLOWED_ORIGINS", default_origins)
+        if self.use_hosted_config and "*" in allowed_origins:
+            allowed_origins = HOSTED_CORS_ALLOWED_ORIGINS
         CORS(self.app, resources={
             r"/*": {
                 "origins": allowed_origins,
                 "allow_headers": ["Content-Type", "Authorization", "Accept"],
-                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                "max_age": 600,
+                "supports_credentials": False,
             }
         })
         self.app.config["MAX_CONTENT_LENGTH"] = int(
             os.getenv("MAX_CONTENT_LENGTH", str(16 * 1024 * 1024))
         )
+        self._login_attempts = defaultdict(deque)
         
         # 3. Setup core unified database engine connection parameters
         self.supabase_url = os.getenv("SUPABASE_URL")
@@ -85,6 +96,55 @@ class TransportBackendApp:
         self._inject_dependencies_and_register_blueprints()
 
     def _register_hooks(self):
+        @self.app.before_request
+        def _before_request():
+            request._started_at = time.perf_counter()
+            if request.endpoint == "auth.handle_api_login":
+                client_id = request.headers.get("X-Forwarded-For", request.remote_addr or "")
+                client_id = client_id.split(",")[0].strip() or "unknown"
+                now = time.time()
+                attempts = self._login_attempts[client_id]
+                while attempts and now - attempts[0] > LOGIN_RATE_LIMIT_WINDOW_SECONDS:
+                    attempts.popleft()
+                if len(attempts) >= LOGIN_RATE_LIMIT_ATTEMPTS:
+                    return jsonify({
+                        "success": False,
+                        "message": "Too many login attempts. Please wait a minute and try again.",
+                    }), 429
+                attempts.append(now)
+
+        @self.app.after_request
+        def _after_request(response):
+            response.headers.setdefault("X-Content-Type-Options", "nosniff")
+            response.headers.setdefault("X-Frame-Options", "DENY")
+            response.headers.setdefault("Referrer-Policy", "no-referrer")
+            response.headers.setdefault(
+                "Permissions-Policy",
+                "camera=(), microphone=(), geolocation=(), payment=()",
+            )
+            if request.is_secure or self.use_hosted_config:
+                response.headers.setdefault(
+                    "Strict-Transport-Security",
+                    "max-age=31536000; includeSubDomains",
+                )
+            if request.path.startswith("/api/"):
+                response.headers.setdefault(
+                    "Cache-Control",
+                    "no-store, max-age=0",
+                )
+                started_at = getattr(request, "_started_at", None)
+                if started_at is not None:
+                    elapsed_ms = int((time.perf_counter() - started_at) * 1000)
+                    response.headers["X-Response-Time-ms"] = str(elapsed_ms)
+            return response
+
+        @self.app.errorhandler(413)
+        def _payload_too_large(_):
+            return jsonify({
+                "success": False,
+                "message": "Uploaded payload is too large.",
+            }), 413
+
         # A simple status check for the browser
         @self.app.route('/')
         def system_status():
