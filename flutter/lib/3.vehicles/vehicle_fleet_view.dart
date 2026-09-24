@@ -276,12 +276,6 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
     await _fetchLiveFleetData();
   }
 
-  Future<void> _bulkPurgeVehicles(List<Map<String, dynamic>> vehicles) async {
-    for (final vehicle in vehicles) {
-      await _purgeVehicleDirect(vehicle);
-    }
-  }
-
   Future<void> _exportVehicles(List<Map<String, dynamic>> vehicles) async {
     final buffer = StringBuffer(
       'Vehicle ID,Plate,Type,Capacity,Health Status\n',
@@ -309,6 +303,81 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
         '${vehicles.length} vehicles exported.',
       );
     }
+  }
+
+  List<Widget> _selectedVehicleActions(
+    BuildContext context,
+    List<Map<String, dynamic>> selectedVehicles,
+  ) {
+    if (selectedVehicles.length != 1) return const [];
+    final vehicle = selectedVehicles.first;
+
+    return [
+      PopupMenuButton<String>(
+        onSelected: (value) async {
+          if (value == 'view') {
+            _showVehicleModal(context, vehicle: vehicle);
+          } else if (value == 'log') {
+            final vehicleId = int.tryParse(
+                  (vehicle['vehicle_id'] ?? '').toString(),
+                ) ??
+                0;
+            final logs = await _fetchVehicleLogHistory(vehicleId);
+            if (context.mounted) {
+              _showMaintenanceManagerModal(context, vehicle, logs);
+            }
+          }
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem(
+            value: 'view',
+            child: Row(
+              children: [
+                Icon(_isAdmin ? Icons.edit_outlined : Icons.visibility, size: 18),
+                const SizedBox(width: 8),
+                Text(_isAdmin ? 'Update' : 'View Details'),
+              ],
+            ),
+          ),
+          if (!_isAdmin)
+            const PopupMenuItem(
+              value: 'log',
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.build_circle_outlined,
+                    size: 18,
+                    color: Colors.orange,
+                  ),
+                  SizedBox(width: 8),
+                  Text('Log Maintenance'),
+                ],
+              ),
+            ),
+        ],
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFF667085)),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Actions',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(width: 4),
+              Icon(Icons.arrow_drop_down, size: 16, color: Colors.white),
+            ],
+          ),
+        ),
+      ),
+    ];
   }
 
   void _showLogIssueDialog(Map<String, dynamic> vehicle) {
@@ -1348,70 +1417,6 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                       status: (vehicle['health_status'] ?? 'Good').toString(),
                     ),
                   ),
-                  EnterpriseGridColumn(
-                    label: 'Action',
-                    width: 140,
-                    value: (_) => 'Open',
-                    cellBuilder: (context, vehicle) {
-                      if (_isAdmin) {
-                        return OutlinedButton(
-                          onPressed: () => _showVehicleModal(context, vehicle: vehicle),
-                          child: const Text('Update'),
-                        );
-                      } else {
-                        return PopupMenuButton<String>(
-                          onSelected: (value) async {
-                            if (value == 'view') {
-                              _showVehicleModal(context, vehicle: vehicle);
-                            } else if (value == 'log') {
-                              int vId = int.tryParse(vehicle['vehicle_id'].toString()) ?? 0;
-                              final logs = await _fetchVehicleLogHistory(vId);
-                              if (context.mounted) {
-                                _showMaintenanceManagerModal(context, vehicle, logs);
-                              }
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'view',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.visibility, size: 18),
-                                  SizedBox(width: 8),
-                                  Text('View Details'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'log',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.build_circle_outlined, size: 18, color: Colors.orange),
-                                  SizedBox(width: 8),
-                                  Text('Log Maintenance'),
-                                ],
-                              ),
-                            ),
-                          ],
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Theme.of(context).dividerColor),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text('Actions'),
-                                SizedBox(width: 4),
-                                Icon(Icons.arrow_drop_down, size: 16),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-                    },
-                  ),
                 ],
                 emptyTitle: _allVehicles.isEmpty
                     ? 'Register the first vehicle'
@@ -1421,8 +1426,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                     : 'No vehicle records match the current plate, type, and status filters.',
                 emptyActionLabel: null,
                 onEmptyAction: null,
-                onDelete: _isAdmin ? _purgeVehicleDirect : null,
-                onBulkDelete: _isAdmin ? _bulkPurgeVehicles : null,
+                selectionActionsBuilder: _selectedVehicleActions,
                 onExportSelection: _exportVehicles,
               ),
             ],

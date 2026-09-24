@@ -259,14 +259,42 @@ class _RouteDirectoryState extends State<RouteDirectory> {
     }
   }
 
-  void _editRoute(Map<String, dynamic> route) {
-    setState(() {
-      _editingRouteId = int.tryParse((route['route_id'] ?? '').toString());
-      _nameController.text = (route['route_name'] ?? '').toString();
-      _priceController.text = _priceOf(route).toStringAsFixed(2);
-      _nameError = null;
-      _priceError = null;
-    });
+  List<Widget> _selectedRouteActions(
+    BuildContext _,
+    List<Map<String, dynamic>> selectedRoutes,
+  ) {
+    if (selectedRoutes.length != 1) return const [];
+    final route = selectedRoutes.first;
+    if (_tripCount(route) > 0) return const [];
+    return [
+      FilledButton.icon(
+        onPressed: () async {
+          final routeName = (route['route_name'] ?? 'this route').toString();
+          final confirmed = await showEnterpriseDestructiveConfirmation(
+            context,
+            title: 'Delete route?',
+            message:
+                'This will permanently delete $routeName. Type DELETE to continue.',
+          );
+          if (!confirmed) return;
+          try {
+            await _deleteRoute(route);
+            if (mounted) {
+              EnterpriseToasts.success(context, 'Route deleted.');
+            }
+          } catch (error) {
+            if (mounted) {
+              EnterpriseToasts.error(context, 'Unable to delete route: $error');
+            }
+          }
+        },
+        icon: const Icon(Icons.delete_outline, size: 16),
+        label: const Text('Delete'),
+        style: FilledButton.styleFrom(
+          backgroundColor: EnterpriseColors.danger,
+        ),
+      ),
+    ];
   }
 
   void _clearForm() {
@@ -573,18 +601,6 @@ Widget _sortDropdown(bool isDark) {
                           value: (route) => '${_tripCount(route)}',
                           compare: (first, second) => _tripCount(first).compareTo(_tripCount(second)),
                         ),
-                        EnterpriseGridColumn(
-                          label: 'Record actions',
-                          width: 150,
-                          value: (_) => '',
-                          cellBuilder: (context, route) => Align(
-                            alignment: Alignment.centerLeft,
-                            child: OutlinedButton(
-                              onPressed: () => _editRoute(route),
-                              child: const Text('Update'),
-                            ),
-                          ),
-                        ),
                       ],
                       emptyTitle: _routes.isEmpty
                           ? 'Create the first route'
@@ -599,9 +615,9 @@ Widget _sortDropdown(bool isDark) {
                                 extentOffset: _nameController.text.length,
                               )
                           : null,
-                      onDelete: _deleteRoute,
                       canDelete: (route) => _tripCount(route) == 0,
                       onBulkDelete: _bulkDelete,
+                      selectionActionsBuilder: _selectedRouteActions,
                       onExportSelection: _exportRoutes,
                     ),
                   ),

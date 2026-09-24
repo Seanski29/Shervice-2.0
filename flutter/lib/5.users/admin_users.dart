@@ -172,6 +172,38 @@ class _AdminUsersState extends State<AdminUsers> {
     }
   }
 
+  ButtonStyle _bulkBarButtonStyle() {
+    return OutlinedButton.styleFrom(
+      foregroundColor: Colors.white,
+      side: const BorderSide(color: Color(0xFF667085)),
+    );
+  }
+
+  List<Widget> _selectedUserActions(
+    BuildContext context,
+    List<Map<String, dynamic>> selectedUsers,
+  ) {
+    if (selectedUsers.length != 1) return const [];
+    final user = selectedUsers.first;
+    return [
+      OutlinedButton.icon(
+        onPressed: () => _showUserModal(context, user: user),
+        icon: const Icon(Icons.edit_outlined, size: 16),
+        label: const Text('Update'),
+        style: _bulkBarButtonStyle(),
+      ),
+      const SizedBox(width: 6),
+      FilledButton.icon(
+        onPressed: () => _confirmPurgeUser(user),
+        icon: const Icon(Icons.delete_outline, size: 16),
+        label: const Text('Delete'),
+        style: FilledButton.styleFrom(
+          backgroundColor: EnterpriseColors.danger,
+        ),
+      ),
+    ];
+  }
+
   Widget _buildSummaryCards(bool isDark) {
     final int total = _allUsers.length;
     final int active = _allUsers
@@ -486,16 +518,6 @@ class _AdminUsersState extends State<AdminUsers> {
                           value: (user) =>
                               (user['permission'] ?? 'Standard').toString(),
                         ),
-                        EnterpriseGridColumn(
-                          label: 'Record actions',
-                          width: 170,
-                          value: (_) => '',
-                          cellBuilder: (context, user) => OutlinedButton(
-                            onPressed: () =>
-                                _showUserModal(context, user: user),
-                            child: const Text('Update'),
-                          ),
-                        ),
                       ],
                       emptyTitle: _allUsers.isEmpty
                           ? 'Register the first user'
@@ -509,8 +531,8 @@ class _AdminUsersState extends State<AdminUsers> {
                       onEmptyAction: _allUsers.isEmpty
                           ? () => _showUserModal(context)
                           : null,
-                      onDelete: _deleteUserDirect,
                       onBulkDelete: _deleteUsers,
+                      selectionActionsBuilder: _selectedUserActions,
                       onExportSelection: _exportUsers,
                     ),
                   ),

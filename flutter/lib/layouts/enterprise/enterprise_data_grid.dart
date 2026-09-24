@@ -43,6 +43,7 @@ class EnterpriseDataGrid<T> extends StatefulWidget {
     this.onSelectionAction,
     this.selectionActionLabel = 'View',
     this.selectionActionIcon = Icons.visibility_outlined,
+    this.selectionActionsBuilder,
     this.onExportSelection,
     this.exportSelectionLabel = 'Export selection',
     this.onSecondaryExportSelection,
@@ -70,6 +71,8 @@ class EnterpriseDataGrid<T> extends StatefulWidget {
   final Future<void> Function(List<T> rows)? onSelectionAction;
   final String selectionActionLabel;
   final IconData selectionActionIcon;
+  final List<Widget> Function(BuildContext context, List<T> selectedRows)?
+  selectionActionsBuilder;
   final Future<void> Function(List<T> rows)? onExportSelection;
   final String exportSelectionLabel;
   final Future<void> Function(List<T> rows)? onSecondaryExportSelection;
@@ -651,6 +654,13 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
   }
 
   Widget _buildBulkBar(List<T> selectedRows) {
+    final selectionActionWidgets =
+        widget.selectionActionsBuilder?.call(context, selectedRows) ??
+        const <Widget>[];
+    final canBulkDelete =
+        widget.onBulkDelete != null &&
+        selectedRows.length > 1 &&
+        selectedRows.every((row) => widget.canDelete?.call(row) ?? true);
     return Material(
       elevation: 8,
       color: EnterpriseColors.darkSurface,
@@ -679,10 +689,12 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
                   side: const BorderSide(color: Color(0xFF667085)),
                 ),
               ),
-            if (widget.onSelectionAction != null &&
+            ...selectionActionWidgets,
+            if ((widget.onSelectionAction != null ||
+                    selectionActionWidgets.isNotEmpty) &&
                 (widget.onExportSelection != null ||
                     widget.onSecondaryExportSelection != null ||
-                    widget.onBulkDelete != null))
+                    canBulkDelete))
               const SizedBox(width: 6),
             if (widget.onExportSelection != null)
               OutlinedButton.icon(
@@ -707,7 +719,7 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
                 ),
               ),
             ],
-            if (widget.onBulkDelete != null) ...[
+            if (canBulkDelete) ...[
               const SizedBox(width: 6),
               FilledButton.icon(
                 onPressed: () => _confirmBulkDelete(selectedRows),

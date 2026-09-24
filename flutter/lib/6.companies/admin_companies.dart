@@ -341,6 +341,39 @@ class _AdminCompaniesState extends State<AdminCompanies> {
     }
   }
 
+  ButtonStyle _bulkBarButtonStyle() {
+    return OutlinedButton.styleFrom(
+      foregroundColor: Colors.white,
+      side: const BorderSide(color: Color(0xFF667085)),
+    );
+  }
+
+  List<Widget> _selectedCompanyActions(
+    BuildContext _,
+    List<Map<String, dynamic>> selectedCompanies,
+  ) {
+    if (selectedCompanies.length != 1) return const [];
+    final company = selectedCompanies.first;
+    if (_isInternalCompany(company)) return const [];
+    return [
+      OutlinedButton.icon(
+        onPressed: () => _editCompanyDialog(company),
+        icon: const Icon(Icons.edit_outlined, size: 16),
+        label: const Text('Update'),
+        style: _bulkBarButtonStyle(),
+      ),
+      const SizedBox(width: 6),
+      FilledButton.icon(
+        onPressed: () => _confirmDeleteCompany(company),
+        icon: const Icon(Icons.delete_outline, size: 16),
+        label: const Text('Delete'),
+        style: FilledButton.styleFrom(
+          backgroundColor: EnterpriseColors.danger,
+        ),
+      ),
+    ];
+  }
+
   void _showActionBlockedDialog(String companyName, int count) {
     showDialog(
       context: context,
@@ -535,17 +568,6 @@ class _AdminCompaniesState extends State<AdminCompanies> {
                             ),
                           ),
                         ),
-                        EnterpriseGridColumn(
-                          label: 'Record actions',
-                          width: 160,
-                          value: (_) => '',
-                          cellBuilder: (context, company) => _isInternalCompany(company)
-                              ? const Text('Protected')
-                              : OutlinedButton(
-                                  onPressed: () => _editCompanyDialog(company),
-                                  child: const Text('Update'),
-                                ),
-                        ),
                       ],
                       filterFields: const [], // Cleared to prevent duplicate search inputs
                       emptyTitle: _companies.isEmpty
@@ -556,11 +578,11 @@ class _AdminCompaniesState extends State<AdminCompanies> {
                           : 'No company records match the current search query.',
                       emptyActionLabel: _companies.isEmpty ? 'Add first company' : null,
                       onEmptyAction: _companies.isEmpty ? _addCompanyDialog : null,
-                      onDelete: _deleteCompanyDirect,
                       canDelete: (company) =>
                           !_isInternalCompany(company) &&
                           ((company['user_count'] ?? 0) as num) == 0,
                       onBulkDelete: _deleteCompanies,
+                      selectionActionsBuilder: _selectedCompanyActions,
                       onExportSelection: _exportCompanies,
                     ),
                   ),
