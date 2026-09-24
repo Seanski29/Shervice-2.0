@@ -10,10 +10,9 @@ import 'utilities/tab_sync_stub.dart'
 import 'interface/theme_manager.dart';
 import 'layouts/enterprise/enterprise_theme.dart';
 
-// Import layouts and login
-import 'layouts/admin/admin_layout.dart';
-import 'layouts/staff/staff_layout.dart';
 import 'login/login.dart';
+import 'layouts/admin/admin_layout.dart' deferred as admin_layout;
+import 'layouts/staff/staff_layout.dart' deferred as staff_layout;
 
 // Global navigator key for cross-app navigation
 final GlobalKey<NavigatorState> globalNavigatorKey =
@@ -101,11 +100,17 @@ class _SherviceAppState extends State<SherviceApp> {
         final company = widget.userData['companyName'] ?? 'GT LANTIN';
 
         if (role == 'admin') {
-          return AdminLayout(adminId: userId, adminName: userName);
+          return _DeferredWorkspaceScreen(
+            role: role,
+            userId: userId,
+            userName: userName,
+            companyName: company,
+          );
         } else if (role == 'staff') {
-          return StaffLayout(
-            staffId: userId,
-            staffName: userName,
+          return _DeferredWorkspaceScreen(
+            role: role,
+            userId: userId,
+            userName: userName,
             companyName: company,
           );
         }
@@ -113,13 +118,16 @@ class _SherviceAppState extends State<SherviceApp> {
 
       // Fallback for URL testing (if needed)
       if (testRole == 'admin') {
-        return const AdminLayout(
-          adminId: '00000000-0000-0000-0000-000000000000',
+        return const _DeferredWorkspaceScreen(
+          role: 'admin',
+          userId: '00000000-0000-0000-0000-000000000000',
+          userName: 'Admin',
         );
       } else if (testRole == 'staff') {
-        return const StaffLayout(
-          staffId: '00000000-0000-0000-0000-000000000000',
-          staffName: 'System Staff',
+        return const _DeferredWorkspaceScreen(
+          role: 'staff',
+          userId: '00000000-0000-0000-0000-000000000000',
+          userName: 'System Staff',
           companyName: 'GT LANTIN',
         );
       }
@@ -139,6 +147,64 @@ class _SherviceAppState extends State<SherviceApp> {
           darkTheme: EnterpriseTheme.dark(),
           themeMode: currentMode,
           home: getInitialScreen(),
+        );
+      },
+    );
+  }
+}
+
+class _DeferredWorkspaceScreen extends StatefulWidget {
+  const _DeferredWorkspaceScreen({
+    required this.role,
+    required this.userId,
+    required this.userName,
+    this.companyName = 'GT LANTIN',
+  });
+
+  final String role;
+  final String userId;
+  final String userName;
+  final String companyName;
+
+  @override
+  State<_DeferredWorkspaceScreen> createState() =>
+      _DeferredWorkspaceScreenState();
+}
+
+class _DeferredWorkspaceScreenState extends State<_DeferredWorkspaceScreen> {
+  late final Future<Widget> _screen = _loadScreen();
+
+  Future<Widget> _loadScreen() async {
+    if (widget.role == 'admin') {
+      await admin_layout.loadLibrary();
+      return admin_layout.AdminLayout(
+        adminId: widget.userId,
+        adminName: widget.userName,
+      );
+    }
+
+    await staff_layout.loadLibrary();
+    return staff_layout.StaffLayout(
+      staffId: widget.userId,
+      staffName: widget.userName,
+      companyName: widget.companyName,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Widget>(
+      future: _screen,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) return snapshot.data!;
+        return const Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            ),
+          ),
         );
       },
     );
