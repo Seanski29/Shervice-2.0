@@ -298,17 +298,28 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
         TextPosition(offset: row.vehicle.text.length),
       );
 
-      final rawType = (selected['bus_type'] ?? '').toString();
-      final type = (selected['vehicle_type'] ?? '').toString().trim();
-      if (type.isNotEmpty) row.busType.text = type;
+      final type = (selected['vehicle_type'] ?? selected['bus_type'] ?? '')
+          .toString()
+          .trim();
+      row.busType.text = type;
 
-      final cap = (selected['seating_capacity'] ?? '').toString();
+      final cap =
+          (selected['seating_capacity'] ??
+                  selected['capacity'] ??
+                  selected['passenger_capacity'] ??
+                  selected['seat_capacity'] ??
+                  '')
+              .toString();
       if (cap.isNotEmpty && cap != 'null') {
         row.capacity.text = cap;
       } else {
-        final parsedCapacity = _capacityFromVehicleType(rawType);
+        final parsedCapacity =
+            _capacityFromVehicleType((selected['bus_type'] ?? '').toString()) ??
+            _capacityFromVehicleType(type);
         if (parsedCapacity != null) {
           row.capacity.text = parsedCapacity.toString();
+        } else {
+          row.capacity.clear();
         }
       }
     });
@@ -316,7 +327,7 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
 
   int? _capacityFromVehicleType(String rawType) {
     final match = RegExp(
-      r'^\s*(\d+)\s*(seats?|seater)\b',
+      r'\b(\d+)\s*(seats?|seater|passengers?|pax)\b',
       caseSensitive: false,
     ).firstMatch(rawType);
     return match == null ? null : int.tryParse(match.group(1) ?? '');
@@ -937,6 +948,7 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
                                         120,
                                         fillColor,
                                         isDark,
+                                        readOnly: true,
                                       ),
                                     ),
                                     DataCell(
@@ -955,6 +967,7 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
                                         isDark,
                                         keyboardType: TextInputType.number,
                                         triggersUpdate: true,
+                                        readOnly: true,
                                       ),
                                     ),
                                     DataCell(
@@ -1107,13 +1120,20 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
     _EditorSummaryRow? row,
     bool isPax = false,
     String? errorText,
+    bool readOnly = false,
   }) {
     return SizedBox(
       width: width,
       child: TextFormField(
         controller: controller,
         keyboardType: keyboardType,
-        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+        readOnly: readOnly,
+        enableInteractiveSelection: !readOnly,
+        style: TextStyle(
+          color: readOnly
+              ? (isDark ? Colors.grey.shade400 : Colors.grey.shade600)
+              : (isDark ? Colors.white : Colors.black87),
+        ),
         onChanged: (val) {
           if (isPax && row != null) {
             final pax = int.tryParse(val) ?? 0;
@@ -1132,7 +1152,9 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
           }
         },
         decoration: _cellDecoration(
-          fillColor,
+          readOnly
+              ? (isDark ? const Color(0xFF111827) : const Color(0xFFF3F4F6))
+              : fillColor,
           isDark,
         ).copyWith(errorText: errorText),
       ),
@@ -1215,7 +1237,11 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
               focusNode: focusNode,
               enabled: !_isLoadingOptions,
               style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-              onChanged: (_) => row.vehicleId = null,
+              onChanged: (_) {
+                row.vehicleId = null;
+                row.busType.clear();
+                row.capacity.clear();
+              },
               decoration: _cellDecoration(fillColor, isDark).copyWith(
                 suffixIcon: Icon(
                   Icons.search,

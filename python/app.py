@@ -18,20 +18,48 @@ import roles.predictive_ml as predictive_ml
 import roles.driver_ml as driver_ml_module
 import roles.route_ml as route_ml_module
 
+# Flip this only when switching between your PC backend and Railway.
+# Environment variables still override these defaults when deployed.
+USE_HOSTED_CONFIG = False
+
+LOCAL_CORS_ALLOWED_ORIGINS = [
+    r"http://localhost:\d+",
+    r"http://127\.0\.0\.1:\d+",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+]
+HOSTED_CORS_ALLOWED_ORIGINS = ["*"]
+
+
+def _env_bool(name, default):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on", "hosted"}
+
+
+def _csv_env(name, default):
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
 class TransportBackendApp:
     def __init__(self):
         # 1. Initialize safe environment profile keys
         load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
         self.app = Flask(__name__)
+        self.use_hosted_config = _env_bool("USE_HOSTED_CONFIG", USE_HOSTED_CONFIG)
         
-        allowed_origins = [
-            origin.strip()
-            for origin in os.getenv(
-                "CORS_ALLOWED_ORIGINS",
-                "*", # Defaulting to * to prevent Railway CORS blocks, override in Railway Variables
-            ).split(",")
-            if origin.strip()
-        ]
+        default_origins = (
+            HOSTED_CORS_ALLOWED_ORIGINS
+            if self.use_hosted_config
+            else LOCAL_CORS_ALLOWED_ORIGINS
+        )
+        allowed_origins = _csv_env("CORS_ALLOWED_ORIGINS", default_origins)
         CORS(self.app, resources={
             r"/*": {
                 "origins": allowed_origins,
@@ -94,8 +122,9 @@ class TransportBackendApp:
         self.app.register_blueprint(route_ml_module.route_ml_bp)
         
     def run(self):
+        default_host = "0.0.0.0" if self.use_hosted_config else "127.0.0.1"
         self.app.run(
-            host=os.getenv("FLASK_HOST", "0.0.0.0"), # Updated to 0.0.0.0 for external access
+            host=os.getenv("FLASK_HOST", default_host),
             port=int(os.getenv("PORT", os.getenv("FLASK_PORT", "5000"))), # Prioritizes Railway's native PORT variable
             debug=False,
             use_reloader=False,
