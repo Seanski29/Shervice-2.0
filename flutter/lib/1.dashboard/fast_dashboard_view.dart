@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -22,6 +23,7 @@ class _FastDashboardViewState extends State<FastDashboardView> {
   bool _showFullDashboard = false;
   String? _error;
   Map<String, dynamic> _metrics = {};
+  Timer? _fullDashboardTimer;
 
   @override
   void initState() {
@@ -53,6 +55,7 @@ class _FastDashboardViewState extends State<FastDashboardView> {
         _metrics = Map<String, dynamic>.from(payload['metrics'] ?? {});
         _loading = false;
       });
+      _scheduleFullDashboardLoad();
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -60,6 +63,14 @@ class _FastDashboardViewState extends State<FastDashboardView> {
         _loading = false;
       });
     }
+  }
+
+  void _scheduleFullDashboardLoad() {
+    _fullDashboardTimer?.cancel();
+    _fullDashboardTimer = Timer(const Duration(milliseconds: 1800), () {
+      if (!mounted || _showFullDashboard) return;
+      setState(() => _showFullDashboard = true);
+    });
   }
 
   int _readInt(String primary, [String? fallback]) {
@@ -185,18 +196,34 @@ class _FastDashboardViewState extends State<FastDashboardView> {
                 );
               },
             ),
-          const SizedBox(height: 24),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: FilledButton.icon(
-              onPressed: () => setState(() => _showFullDashboard = true),
-              icon: const Icon(Icons.query_stats_outlined, size: 18),
-              label: const Text('Load full dashboard'),
-            ),
+          const SizedBox(height: 18),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Preparing full dashboard...',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _fullDashboardTimer?.cancel();
+    super.dispose();
   }
 }
 
