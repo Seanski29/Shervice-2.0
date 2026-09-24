@@ -64,6 +64,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
   int _selectedMaintenanceYear = DateTime.now().year;
   bool _isRatingLoading = false;
   bool _isMaintenanceLoading = false;
+  bool _showSecondaryDashboard = false;
   int _selectedMonthTripTotal = 0;
 
   double _averageDriverRating = 0.0;
@@ -127,6 +128,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _showSecondaryDashboard = false;
     });
     try {
       final response = await http
@@ -197,10 +199,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
             _errorMessage = null;
             _isLoading = false;
           });
-          _loadMonthlyDispatches();
-          _loadMonthlyTripTotals();
-          _loadDriverRating();
-          _loadMonthlyMaintenanceTotals();
+          _hydrateSecondaryDashboard();
         } else {
           throw Exception('Dashboard metrics request was unsuccessful.');
         }
@@ -218,6 +217,19 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
         });
       }
     }
+  }
+
+  void _hydrateSecondaryDashboard() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future<void>.delayed(const Duration(milliseconds: 350), () {
+        if (!mounted) return;
+        setState(() => _showSecondaryDashboard = true);
+        _loadMonthlyDispatches();
+        _loadMonthlyTripTotals();
+        _loadDriverRating();
+        _loadMonthlyMaintenanceTotals();
+      });
+    });
   }
 
   Widget _buildDashboardSkeleton() {
@@ -425,7 +437,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                   _buildKpiGrid(context, width, spacing),
                   if (widget.showClientTrips) ...[
                     const SizedBox(height: 20),
-                    if (compact)
+                    if (!_showSecondaryDashboard)
+                      _buildSecondaryDashboardSkeleton(compact: compact)
+                    else if (compact)
                       Column(
                         children: [
                           _buildClientTripsCard(),
@@ -672,6 +686,74 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
               ),
             ],
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSecondaryDashboardSkeleton({required bool compact}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fillColor = isDark
+        ? EnterpriseColors.darkSurfaceMuted
+        : const Color(0xFFE4E7EC);
+    final borderColor = Theme.of(context).dividerColor;
+
+    Widget panel() {
+      return Container(
+        height: compact ? 280 : 360,
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          border: Border.all(color: borderColor),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.all(18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 180,
+              height: 18,
+              decoration: BoxDecoration(
+                color: fillColor,
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: Center(
+                child: Container(
+                  width: compact ? 160 : 220,
+                  height: compact ? 160 : 220,
+                  decoration: BoxDecoration(
+                    color: fillColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (compact) {
+      return Column(
+        children: [
+          panel(),
+          const SizedBox(height: 16),
+          panel(),
+        ],
+      );
+    }
+
+    return SizedBox(
+      height: 380,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(child: panel()),
+          const SizedBox(width: 16),
+          Expanded(child: panel()),
         ],
       ),
     );

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 abstract final class EnterpriseColors {
   static const main = Color(0xFF010736);
@@ -79,6 +78,7 @@ abstract final class EnterpriseSpacing {
 }
 
 abstract final class EnterpriseTheme {
+  static const String _fontFamily = 'Arial';
   static final ThemeData _light = _build(Brightness.light);
   static final ThemeData _dark = _build(Brightness.dark);
 
@@ -116,39 +116,47 @@ abstract final class EnterpriseTheme {
       onSurface: text,
     );
 
-    final bodyTextTheme = GoogleFonts.interTextTheme(
-      brightness == Brightness.dark
-          ? ThemeData.dark().textTheme
-          : ThemeData.light().textTheme,
-    );
+    final bodyTextTheme = brightness == Brightness.dark
+        ? ThemeData.dark().textTheme
+        : ThemeData.light().textTheme;
     final textTheme = bodyTextTheme
         .apply(bodyColor: text, displayColor: text)
         .copyWith(
-          headlineSmall: GoogleFonts.montserrat(
+          headlineSmall: TextStyle(
+            fontFamily: _fontFamily,
             fontSize: 20,
             height: 1.25,
             fontWeight: FontWeight.w700,
             color: text,
           ),
-          titleLarge: GoogleFonts.montserrat(
+          titleLarge: TextStyle(
+            fontFamily: _fontFamily,
             fontSize: 16,
             height: 1.25,
             fontWeight: FontWeight.w700,
             color: text,
           ),
-          titleMedium: GoogleFonts.montserrat(
+          titleMedium: TextStyle(
+            fontFamily: _fontFamily,
             fontSize: 14,
             height: 1.3,
             fontWeight: FontWeight.w600,
             color: text,
           ),
-          bodyMedium: GoogleFonts.inter(
+          bodyMedium: TextStyle(
+            fontFamily: _fontFamily,
             fontSize: 13,
             height: 1.35,
             color: text,
           ),
-          bodySmall: GoogleFonts.inter(fontSize: 12, height: 1.3, color: muted),
-          labelLarge: GoogleFonts.inter(
+          bodySmall: TextStyle(
+            fontFamily: _fontFamily,
+            fontSize: 12,
+            height: 1.3,
+            color: muted,
+          ),
+          labelLarge: const TextStyle(
+            fontFamily: _fontFamily,
             fontSize: 13,
             height: 1.2,
             fontWeight: FontWeight.w600,
@@ -164,7 +172,7 @@ abstract final class EnterpriseTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
-      fontFamily: GoogleFonts.inter().fontFamily,
+      fontFamily: _fontFamily,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: canvas,
       cardColor: surface,
@@ -193,7 +201,8 @@ abstract final class EnterpriseTheme {
         scrolledUnderElevation: 0,
         centerTitle: false,
         shape: Border(bottom: BorderSide(color: border)),
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: TextStyle(
+          fontFamily: _fontFamily,
           fontSize: 16,
           height: 1.25,
           fontWeight: FontWeight.w600,
@@ -325,7 +334,7 @@ abstract final class EnterpriseTheme {
           color: isDark
               ? EnterpriseColors.lightText
               : EnterpriseColors.darkText,
-          fontFamily: GoogleFonts.inter().fontFamily,
+          fontFamily: _fontFamily,
           fontSize: 12,
         ),
       ),
