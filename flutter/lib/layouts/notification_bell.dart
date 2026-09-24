@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'enterprise/enterprise_states.dart';
 import 'package:http/http.dart' as http;
+
 import '../constant.dart';
 import '../core/session_manager.dart';
+import 'enterprise/enterprise_states.dart';
 
 class NotificationBell extends StatefulWidget {
   final String role;
@@ -77,11 +80,21 @@ class NotificationEntry {
 class _NotificationBellState extends State<NotificationBell> {
   bool _isLoading = false;
   List<NotificationEntry> _notifications = [];
+  Timer? _initialFetchTimer;
 
   @override
   void initState() {
     super.initState();
-    _fetchNotifications();
+    _initialFetchTimer = Timer(
+      const Duration(seconds: 4),
+      _fetchNotifications,
+    );
+  }
+
+  @override
+  void dispose() {
+    _initialFetchTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _fetchNotifications() async {
@@ -299,6 +312,10 @@ class _NotificationBellState extends State<NotificationBell> {
   }
 
   void _showNotificationPanel() {
+    _initialFetchTimer?.cancel();
+    _initialFetchTimer = null;
+    unawaited(_fetchNotifications());
+
     final topPadding = MediaQuery.of(context).padding.top + 8;
     final maxWidth = MediaQuery.of(context).size.width * 0.95;
     final panelWidth = maxWidth > 420 ? 420.0 : maxWidth;
