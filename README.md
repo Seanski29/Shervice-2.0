@@ -106,3 +106,17 @@ cd flutter
 flutter run -d chrome --web-port 8080 --no-web-resources-cdn
 
 ```
+
+**Optional Terminal 3: Encrypted WebSocket Channel**
+
+```bash
+cd python
+
+# Uses WS_HOST, WS_PORT, WS_ALLOWED_ROLES, SUPABASE_URL, and SUPABASE_ANON_KEY.
+python secure_ws_server.py
+
+```
+
+The encrypted socket runs on `ws://localhost:5001` by default. Production must use
+`wss://` and either deploy this process separately or route WebSocket traffic to it
+through the hosting provider.

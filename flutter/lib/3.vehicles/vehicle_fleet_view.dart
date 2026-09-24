@@ -276,12 +276,6 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
     await _fetchLiveFleetData();
   }
 
-  Future<void> _bulkPurgeVehicles(List<Map<String, dynamic>> vehicles) async {
-    for (final vehicle in vehicles) {
-      await _purgeVehicleDirect(vehicle);
-    }
-  }
-
   Future<void> _exportVehicles(List<Map<String, dynamic>> vehicles) async {
     final buffer = StringBuffer(
       'Vehicle ID,Plate,Type,Capacity,Health Status\n',
@@ -309,6 +303,50 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
         '${vehicles.length} vehicles exported.',
       );
     }
+  }
+
+  List<Widget> _selectedVehicleActions(
+    BuildContext context,
+    List<Map<String, dynamic>> selectedVehicles,
+  ) {
+    if (selectedVehicles.length != 1) return const [];
+    final vehicle = selectedVehicles.first;
+
+    return [
+      OutlinedButton.icon(
+        onPressed: () => _showVehicleModal(context, vehicle: vehicle),
+        icon: Icon(
+          _isAdmin ? Icons.edit_outlined : Icons.visibility_outlined,
+          size: 16,
+        ),
+        label: Text(_isAdmin ? 'Update' : 'View Details'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          side: const BorderSide(color: Color(0xFF667085)),
+        ),
+      ),
+      if (!_isAdmin) ...[
+        const SizedBox(width: 6),
+        OutlinedButton.icon(
+          onPressed: () async {
+            final vehicleId = int.tryParse(
+                  (vehicle['vehicle_id'] ?? '').toString(),
+                ) ??
+                0;
+            final logs = await _fetchVehicleLogHistory(vehicleId);
+            if (context.mounted) {
+              _showMaintenanceManagerModal(context, vehicle, logs);
+            }
+          },
+          icon: const Icon(Icons.build_circle_outlined, size: 16),
+          label: const Text('Log Maintenance'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.white,
+            side: const BorderSide(color: Color(0xFF667085)),
+          ),
+        ),
+      ],
+    ];
   }
 
   void _showLogIssueDialog(Map<String, dynamic> vehicle) {
@@ -1344,73 +1382,12 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                     width: 190,
                     value: (vehicle) =>
                         (vehicle['health_status'] ?? 'Good').toString(),
-                    cellBuilder: (context, vehicle) => _FleetStatusLabel(
-                      status: (vehicle['health_status'] ?? 'Good').toString(),
+                    cellBuilder: (context, vehicle) => Align(
+                      alignment: Alignment.center,
+                      child: _FleetStatusLabel(
+                        status: (vehicle['health_status'] ?? 'Good').toString(),
+                      ),
                     ),
-                  ),
-                  EnterpriseGridColumn(
-                    label: 'Action',
-                    width: 140,
-                    value: (_) => 'Open',
-                    cellBuilder: (context, vehicle) {
-                      if (_isAdmin) {
-                        return OutlinedButton(
-                          onPressed: () => _showVehicleModal(context, vehicle: vehicle),
-                          child: const Text('Update'),
-                        );
-                      } else {
-                        return PopupMenuButton<String>(
-                          onSelected: (value) async {
-                            if (value == 'view') {
-                              _showVehicleModal(context, vehicle: vehicle);
-                            } else if (value == 'log') {
-                              int vId = int.tryParse(vehicle['vehicle_id'].toString()) ?? 0;
-                              final logs = await _fetchVehicleLogHistory(vId);
-                              if (context.mounted) {
-                                _showMaintenanceManagerModal(context, vehicle, logs);
-                              }
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            const PopupMenuItem(
-                              value: 'view',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.visibility, size: 18),
-                                  SizedBox(width: 8),
-                                  Text('View Details'),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem(
-                              value: 'log',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.build_circle_outlined, size: 18, color: Colors.orange),
-                                  SizedBox(width: 8),
-                                  Text('Log Maintenance'),
-                                ],
-                              ),
-                            ),
-                          ],
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Theme.of(context).dividerColor),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text('Actions'),
-                                SizedBox(width: 4),
-                                Icon(Icons.arrow_drop_down, size: 16),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-                    },
                   ),
                 ],
                 emptyTitle: _allVehicles.isEmpty
@@ -1421,8 +1398,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                     : 'No vehicle records match the current plate, type, and status filters.',
                 emptyActionLabel: null,
                 onEmptyAction: null,
-                onDelete: _isAdmin ? _purgeVehicleDirect : null,
-                onBulkDelete: _isAdmin ? _bulkPurgeVehicles : null,
+                selectionActionsBuilder: _selectedVehicleActions,
                 onExportSelection: _exportVehicles,
               ),
             ],
@@ -1622,7 +1598,7 @@ class _FleetStatusLabel extends StatelessWidget {
             ? EnterpriseColors.danger
             : EnterpriseColors.success;
     return Align(
-      alignment: Alignment.centerLeft,
+      alignment: Alignment.center,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
         decoration: BoxDecoration(

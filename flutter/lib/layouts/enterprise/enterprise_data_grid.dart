@@ -40,12 +40,22 @@ class EnterpriseDataGrid<T> extends StatefulWidget {
     this.loading = false,
     this.onDelete,
     this.canDelete,
+    this.onSelectionAction,
+    this.selectionActionLabel = 'View',
+    this.selectionActionIcon = Icons.visibility_outlined,
+    this.selectionActionsBuilder,
     this.onExportSelection,
+    this.exportSelectionLabel = 'Export selection',
+    this.onSecondaryExportSelection,
+    this.secondaryExportSelectionLabel = 'Export XLSX',
     this.onBulkDelete,
     this.filterFields = const [],
     this.showDateRange = true,
     this.height = 560,
     this.paginate = true,
+    this.selectable = true,
+    this.allowSelectAll = true,
+    this.singleSelect = false,
   });
 
   final List<T> rows;
@@ -58,12 +68,23 @@ class EnterpriseDataGrid<T> extends StatefulWidget {
   final VoidCallback? onEmptyAction;
   final Future<void> Function(T row)? onDelete;
   final bool Function(T row)? canDelete;
+  final Future<void> Function(List<T> rows)? onSelectionAction;
+  final String selectionActionLabel;
+  final IconData selectionActionIcon;
+  final List<Widget> Function(BuildContext context, List<T> selectedRows)?
+  selectionActionsBuilder;
   final Future<void> Function(List<T> rows)? onExportSelection;
+  final String exportSelectionLabel;
+  final Future<void> Function(List<T> rows)? onSecondaryExportSelection;
+  final String secondaryExportSelectionLabel;
   final Future<void> Function(List<T> rows)? onBulkDelete;
   final List<Widget> filterFields;
   final bool showDateRange;
   final double height;
   final bool paginate;
+  final bool selectable;
+  final bool allowSelectAll;
+  final bool singleSelect;
 
   @override
   State<EnterpriseDataGrid<T>> createState() => _EnterpriseDataGridState<T>();
@@ -146,9 +167,11 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
     final theme = Theme.of(context);
     final allRows = _sortedRows;
     final rows = _visibleRows(allRows);
-    final selectedRows = allRows
-        .where((row) => _selectedKeys.contains(widget.rowKey(row)))
-        .toList();
+    final selectedRows = widget.selectable
+        ? allRows
+              .where((row) => _selectedKeys.contains(widget.rowKey(row)))
+              .toList()
+        : <T>[];
     final totalWidth =
         78.0 +
         widget.columns.fold<double>(
@@ -356,7 +379,8 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
     double totalWidth,
     double extraColumnWidth,
   ) {
-    final allSelected = _selectedKeys.length == widget.rows.length;
+    final canSelectAll = widget.selectable && widget.allowSelectAll;
+    final allSelected = canSelectAll && _selectedKeys.length == widget.rows.length;
     return Container(
       width: totalWidth,
       height: 40,
@@ -367,18 +391,21 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
             width: 78,
             child: Row(
               children: [
-                Checkbox(
-                  value: allSelected,
-                  tristate: _selectedKeys.isNotEmpty && !allSelected,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedKeys.clear();
-                      if (value == true) {
-                        _selectedKeys.addAll(widget.rows.map(widget.rowKey));
-                      }
-                    });
-                  },
-                ),
+                if (canSelectAll)
+                  Checkbox(
+                    value: allSelected,
+                    tristate: _selectedKeys.isNotEmpty && !allSelected,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedKeys.clear();
+                        if (value == true) {
+                          _selectedKeys.addAll(widget.rows.map(widget.rowKey));
+                        }
+                      });
+                    },
+                  )
+                else
+                  const SizedBox(width: 18),
                 Text('#', style: TextStyle(color: theme.colorScheme.onSurface)),
               ],
             ),
@@ -444,7 +471,7 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
     double extraColumnWidth,
   ) {
     final key = widget.rowKey(row);
-    final selected = _selectedKeys.contains(key);
+    final selected = widget.selectable && _selectedKeys.contains(key);
     return Container(
       width: totalWidth,
       height: 42,
@@ -456,12 +483,14 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
           _GridRowNumber(
             number: rowIndex + 1,
             selected: selected,
+            selectable: widget.selectable,
             canDelete:
                 widget.onDelete != null &&
                 (widget.canDelete?.call(row) ?? true),
             onSelected: (value) {
               setState(() {
                 if (value) {
+                  if (widget.singleSelect) _selectedKeys.clear();
                   _selectedKeys.add(key);
                 } else {
                   _selectedKeys.remove(key);
@@ -625,6 +654,13 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
   }
 
   Widget _buildBulkBar(List<T> selectedRows) {
+    final selectionActionWidgets =
+        widget.selectionActionsBuilder?.call(context, selectedRows) ??
+        const <Widget>[];
+    final canBulkDelete =
+        widget.onBulkDelete != null &&
+        selectedRows.length > 1 &&
+        selectedRows.every((row) => widget.canDelete?.call(row) ?? true);
     return Material(
       elevation: 8,
       color: EnterpriseColors.darkSurface,
@@ -643,17 +679,47 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
               ),
             ),
             const SizedBox(width: 12),
-            if (widget.onExportSelection != null)
+            if (widget.onSelectionAction != null)
               OutlinedButton.icon(
-                onPressed: () => widget.onExportSelection!(selectedRows),
-                icon: const Icon(Icons.download_outlined, size: 16),
-                label: const Text('Export selection'),
+                onPressed: () => widget.onSelectionAction!(selectedRows),
+                icon: Icon(widget.selectionActionIcon, size: 16),
+                label: Text(widget.selectionActionLabel),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
                   side: const BorderSide(color: Color(0xFF667085)),
                 ),
               ),
-            if (widget.onBulkDelete != null) ...[
+            ...selectionActionWidgets,
+            if ((widget.onSelectionAction != null ||
+                    selectionActionWidgets.isNotEmpty) &&
+                (widget.onExportSelection != null ||
+                    widget.onSecondaryExportSelection != null ||
+                    canBulkDelete))
+              const SizedBox(width: 6),
+            if (widget.onExportSelection != null)
+              OutlinedButton.icon(
+                onPressed: () => widget.onExportSelection!(selectedRows),
+                icon: const Icon(Icons.download_outlined, size: 16),
+                label: Text(widget.exportSelectionLabel),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Color(0xFF667085)),
+                ),
+              ),
+            if (widget.onSecondaryExportSelection != null) ...[
+              const SizedBox(width: 6),
+              OutlinedButton.icon(
+                onPressed: () =>
+                    widget.onSecondaryExportSelection!(selectedRows),
+                icon: const Icon(Icons.table_view, size: 16),
+                label: Text(widget.secondaryExportSelectionLabel),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Color(0xFF667085)),
+                ),
+              ),
+            ],
+            if (canBulkDelete) ...[
               const SizedBox(width: 6),
               FilledButton.icon(
                 onPressed: () => _confirmBulkDelete(selectedRows),
@@ -878,6 +944,7 @@ class _GridRowNumber extends StatefulWidget {
   const _GridRowNumber({
     required this.number,
     required this.selected,
+    required this.selectable,
     required this.canDelete,
     required this.onSelected,
     required this.onDelete,
@@ -885,6 +952,7 @@ class _GridRowNumber extends StatefulWidget {
 
   final int number;
   final bool selected;
+  final bool selectable;
   final bool canDelete;
   final ValueChanged<bool> onSelected;
   final VoidCallback? onDelete;
@@ -914,10 +982,13 @@ class _GridRowNumberState extends State<_GridRowNumber> {
         ),
         child: Row(
           children: [
-            Checkbox(
-              value: widget.selected,
-              onChanged: (v) => widget.onSelected(v ?? false),
-            ),
+            if (widget.selectable)
+              Checkbox(
+                value: widget.selected,
+                onChanged: (v) => widget.onSelected(v ?? false),
+              )
+            else
+              const SizedBox(width: 18),
             Expanded(
               child: _hovered && widget.canDelete
                   ? IconButton(

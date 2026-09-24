@@ -124,6 +124,26 @@ class SharedDriversViewState extends State<SharedDriversView> {
     }
   }
 
+  Future<void> _confirmDeleteDriver(DriverProfileModel driver) async {
+    final confirmed = await showEnterpriseDestructiveConfirmation(
+      context,
+      title: 'Delete driver record?',
+      message:
+          'This permanently removes ${driver.name} and revokes this driver profile.',
+    );
+    if (!confirmed) return;
+    try {
+      await _deleteDriver(driver);
+      if (mounted) {
+        EnterpriseToasts.success(context, 'Driver deleted.');
+      }
+    } catch (error) {
+      if (mounted) {
+        EnterpriseToasts.error(context, 'Unable to delete driver: $error');
+      }
+    }
+  }
+
   Future<void> _exportDrivers(List<DriverProfileModel> drivers) async {
     final buffer = StringBuffer('Driver ID,Name,Phone,Status,Date Hired\n');
     for (final driver in drivers) {
@@ -142,6 +162,43 @@ class SharedDriversViewState extends State<SharedDriversView> {
   }
 
   String _csv(String value) => value.replaceAll('"', '""');
+
+  ButtonStyle _bulkBarButtonStyle() {
+    return OutlinedButton.styleFrom(
+      foregroundColor: Colors.white,
+      side: const BorderSide(color: Color(0xFF667085)),
+    );
+  }
+
+  List<Widget> _selectedDriverActions(
+    BuildContext context,
+    List<DriverProfileModel> selectedDrivers,
+  ) {
+    if (selectedDrivers.length != 1) return const [];
+    final driver = selectedDrivers.first;
+    return [
+      OutlinedButton.icon(
+        onPressed: () => widget.onDriverTapped?.call(context, driver),
+        icon: Icon(
+          widget.canManage ? Icons.edit_outlined : Icons.visibility_outlined,
+          size: 16,
+        ),
+        label: Text(widget.canManage ? 'Update' : 'View'),
+        style: _bulkBarButtonStyle(),
+      ),
+      if (widget.canManage) ...[
+        const SizedBox(width: 6),
+        FilledButton.icon(
+          onPressed: () => _confirmDeleteDriver(driver),
+          icon: const Icon(Icons.delete_outline, size: 16),
+          label: const Text('Delete'),
+          style: FilledButton.styleFrom(
+            backgroundColor: EnterpriseColors.danger,
+          ),
+        ),
+      ],
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -339,8 +396,10 @@ class SharedDriversViewState extends State<SharedDriversView> {
                           label: 'Status',
                           width: 150,
                           value: (driver) => driver.status,
-                          cellBuilder: (context, driver) =>
-                              _StatusLabel(status: driver.status),
+                          cellBuilder: (context, driver) => Align(
+                            alignment: Alignment.center,
+                            child: _StatusLabel(status: driver.status),
+                          ),
                         ),
                         EnterpriseGridColumn(
                           label: 'Phone',
@@ -351,19 +410,6 @@ class SharedDriversViewState extends State<SharedDriversView> {
                           label: 'Date hired',
                           width: 150,
                           value: (driver) => driver.dateHired,
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Record actions',
-                          width: 160,
-                          value: (_) => '',
-                          cellBuilder: (context, driver) => Align(
-                            alignment: Alignment.centerLeft,
-                            child: OutlinedButton(
-                              onPressed: () =>
-                                  widget.onDriverTapped?.call(context, driver),
-                              child: Text(widget.canManage ? 'Update' : 'View'),
-                            ),
-                          ),
                         ),
                       ],
                       emptyTitle: _drivers.isEmpty
@@ -378,8 +424,8 @@ class SharedDriversViewState extends State<SharedDriversView> {
                       onEmptyAction: _drivers.isEmpty && widget.canManage
                           ? () => widget.onDriverTapped?.call(context, null)
                           : null,
-                      onDelete: widget.canManage ? _deleteDriver : null,
                       onBulkDelete: widget.canManage ? _bulkDelete : null,
+                      selectionActionsBuilder: _selectedDriverActions,
                       onExportSelection: _exportDrivers,
                     ),
                   ),
@@ -604,7 +650,7 @@ class _StatusLabel extends StatelessWidget {
             : EnterpriseColors.warning;
 
     return Align(
-      alignment: Alignment.centerLeft,
+      alignment: Alignment.center,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
         decoration: BoxDecoration(

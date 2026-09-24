@@ -497,19 +497,16 @@ def get_staff_options():
 @schedules_bp.route('/api/schedules/dispatch-options', methods=['GET'])
 def get_dispatch_options():
     try:
-        all_vehicles = supabase.table('vehicle').select('*').eq('is_available', True).execute()
+        all_vehicles = supabase.table('vehicle').select('*').execute()
         raw_drivers = supabase.table('driver_profile').select(
             'driver_id, full_name, birthday, phone_no, date_hired, '
             'employment_status, is_backup, ml_classification'
         ).execute()
-        
-        all_drivers = raw_drivers.data or []
-        active_drivers = [d for d in all_drivers if str(d.get('employment_status', '')).strip().lower() == 'active']
 
         return jsonify({
             "success": True,
             "vehicles": all_vehicles.data or [],
-            "drivers": active_drivers,
+            "drivers": raw_drivers.data or [],
             "blocked": False
         }), 200
     except Exception as e:

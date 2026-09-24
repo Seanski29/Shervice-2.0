@@ -622,19 +622,341 @@ class _StaffTripsState extends State<StaffTrips> {
     final changed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => _SummarySheetPage(
-          staffId: widget.staffId,
-          canManageSummaries: widget.canManageSummaries,
           summaryId: (summary['summary_id'] ?? '').toString(),
           rows: (summary['rows'] as List? ?? [])
               .whereType<Map>()
               .map((row) => Map<String, dynamic>.from(row))
               .toList(),
+        ),
+      ),
+    );
+
+    if (changed == true) await _fetchTripSummary();
+  }
+
+  List<Map<String, dynamic>> _summaryRows(Map<String, dynamic> summary) {
+    return (summary['rows'] as List? ?? [])
+        .whereType<Map>()
+        .map((row) => Map<String, dynamic>.from(row))
+        .toList();
+  }
+
+  String _safeSummaryFileName(String value) {
+    final safe = value.replaceAll(RegExp(r'[^A-Za-z0-9_.-]+'), '_');
+    return safe.isEmpty ? 'Trip_Summary' : safe;
+  }
+
+  String _csvEscape(String value) => '"${value.replaceAll('"', '""')}"';
+
+  List<String> get _summaryExportHeaders => const [
+    'No.',
+    'Date',
+    'Working Day',
+    '(Bus) Type',
+    'Classification',
+    'Bus No. (Jeep plate no.)',
+    'Seating Capacity',
+    'Ticket no.',
+    'Driver',
+    'Route',
+    'No. of Passengers',
+    'Dept. Time',
+    'Arrival Time',
+    'Rate per Trip',
+    'Cost/head/day',
+    'Utilization Rate',
+    'REMARKS',
+  ];
+
+  List<String> _summaryExportValues(Map<String, dynamic> trip, int index) {
+    return [
+      '${index + 1}',
+      (trip['schedule_date'] ?? trip['date'] ?? '').toString(),
+      (trip['working_day'] ?? '').toString(),
+      (trip['vehicle_type'] ?? trip['bus_type'] ?? '').toString(),
+      (trip['classification'] ?? '').toString(),
+      (trip['plate_number'] ?? 'Unassigned').toString(),
+      (trip['seating_capacity'] ?? '').toString(),
+      (trip['ticket_no'] ?? '').toString(),
+      (trip['driver_name'] ?? 'Unassigned').toString(),
+      (trip['route_name'] ?? '').toString(),
+      (trip['passenger_count'] ?? '').toString(),
+      (trip['departure_time'] ?? '').toString(),
+      (trip['estimated_arrival_time'] ?? '').toString(),
+      '',
+      '',
+      _utilizationText(trip),
+      (trip['remarks'] ?? '').toString(),
+    ];
+  }
+
+  String _generateSummaryCsv(
+    Map<String, dynamic> summary, {
+    bool includeSummaryId = false,
+  }) {
+    final rows = _summaryRows(summary);
+    final company = rows.isEmpty
+        ? (summary['company'] ?? 'Unassigned Company').toString()
+        : (rows.first['client_company'] ?? 'Unassigned Company').toString();
+    final address = rows.isEmpty
+        ? ''
+        : (rows.first['client_company_address'] ?? '').toString();
+    final buffer = StringBuffer();
+    if (includeSummaryId) {
+      buffer.writeln(
+        'Summary ID,${_csvEscape((summary['summary_id'] ?? '').toString())}',
+      );
+    }
+    buffer
+      ..writeln('Company,${_csvEscape(company)}')
+      ..writeln('Address,${_csvEscape(address)}')
+      ..writeln()
+      ..writeln(_summaryExportHeaders.map(_csvEscape).join(','));
+
+    for (var i = 0; i < rows.length; i++) {
+      buffer.writeln(
+        _summaryExportValues(rows[i], i).map(_csvEscape).join(','),
+      );
+    }
+    return buffer.toString();
+  }
+
+  void _appendSummaryXlsxSheet(
+    xlsx.Excel excel,
+    String sheetName,
+    Map<String, dynamic> summary,
+  ) {
+    final sheet = excel[sheetName];
+    final rows = _summaryRows(summary);
+    final company = rows.isEmpty
+        ? (summary['company'] ?? 'Unassigned Company').toString()
+        : (rows.first['client_company'] ?? 'Unassigned Company').toString();
+    final address = rows.isEmpty
+        ? ''
+        : (rows.first['client_company_address'] ?? '').toString();
+
+    sheet.appendRow([
+      xlsx.TextCellValue('Company'),
+      xlsx.TextCellValue(company),
+    ]);
+    sheet.appendRow([
+      xlsx.TextCellValue('Address'),
+      xlsx.TextCellValue(address),
+    ]);
+    sheet.appendRow([xlsx.TextCellValue('')]);
+    sheet.appendRow(
+      _summaryExportHeaders
+          .map((value) => xlsx.TextCellValue(value))
+          .toList(),
+    );
+
+    for (var i = 0; i < rows.length; i++) {
+      sheet.appendRow(
+        _summaryExportValues(rows[i], i)
+            .map((value) => xlsx.TextCellValue(value))
+            .toList(),
+      );
+    }
+
+    final headerStyle = xlsx.CellStyle(
+      backgroundColorHex: xlsx.ExcelColor.fromHexString('FF1E3A8A'),
+      fontColorHex: xlsx.ExcelColor.white,
+      bold: true,
+      fontSize: 10,
+      horizontalAlign: xlsx.HorizontalAlign.Center,
+      verticalAlign: xlsx.VerticalAlign.Center,
+      textWrapping: xlsx.TextWrapping.WrapText,
+    );
+    for (var column = 0; column < _summaryExportHeaders.length; column++) {
+      sheet
+              .cell(
+                xlsx.CellIndex.indexByColumnRow(
+                  columnIndex: column,
+                  rowIndex: 3,
+                ),
+              )
+              .cellStyle =
+          headerStyle;
+      sheet.setColumnWidth(column, column == 0 ? 8 : 18);
+    }
+    sheet.setColumnWidth(5, 24);
+    sheet.setColumnWidth(16, 30);
+  }
+
+  Future<void> _exportGroupedSummaryCsv(
+    List<Map<String, dynamic>> summaries,
+  ) async {
+    if (summaries.isEmpty) return;
+    try {
+      final isBulk = summaries.length > 1;
+      final csvData = summaries
+          .map(
+            (summary) => _generateSummaryCsv(
+              summary,
+              includeSummaryId: isBulk,
+            ),
+          )
+          .join('\n');
+      final safeSummaryId = isBulk
+          ? 'Trip_Summary_Bulk'
+          : _safeSummaryFileName(
+              (summaries.first['summary_id'] ?? '').toString(),
+            );
+      final outputFile = await FilePicker.saveFile(
+        dialogTitle: isBulk ? 'Export Bulk CSV' : 'Export Summary CSV',
+        fileName: '${safeSummaryId}_Export.csv',
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+        bytes: Uint8List.fromList(utf8.encode(csvData)),
+      );
+      if (outputFile != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isBulk ? 'Bulk CSV export completed.' : 'CSV export completed.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('CSV export failed: $e')));
+      }
+    }
+  }
+
+  Future<void> _exportGroupedSummaryXlsx(
+    List<Map<String, dynamic>> summaries,
+  ) async {
+    if (summaries.isEmpty) return;
+    try {
+      final isBulk = summaries.length > 1;
+      final excel = xlsx.Excel.createExcel();
+      final defaultSheet = excel.getDefaultSheet();
+      if (defaultSheet != null) excel.delete(defaultSheet);
+
+      for (var i = 0; i < summaries.length; i++) {
+        final summaryId = (summaries[i]['summary_id'] ?? '').toString();
+        final baseName = _safeSummaryFileName(
+          summaryId.isEmpty ? 'Summary_${i + 1}' : summaryId,
+        );
+        final sheetName = baseName.length > 24
+            ? '${baseName.substring(0, 24)}_${i + 1}'
+            : '${baseName}_${i + 1}';
+        _appendSummaryXlsxSheet(excel, sheetName, summaries[i]);
+        if (i == 0) excel.setDefaultSheet(sheetName);
+      }
+
+      final safeSummaryId = isBulk
+          ? 'Trip_Summary_Bulk'
+          : _safeSummaryFileName(
+              (summaries.first['summary_id'] ?? '').toString(),
+            );
+      final outputFile = await FilePicker.saveFile(
+        dialogTitle: isBulk ? 'Export Bulk XLSX' : 'Export Summary XLSX',
+        fileName: '${safeSummaryId}_Export.xlsx',
+        type: FileType.custom,
+        allowedExtensions: ['xlsx'],
+        bytes: Uint8List.fromList(excel.encode()!),
+      );
+      if (outputFile != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isBulk ? 'Bulk XLSX export completed.' : 'XLSX export completed.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('XLSX export failed: $e')));
+      }
+    }
+  }
+
+  Future<void> _editSummaryGroup(Map<String, dynamic> summary) async {
+    if (!widget.canManageSummaries) return;
+    final changed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => TripSummaryEditorPage(
+          staffId: widget.staffId,
+          summaryId: (summary['summary_id'] ?? '').toString(),
+          initialRows: _summaryRows(summary),
           onSaveRow: _updateSummaryRow,
         ),
       ),
     );
 
     if (changed == true) await _fetchTripSummary();
+  }
+
+  ButtonStyle _bulkBarButtonStyle() {
+    return OutlinedButton.styleFrom(
+      foregroundColor: Colors.white,
+      side: const BorderSide(color: Color(0xFF667085)),
+    );
+  }
+
+  List<Widget> _groupedSummaryActions(
+    BuildContext context,
+    List<Map<String, dynamic>> selectedRows,
+  ) {
+    if (selectedRows.isEmpty) return const [];
+    if (selectedRows.length > 1) {
+      return [
+        OutlinedButton.icon(
+          onPressed: () => _exportGroupedSummaryCsv(selectedRows),
+          icon: const Icon(Icons.download_outlined, size: 16),
+          label: const Text('Bulk CSV'),
+          style: _bulkBarButtonStyle(),
+        ),
+        const SizedBox(width: 6),
+        OutlinedButton.icon(
+          onPressed: () => _exportGroupedSummaryXlsx(selectedRows),
+          icon: const Icon(Icons.table_view, size: 16),
+          label: const Text('Bulk XLSX'),
+          style: _bulkBarButtonStyle(),
+        ),
+      ];
+    }
+
+    final summary = selectedRows.first;
+    return [
+      OutlinedButton.icon(
+        onPressed: () => _showSummaryGroupDetails(summary),
+        icon: const Icon(Icons.visibility_outlined, size: 16),
+        label: const Text('View'),
+        style: _bulkBarButtonStyle(),
+      ),
+      if (widget.canManageSummaries) ...[
+        const SizedBox(width: 6),
+        OutlinedButton.icon(
+          onPressed: () => _editSummaryGroup(summary),
+          icon: const Icon(Icons.edit_outlined, size: 16),
+          label: const Text('Edit'),
+          style: _bulkBarButtonStyle(),
+        ),
+      ],
+      const SizedBox(width: 6),
+      OutlinedButton.icon(
+        onPressed: () => _exportGroupedSummaryCsv(selectedRows),
+        icon: const Icon(Icons.download_outlined, size: 16),
+        label: const Text('Export CSV'),
+        style: _bulkBarButtonStyle(),
+      ),
+      const SizedBox(width: 6),
+      OutlinedButton.icon(
+        onPressed: () => _exportGroupedSummaryXlsx(selectedRows),
+        icon: const Icon(Icons.table_view, size: 16),
+        label: const Text('Export XLSX'),
+        style: _bulkBarButtonStyle(),
+      ),
+    ];
   }
 
   // --- NEW: CALENDAR MODAL LOGIC ---
@@ -1360,18 +1682,16 @@ class _StaffTripsState extends State<StaffTrips> {
               width: 180,
               value: (trip) => (trip['remarks'] ?? '').toString(),
             ),
-            EnterpriseGridColumn(
-              label: 'Action',
-              width: 105,
-              value: (_) => 'Open',
-              cellBuilder: (context, trip) => OutlinedButton(
-                onPressed: () => _showTripDetails(trip),
-                child: const Text('View'),
-              ),
-            ),
           ],
           filterFields: const [],
           showDateRange: false,
+          allowSelectAll: false,
+          singleSelect: true,
+          onSelectionAction: (selectedRows) async {
+            if (selectedRows.isEmpty) return;
+            _showTripDetails(selectedRows.first);
+          },
+          selectionActionLabel: 'View',
           emptyTitle: 'No trips match these filters',
           emptyMessage:
               'Clear the current date and status filters to restore the trip ledger.',
@@ -1445,18 +1765,10 @@ class _StaffTripsState extends State<StaffTrips> {
               width: 260,
               value: (summary) => (summary['vehicles'] ?? '').toString(),
             ),
-            EnterpriseGridColumn(
-              label: 'Action',
-              width: 110,
-              value: (_) => 'Open',
-              cellBuilder: (context, summary) => OutlinedButton(
-                onPressed: () => _showSummaryGroupDetails(summary),
-                child: const Text('View'),
-              ),
-            ),
           ],
           filterFields: const [],
           showDateRange: false,
+          selectionActionsBuilder: _groupedSummaryActions,
           emptyTitle: 'No summaries match these filters',
           emptyMessage:
               'Clear the selected reporting period to restore summary batches.',
@@ -1470,217 +1782,13 @@ class _StaffTripsState extends State<StaffTrips> {
 // SUMMARY SHEET EXPORT PAGE (Fully Restored)
 // ---------------------------------------------------------
 class _SummarySheetPage extends StatelessWidget {
-  final String staffId;
-  final bool canManageSummaries;
   final String summaryId;
   final List<Map<String, dynamic>> rows;
-  final Future<bool> Function(
-    Map<String, dynamic> trip,
-    Map<String, dynamic> payload,
-  )
-  onSaveRow;
 
   const _SummarySheetPage({
-    required this.staffId,
-    required this.canManageSummaries,
     required this.summaryId,
     required this.rows,
-    required this.onSaveRow,
   });
-
-  String _generateCSV() {
-    const headers = [
-      'No.',
-      'Date',
-      'Working Day',
-      '(Bus) Type',
-      'Classification',
-      'Bus No. (Jeep plate no.)',
-      'Seating Capacity',
-      'Ticket no.',
-      'Driver',
-      'Route',
-      'No. of Passengers',
-      'Dept. Time',
-      'Arrival Time',
-      'Rate per Trip',
-      'Cost/head/day',
-      'Utilization Rate',
-      'REMARKS',
-    ];
-    String csv =
-        'Company,${_csvEscape((rows.first['client_company'] ?? 'Unassigned Company').toString())}\n';
-    csv +=
-        'Address,${_csvEscape((rows.first['client_company_address'] ?? '').toString())}\n\n';
-    csv += '${headers.map(_csvEscape).join(',')}\n';
-
-    for (int i = 0; i < rows.length; i++) {
-      final trip = rows[i];
-      final row = [
-        '${i + 1}',
-        (trip['schedule_date'] ?? trip['date'] ?? '').toString(),
-        (trip['working_day'] ?? '').toString(),
-        (trip['vehicle_type'] ?? trip['bus_type'] ?? '').toString(),
-        (trip['classification'] ?? '').toString(),
-        (trip['plate_number'] ?? 'Unassigned').toString(),
-        (trip['seating_capacity'] ?? '').toString(),
-        (trip['ticket_no'] ?? '').toString(),
-        (trip['driver_name'] ?? 'Unassigned').toString(),
-        (trip['route_name'] ?? '').toString(),
-        (trip['passenger_count'] ?? '').toString(),
-        (trip['departure_time'] ?? '').toString(),
-        (trip['estimated_arrival_time'] ?? '').toString(),
-        '',
-        '',
-        _summaryUtilizationText(trip),
-        (trip['remarks'] ?? '').toString(),
-      ];
-      csv += '${row.map(_csvEscape).join(',')}\n';
-    }
-    return csv;
-  }
-
-  String _csvEscape(String value) => '"${value.replaceAll('"', '""')}"';
-
-  Uint8List _generateXlsx() {
-    final excel = xlsx.Excel.createExcel();
-    final sheet = excel['Summary'];
-    sheet.appendRow([
-      xlsx.TextCellValue('Company'),
-      xlsx.TextCellValue(
-        (rows.first['client_company'] ?? 'Unassigned Company').toString(),
-      ),
-    ]);
-    sheet.appendRow([
-      xlsx.TextCellValue('Address'),
-      xlsx.TextCellValue(
-        (rows.first['client_company_address'] ?? '').toString(),
-      ),
-    ]);
-    sheet.appendRow([xlsx.TextCellValue('')]);
-    const headers = [
-      'No.',
-      'Date',
-      'Working Day',
-      '(Bus) Type',
-      'Classification',
-      'Bus No. (Jeep plate no.)',
-      'Seating Capacity',
-      'Ticket no.',
-      'Driver',
-      'Route',
-      'No. of Passengers',
-      'Dept. Time',
-      'Arrival Time',
-      'Rate per Trip',
-      'Cost/head/day',
-      'Utilization Rate',
-      'REMARKS',
-    ];
-    sheet.appendRow(headers.map((value) => xlsx.TextCellValue(value)).toList());
-
-    for (var i = 0; i < rows.length; i++) {
-      final trip = rows[i];
-      final values = [
-        '${i + 1}',
-        (trip['schedule_date'] ?? trip['date'] ?? '').toString(),
-        (trip['working_day'] ?? '').toString(),
-        (trip['vehicle_type'] ?? trip['bus_type'] ?? '').toString(),
-        (trip['classification'] ?? '').toString(),
-        (trip['plate_number'] ?? 'Unassigned').toString(),
-        (trip['seating_capacity'] ?? '').toString(),
-        (trip['ticket_no'] ?? '').toString(),
-        (trip['driver_name'] ?? 'Unassigned').toString(),
-        (trip['route_name'] ?? '').toString(),
-        (trip['passenger_count'] ?? '').toString(),
-        (trip['departure_time'] ?? '').toString(),
-        (trip['estimated_arrival_time'] ?? '').toString(),
-        '',
-        '',
-        _summaryUtilizationText(trip),
-        (trip['remarks'] ?? '').toString(),
-      ];
-      sheet.appendRow(
-        values.map((value) => xlsx.TextCellValue(value)).toList(),
-      );
-    }
-    excel.setDefaultSheet('Summary');
-    final headerStyle = xlsx.CellStyle(
-      backgroundColorHex: xlsx.ExcelColor.fromHexString('FF1E3A8A'),
-      fontColorHex: xlsx.ExcelColor.white,
-      bold: true,
-      fontSize: 10,
-      horizontalAlign: xlsx.HorizontalAlign.Center,
-      verticalAlign: xlsx.VerticalAlign.Center,
-      textWrapping: xlsx.TextWrapping.WrapText,
-    );
-    for (var column = 0; column < headers.length; column++) {
-      sheet
-              .cell(
-                xlsx.CellIndex.indexByColumnRow(
-                  columnIndex: column,
-                  rowIndex: 3,
-                ),
-              )
-              .cellStyle =
-          headerStyle;
-      sheet.setColumnWidth(column, column == 0 ? 8 : 18);
-    }
-    sheet.setColumnWidth(5, 24);
-    sheet.setColumnWidth(16, 30);
-    return Uint8List.fromList(excel.encode()!);
-  }
-
-  Future<void> _exportSummary(BuildContext context) async {
-    try {
-      final String csvData = _generateCSV();
-      final Uint8List fileBytes = Uint8List.fromList(utf8.encode(csvData));
-      final safeSummaryId = summaryId.isEmpty ? 'Trip_Summary' : summaryId;
-      final Uri? outputFile = await FilePicker.saveFile(
-        dialogTitle: 'Export Summary',
-        fileName: '${safeSummaryId}_Export.csv',
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
-        bytes: fileBytes,
-      );
-      if (outputFile == null) return;
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Export successfully triggered!')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
-      }
-    }
-  }
-
-  Future<void> _exportXlsx(BuildContext context) async {
-    try {
-      final safeSummaryId = summaryId.isEmpty ? 'Trip_Summary' : summaryId;
-      final outputFile = await FilePicker.saveFile(
-        dialogTitle: 'Export Summary as Excel',
-        fileName: '${safeSummaryId}_Export.xlsx',
-        type: FileType.custom,
-        allowedExtensions: ['xlsx'],
-        bytes: _generateXlsx(),
-      );
-      if (outputFile != null && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Excel export completed.')),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Excel export failed: $e')));
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1690,55 +1798,6 @@ class _SummarySheetPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(summaryId.isEmpty ? 'Trip Summary' : summaryId),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: OutlinedButton.icon(
-              onPressed: () => _exportSummary(context),
-              icon: const Icon(Icons.download, size: 18),
-              label: const Text('Export CSV'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: isDark
-                    ? Colors.blue.shade300
-                    : const Color(0xFF2563EB),
-                side: BorderSide(
-                  color: isDark ? Colors.blue.shade800 : Colors.blue.shade200,
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: OutlinedButton.icon(
-              onPressed: () => _exportXlsx(context),
-              icon: const Icon(Icons.table_view, size: 18),
-              label: const Text('Export XLSX'),
-            ),
-          ),
-          if (canManageSummaries)
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  final changed = await Navigator.of(context).push<bool>(
-                    MaterialPageRoute(
-                      builder: (_) => TripSummaryEditorPage(
-                        staffId: staffId,
-                        summaryId: summaryId,
-                        initialRows: rows,
-                        onSaveRow: onSaveRow,
-                      ),
-                    ),
-                  );
-                  if (changed == true && context.mounted) {
-                    Navigator.pop(context, true);
-                  }
-                },
-                icon: const Icon(Icons.edit, size: 18),
-                label: const Text('Edit'),
-              ),
-            ),
-        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),

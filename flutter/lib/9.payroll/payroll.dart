@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:excel/excel.dart' as xlsx;
 import 'package:flutter/material.dart';
 import '../layouts/enterprise/enterprise_states.dart';
 import 'package:http/http.dart' as http;
@@ -573,21 +574,146 @@ class _PayrollState extends State<Payroll> {
     });
   }
 
-  Future<void> _exportPayrollSelection(List<_PayrollRow> rows) async {
-    final buffer = StringBuffer(
-      'Driver ID,Driver,Present,Half Day,Absent,Trips,Regular Pay,Deductions,Overtime,Route Pay,Total Pay\n',
-    );
+  String _csvEscape(String value) => '"${value.replaceAll('"', '""')}"';
+
+  String _payrollCsv(List<_PayrollRow> rows) {
+    final buffer = StringBuffer()
+      ..writeln(
+        'Payroll Period,${_csvEscape('${_dateLabel(_periodStart)} - ${_dateLabel(_payDate)}')}',
+      )
+      ..writeln('Generated,${_csvEscape(DateTime.now().toIso8601String())}')
+      ..writeln()
+      ..writeln(
+        [
+          'Driver ID',
+          'Driver',
+          'Present',
+          'Half Day',
+          'Absent',
+          'Overtime Days',
+          'Trips',
+          'Route Breakdown',
+          'Regular Pay',
+          'Deductions',
+          'Overtime',
+          'Route Pay',
+          'Total Pay',
+        ].map(_csvEscape).join(','),
+      );
+
     for (final row in rows) {
       buffer.writeln(
-        '${row.driverId},"${row.driverName.replaceAll('"', '""')}",'
-        '${row.presentDays},${row.halfDays},${row.absentDays},${row.tripCount},'
-        '${row.regularPay},${row.totalDeductions},${row.overtimePay},'
-        '${row.tripPay},${row.netPay}',
+        [
+          row.driverId,
+          row.driverName,
+          '${row.presentDays}',
+          '${row.halfDays}',
+          '${row.absentDays}',
+          '${row.overtimeDays}',
+          '${row.tripCount}',
+          row.routeSummary,
+          row.regularPay.toStringAsFixed(2),
+          row.totalDeductions.toStringAsFixed(2),
+          row.overtimePay.toStringAsFixed(2),
+          row.tripPay.toStringAsFixed(2),
+          row.netPay.toStringAsFixed(2),
+        ].map(_csvEscape).join(','),
       );
     }
+
+    return buffer.toString();
+  }
+
+  Uint8List _payrollXlsx(List<_PayrollRow> rows) {
+    final excel = xlsx.Excel.createExcel();
+    final sheet = excel['Payroll'];
+
+    sheet.appendRow([
+      xlsx.TextCellValue('Payroll Period'),
+      xlsx.TextCellValue(
+        '${_dateLabel(_periodStart)} - ${_dateLabel(_payDate)}',
+      ),
+    ]);
+    sheet.appendRow([
+      xlsx.TextCellValue('Generated'),
+      xlsx.TextCellValue(DateTime.now().toIso8601String()),
+    ]);
+    sheet.appendRow([xlsx.TextCellValue('')]);
+
+    const headers = [
+      'Driver ID',
+      'Driver',
+      'Present',
+      'Half Day',
+      'Absent',
+      'Overtime Days',
+      'Trips',
+      'Route Breakdown',
+      'Regular Pay',
+      'Deductions',
+      'Overtime',
+      'Route Pay',
+      'Total Pay',
+    ];
+    sheet.appendRow(headers.map((value) => xlsx.TextCellValue(value)).toList());
+
+    for (final row in rows) {
+      sheet.appendRow(
+        [
+          row.driverId,
+          row.driverName,
+          '${row.presentDays}',
+          '${row.halfDays}',
+          '${row.absentDays}',
+          '${row.overtimeDays}',
+          '${row.tripCount}',
+          row.routeSummary,
+          row.regularPay.toStringAsFixed(2),
+          row.totalDeductions.toStringAsFixed(2),
+          row.overtimePay.toStringAsFixed(2),
+          row.tripPay.toStringAsFixed(2),
+          row.netPay.toStringAsFixed(2),
+        ].map((value) => xlsx.TextCellValue(value)).toList(),
+      );
+    }
+
+    excel.setDefaultSheet('Payroll');
+    final headerStyle = xlsx.CellStyle(
+      backgroundColorHex: xlsx.ExcelColor.fromHexString('FF1E3A8A'),
+      fontColorHex: xlsx.ExcelColor.white,
+      bold: true,
+      horizontalAlign: xlsx.HorizontalAlign.Center,
+      verticalAlign: xlsx.VerticalAlign.Center,
+      textWrapping: xlsx.TextWrapping.WrapText,
+    );
+    for (var column = 0; column < headers.length; column++) {
+      sheet
+              .cell(
+                xlsx.CellIndex.indexByColumnRow(
+                  columnIndex: column,
+                  rowIndex: 3,
+                ),
+              )
+              .cellStyle =
+          headerStyle;
+      sheet.setColumnWidth(column, column == 7 ? 26 : 16);
+    }
+
+    return Uint8List.fromList(excel.encode()!);
+  }
+
+  Future<void> _downloadPayrollCsv(
+    List<_PayrollRow> rows, {
+    required String fileName,
+  }) async {
+    if (rows.isEmpty) {
+      EnterpriseToasts.error(context, 'No payroll rows to export.');
+      return;
+    }
+
     await downloadFileBytes(
-      fileName: 'shervice-payroll-selection.csv',
-      bytes: Uint8List.fromList(utf8.encode(buffer.toString())),
+      fileName: fileName,
+      bytes: Uint8List.fromList(utf8.encode(_payrollCsv(rows))),
     );
     if (mounted) {
       EnterpriseToasts.success(
@@ -595,6 +721,38 @@ class _PayrollState extends State<Payroll> {
         '${rows.length} payroll rows exported.',
       );
     }
+  }
+
+  Future<void> _downloadPayrollXlsx(
+    List<_PayrollRow> rows, {
+    required String fileName,
+  }) async {
+    if (rows.isEmpty) {
+      EnterpriseToasts.error(context, 'No payroll rows to export.');
+      return;
+    }
+
+    await downloadFileBytes(fileName: fileName, bytes: _payrollXlsx(rows));
+    if (mounted) {
+      EnterpriseToasts.success(
+        context,
+        '${rows.length} payroll rows exported.',
+      );
+    }
+  }
+
+  Future<void> _exportPayrollSelection(List<_PayrollRow> rows) async {
+    await _downloadPayrollCsv(
+      rows,
+      fileName: 'shervice-payroll-selection.csv',
+    );
+  }
+
+  Future<void> _exportPayrollSelectionXlsx(List<_PayrollRow> rows) async {
+    await _downloadPayrollXlsx(
+      rows,
+      fileName: 'shervice-payroll-selection.xlsx',
+    );
   }
 
   // ---------------------------------------------------------
@@ -741,6 +899,9 @@ class _PayrollState extends State<Payroll> {
                       emptyActionLabel: 'Refresh payroll data',
                       onEmptyAction: _loadPayrollData,
                       onExportSelection: _exportPayrollSelection,
+                      exportSelectionLabel: 'Export CSV',
+                      onSecondaryExportSelection: _exportPayrollSelectionXlsx,
+                      secondaryExportSelectionLabel: 'Export XLSX',
                     ),
             ),
           ],

@@ -414,36 +414,6 @@ class _AttendanceState extends State<Attendance> {
     );
   }
 
-  Future<void> _exportAttendanceSelection(
-    List<Map<String, String>> rows,
-  ) async {
-    final buffer = StringBuffer(
-      '${_columns.map((column) => '"${_formatTableHeader(column)}"').join(',')}\n',
-    );
-    for (final row in rows) {
-      buffer.writeln(
-        _columns
-            .map(
-              (column) =>
-                  '"${_formatDisplayValue(column, row[column] ?? '').replaceAll('"', '""')}"',
-            )
-            .join(','),
-      );
-    }
-    await downloadFileBytes(
-      fileName: 'shervice-attendance-selection.csv',
-      bytes: Uint8List.fromList(utf8.encode(buffer.toString())),
-    );
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${rows.length} attendance rows exported.'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
-  }
-
   Future<void> _executeExport(String format) async {
     final filteredRows = _processedRows;
     final exportColumns = _attendanceColumns;
@@ -2138,6 +2108,7 @@ class _AttendanceState extends State<Attendance> {
                             '${row['employee_id'] ?? row['employee'] ?? ''}-${row['date'] ?? ''}',
                         height: double.infinity,
                         showDateRange: false, // Disables native top-right Date Range control
+                        selectable: false,
                         filterFields: [
                           // --- FILTERS INSIDE THE TABLE TOP LEFT ---
                           Container(
@@ -2356,7 +2327,6 @@ class _AttendanceState extends State<Attendance> {
                                   ),
                             )
                             .toList(),
-                        onExportSelection: _exportAttendanceSelection,
                       ),
               ),
             ],

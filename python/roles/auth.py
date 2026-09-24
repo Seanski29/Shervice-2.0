@@ -1,6 +1,7 @@
 import os
 import logging
-from typing import Any, Dict, cast
+import re
+from typing import Any, Dict, Optional, cast
 from flask import Blueprint, jsonify, request
 from supabase import create_client
 
@@ -8,6 +9,9 @@ auth_bp = Blueprint('auth', __name__)
 
 supabase = None 
 logger = logging.getLogger(__name__)
+EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+PHONE_PATTERN = re.compile(r"^[0-9+\-\s()]{7,20}$")
+ALLOWED_DRIVER_STATUSES = {"Active", "On Leave", "Suspended", "Absent"}
 
 def get_admin_client():
     admin_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
@@ -18,15 +22,40 @@ def get_admin_client():
         raise RuntimeError("Missing SUPABASE_URL for admin auth operations.")
     return create_client(supabase_url, admin_key)
 
+def _json_body() -> Dict[str, Any]:
+    if not request.is_json:
+        return {}
+    return cast(Dict[str, Any], request.get_json(silent=True) or {})
+
+def _valid_email(email: str) -> bool:
+    return bool(EMAIL_PATTERN.match(email))
+
+def _password_error(password: Any) -> Optional[str]:
+    if not isinstance(password, str) or len(password) < 8:
+        return "Password must be at least 8 characters long."
+    if password.lower() == password or password.upper() == password:
+        return "Password must include uppercase and lowercase letters."
+    if not any(char.isdigit() for char in password):
+        return "Password must include at least one number."
+    return None
+
+def _safe_error(default: str, error: Exception) -> str:
+    message = str(error)
+    if "already registered" in message.lower() or "already exists" in message.lower():
+        return message
+    return default
+
 @auth_bp.route('/api/auth/login', methods=['POST'])
 def handle_api_login():
     try:
-        body = cast(Dict[str, Any], request.get_json() or {})
+        body = _json_body()
         email = str(body.get('email', '')).strip().lower()
         password = body.get('password')
 
         if not email or not password:
             return jsonify({"success": False, "message": "Missing authentication parameters"}), 400
+        if not _valid_email(email):
+            return jsonify({"success": False, "message": "Invalid email or password credentials."}), 401
 
         auth_response = supabase.auth.sign_in_with_password({
             "email": email,
@@ -83,10 +112,19 @@ def handle_api_login():
 @auth_bp.route('/api/auth/register-staff', methods=['POST'])
 def register_staff():
     try:
-        data = request.get_json() or {}
+        data = _json_body()
         email = str(data.get('email', '')).strip().lower()
-        full_name = data.get('full_name')
+        full_name = str(data.get('full_name', '')).strip()
         role_raw = data.get('role')
+        password = data.get('password')
+
+        if not _valid_email(email):
+            return jsonify({"success": False, "message": "A valid email is required."}), 400
+        if not full_name:
+            return jsonify({"success": False, "message": "Full name is required."}), 400
+        password_message = _password_error(password)
+        if password_message:
+            return jsonify({"success": False, "message": password_message}), 400
 
         role_map = {'Dispatch Staff': 'staff'}
         normalized_role = role_map.get(role_raw, 'staff')
@@ -94,7 +132,7 @@ def register_staff():
         admin_supabase = get_admin_client()
         auth_res = admin_supabase.auth.admin.create_user({
             "email": email,
-            "password": data.get('password'),
+            "password": password,
             "email_confirm": True
         })
         uid = auth_res.user.id
@@ -108,24 +146,30 @@ def register_staff():
 
         return jsonify({"success": True, "message": "User registered!"}), 201
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
+        logger.exception("Staff registration failed")
+        return jsonify({"success": False, "message": _safe_error("Unable to register user.", e)}), 500
 
 @auth_bp.route('/api/auth/register-driver', methods=['POST'])
 def register_driver_profile():
     try:
-        data = request.get_json() or {}
-        full_name = data.get('full_name')
+        data = _json_body()
+        full_name = str(data.get('full_name', '')).strip()
         phone_no = str(data.get('phone_no', '09123456789')).strip()
+        status = str(data.get('employment_status', 'Active')).strip() or "Active"
 
         if not full_name:
             return jsonify({"success": False, "message": "Driver name is required."}), 400
+        if not PHONE_PATTERN.match(phone_no):
+            return jsonify({"success": False, "message": "A valid phone number is required."}), 400
+        if status not in ALLOWED_DRIVER_STATUSES:
+            return jsonify({"success": False, "message": "Invalid employment status."}), 400
 
         insert_response = supabase.table('driver_profile').insert({
             "full_name": full_name,
             "birthday": data.get('birthday', '1995-05-15'),
             "phone_no": phone_no,
             "date_hired": data.get('date_hired', '2024-01-01'),
-            "employment_status": data.get('employment_status', 'Active'),
+            "employment_status": status,
             "is_backup": data.get('is_backup', 'No')
         }).execute()
 
@@ -144,15 +188,23 @@ def register_driver_profile():
 @auth_bp.route('/api/auth/update-password', methods=['POST'])
 def update_user_password():
     try:
-        data = request.get_json() or {}
+        data = _json_body()
+        user_id = str(data.get('user_id', '')).strip()
+        new_password = data.get('new_password')
+        if not user_id:
+            return jsonify({"success": False, "message": "User ID is required."}), 400
+        password_message = _password_error(new_password)
+        if password_message:
+            return jsonify({"success": False, "message": password_message}), 400
         admin_client = get_admin_client()
         admin_client.auth.admin.update_user_by_id(
-            data['user_id'], 
-            attributes={"password": data['new_password']}
+            user_id,
+            attributes={"password": new_password}
         )
         return jsonify({"success": True, "message": "Password updated!"}), 200
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
+        logger.exception("Password update failed")
+        return jsonify({"success": False, "message": "Unable to update password."}), 500
 
 @auth_bp.route('/api/auth/system-users', methods=['GET'])
 def get_system_users():
@@ -192,15 +244,22 @@ def get_system_users():
 @auth_bp.route('/api/auth/update-driver/<driver_id>', methods=['PUT'])
 def update_driver(driver_id):
     try:
-        data = request.get_json() or {}
-        full_name = data.get("full_name")
+        data = _json_body()
+        full_name = str(data.get("full_name", "")).strip()
         phone_no = str(data.get("phone_no", "09123456789")).strip()
+        status = str(data.get("employment_status", "Active")).strip() or "Active"
+        if not full_name:
+            return jsonify({"success": False, "message": "Driver name is required."}), 400
+        if not PHONE_PATTERN.match(phone_no):
+            return jsonify({"success": False, "message": "A valid phone number is required."}), 400
+        if status not in ALLOWED_DRIVER_STATUSES:
+            return jsonify({"success": False, "message": "Invalid employment status."}), 400
         
         driver_update = {
             "full_name": full_name,
             "birthday": data.get("birthday"),
             "phone_no": phone_no,
-            "employment_status": data.get("employment_status", "Active")
+            "employment_status": status
         }
         if "is_backup" in data:
             driver_update["is_backup"] = data["is_backup"]
