@@ -34,6 +34,7 @@ LOCAL_CORS_ALLOWED_ORIGINS = [
 ]
 HOSTED_CORS_ALLOWED_ORIGINS = [
     "https://shervice-python-production.up.railway.app",
+    "https://shervice-flutter-production.up.railway.app",
 ]
 LOGIN_RATE_LIMIT_ATTEMPTS = 8
 LOGIN_RATE_LIMIT_WINDOW_SECONDS = 60
