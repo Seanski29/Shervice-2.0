@@ -221,7 +221,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
 
   void _hydrateSecondaryDashboard() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future<void>.delayed(const Duration(milliseconds: 350), () {
+      Future<void>.delayed(const Duration(milliseconds: 2500), () {
         if (!mounted) return;
         setState(() => _showSecondaryDashboard = true);
         _loadMonthlyDispatches();
