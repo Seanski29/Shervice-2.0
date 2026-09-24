@@ -1360,18 +1360,16 @@ class _StaffTripsState extends State<StaffTrips> {
               width: 180,
               value: (trip) => (trip['remarks'] ?? '').toString(),
             ),
-            EnterpriseGridColumn(
-              label: 'Action',
-              width: 105,
-              value: (_) => 'Open',
-              cellBuilder: (context, trip) => OutlinedButton(
-                onPressed: () => _showTripDetails(trip),
-                child: const Text('View'),
-              ),
-            ),
           ],
           filterFields: const [],
           showDateRange: false,
+          allowSelectAll: false,
+          singleSelect: true,
+          onSelectionAction: (selectedRows) async {
+            if (selectedRows.isEmpty) return;
+            _showTripDetails(selectedRows.first);
+          },
+          selectionActionLabel: 'View',
           emptyTitle: 'No trips match these filters',
           emptyMessage:
               'Clear the current date and status filters to restore the trip ledger.',
