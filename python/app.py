@@ -22,7 +22,7 @@ import roles.route_ml as route_ml_module
 
 # Flip this only when switching between your PC backend and Railway.
 # Environment variables still override these defaults when deployed.
-USE_HOSTED_CONFIG = False  # Set to False for local development, True for Railway deployment
+USE_HOSTED_CONFIG = True  # Set to False for local development, True for Railway deployment
 
 LOCAL_CORS_ALLOWED_ORIGINS = [
     r"http://localhost:\d+",
