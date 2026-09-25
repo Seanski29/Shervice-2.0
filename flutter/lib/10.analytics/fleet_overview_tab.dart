@@ -866,74 +866,107 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
                       style: TextStyle(color: Colors.grey.shade500),
                     ),
                   )
-                : Row(
-                    children: [
-                      SizedBox(
-                        width: 145,
-                        child: PieChart(
-                          PieChartData(
-                            sectionsSpace: 2,
-                            centerSpaceRadius: 28,
-                            sections: [
-                              for (var index = 0; index < data.length; index++)
-                                PieChartSectionData(
-                                  value: data[index].value.toDouble(),
-                                  color: colors[index],
-                                  radius: 52,
-                                  title: total == 0
-                                      ? ''
-                                      : '${(data[index].value * 100 / total).round()}%',
-                                  titleStyle: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                            ],
+                : LayoutBuilder(
+                    builder: (context, chartConstraints) {
+                      final pieWidth = min(
+                        260.0,
+                        max(120.0, chartConstraints.maxWidth * 0.48),
+                      );
+                      final pieRadius = min(
+                        78.0,
+                        max(
+                          42.0,
+                          min(
+                            pieWidth * 0.34,
+                            chartConstraints.maxHeight * 0.34,
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              for (var index = 0; index < data.length; index++)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 6),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 9,
-                                        height: 9,
-                                        decoration: BoxDecoration(
+                      );
+                      final pieDiameter = pieRadius * 2;
+
+                      return Row(
+                        children: [
+                          SizedBox(
+                            width: pieWidth,
+                            child: Center(
+                              child: SizedBox.square(
+                                dimension: pieDiameter,
+                                child: PieChart(
+                                  PieChartData(
+                                    sectionsSpace: 2,
+                                    centerSpaceRadius: pieRadius * 0.54,
+                                    sections: [
+                                      for (
+                                        var index = 0;
+                                        index < data.length;
+                                        index++
+                                      )
+                                        PieChartSectionData(
+                                          value: data[index].value.toDouble(),
                                           color: colors[index],
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          '${data[index].key} (${data[index].value})',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: isDark
-                                                ? Colors.grey.shade300
-                                                : Colors.grey.shade700,
+                                          radius: pieRadius,
+                                          title: total == 0
+                                              ? ''
+                                              : '${(data[index].value * 100 / total).round()}%',
+                                          titleStyle: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
                                           ),
                                         ),
-                                      ),
                                     ],
                                   ),
                                 ),
-                            ],
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    ],
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: SingleChildScrollView(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  for (
+                                    var index = 0;
+                                    index < data.length;
+                                    index++
+                                  )
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 6),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 9,
+                                            height: 9,
+                                            decoration: BoxDecoration(
+                                              color: colors[index],
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Expanded(
+                                            child: Text(
+                                              '${data[index].key} (${data[index].value})',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: isDark
+                                                    ? Colors.grey.shade300
+                                                    : Colors.grey.shade700,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
           ),
         ],
@@ -951,15 +984,13 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
         : _monthNames[_selectedMonth - 1];
     return LayoutBuilder(
       builder: (context, constraints) {
-        final width = constraints.maxWidth < 700
-            ? constraints.maxWidth
-            : (constraints.maxWidth - 12) / 2;
-        return Wrap(
-          spacing: 12,
-          runSpacing: 12,
+        // Keep both category cards beside each other on laptop layouts. The
+        // parent row already places this section beside the Routes card.
+        // Wrapping below 700 caused the second card to move underneath it.
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: width,
+            Expanded(
               child: _buildHorizontalBarChart(
                 'Maintenance Categories - $monthLabel',
                 maintenance,
@@ -967,8 +998,8 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
                 isDark,
               ),
             ),
-            SizedBox(
-              width: width,
+            const SizedBox(width: 12),
+            Expanded(
               child: _buildHorizontalBarChart(
                 'Repair Categories - $monthLabel',
                 repairs,

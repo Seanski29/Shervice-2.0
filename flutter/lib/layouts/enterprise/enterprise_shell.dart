@@ -74,7 +74,11 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
         autofocus: true,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final compact = constraints.maxWidth < 960;
+            // Keep the full desktop shell on laptop-sized browser windows.
+            // 960 logical pixels was too aggressive (especially with browser
+            // zoom/device pixel ratios), hiding the sidebar on laptops even
+            // though there is still enough room for the desktop layout.
+            final compact = constraints.maxWidth < 760;
             return Scaffold(
               key: _scaffoldKey,
               drawer: compact
