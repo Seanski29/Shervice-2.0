@@ -52,6 +52,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
   double _professionalismAvg = 0.0;
   int _filteredEvaluationCount = 0;
   int _filteredTripCount = 0;
+  int? _serverTripCount;
 
   int _presentCount = 0;
   int _halfDayCount = 0;
@@ -77,8 +78,9 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
   @override
   void initState() {
     super.initState();
-    _selectedYear = DateTime.now().year;
-    _selectedMonth = DateTime.now().month;
+    // Start with all available history so older completed trips are visible.
+    _selectedYear = null;
+    _selectedMonth = null;
     _fetchData();
   }
 
@@ -116,6 +118,28 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
         if (tripsRes.statusCode == 200) {
           final data = jsonDecode(tripsRes.body);
           _rawTrips = data['data'] ?? [];
+          _serverTripCount = (data['trip_count'] as num?)?.toInt();
+        }
+        if (_rawTrips.isEmpty) {
+          // Fallback for deployments where the driver-specific endpoint is
+          // unavailable: use the same trip table exposed by the all-trips
+          // endpoint and normalize IDs before applying the filters.
+          final allTripsRes = await http.get(
+            Uri.parse('${widget.backendUrl}/schedules/all'),
+          );
+          if (allTripsRes.statusCode == 200) {
+            final allData = jsonDecode(allTripsRes.body);
+            final allTrips = (allData['data'] as List? ?? [])
+                .whereType<Map>()
+                .map((trip) => Map<String, dynamic>.from(trip))
+                .where(
+                  (trip) =>
+                      trip['driver_id']?.toString() == widget.driverId,
+                )
+                .toList();
+            _rawTrips = allTrips;
+            _serverTripCount = allTrips.length;
+          }
         }
         if (attendanceRes.statusCode == 200) {
           final data = jsonDecode(attendanceRes.body);
@@ -198,33 +222,42 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
   void _recomputeForHorizon() {
     // 1. Filter Evaluations
     List<dynamic> targetEvals = _rawEvals.where((e) {
-      if (_selectedYear == null) return true;
       DateTime? dt = DateTime.tryParse(
         (e['submit_date'] ?? e['created_at'] ?? '').toString(),
       );
       if (dt == null) return false;
+      if (_selectedYear == null && _selectedMonth == null) return true;
+      if (_selectedYear == null) return dt.month == _selectedMonth;
       if (_selectedMonth == null) return dt.year == _selectedYear;
       return dt.year == _selectedYear && dt.month == _selectedMonth;
     }).toList();
 
     // 2. Filter Trips
-    _filteredTripCount = _rawTrips.where((t) {
-      if (_selectedYear == null) return true;
+    final filteredTrips = _rawTrips.where((t) {
       DateTime? dt = DateTime.tryParse(
         (t['schedule_date'] ?? t['date'] ?? '').toString(),
       );
       if (dt == null) return false;
+      if (_selectedYear == null && _selectedMonth == null) return true;
+      if (_selectedYear == null) return dt.month == _selectedMonth;
       if (_selectedMonth == null) return dt.year == _selectedYear;
       return dt.year == _selectedYear && dt.month == _selectedMonth;
     }).length;
+    _filteredTripCount = _rawTrips.isEmpty &&
+            _selectedYear == null &&
+            _selectedMonth == null &&
+            _serverTripCount != null
+        ? _serverTripCount!
+        : filteredTrips;
 
     // 3. Filter and Calculate Attendance
     List<dynamic> targetAttendance = _rawAttendance.where((a) {
-      if (_selectedYear == null) return true;
       DateTime? dt = DateTime.tryParse(
         (a['work_date'] ?? a['date'] ?? '').toString(),
       );
       if (dt == null) return false;
+      if (_selectedYear == null && _selectedMonth == null) return true;
+      if (_selectedYear == null) return dt.month == _selectedMonth;
       if (_selectedMonth == null) return dt.year == _selectedYear;
       return dt.year == _selectedYear && dt.month == _selectedMonth;
     }).toList();
@@ -479,7 +512,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (_selectedYear != null) ...[
+                  ...[
                     DropdownButtonHideUnderline(
                       child: DropdownButton<int?>(
                         value: _selectedMonth,
@@ -555,7 +588,6 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
                       onChanged: (val) {
                         setState(() {
                           _selectedYear = val;
-                          if (val == null) _selectedMonth = null;
                         });
                         _recomputeForHorizon();
                       },

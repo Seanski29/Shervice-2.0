@@ -98,7 +98,9 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
   }
 
   Color _getClusterColor(String label) {
-    if (label.contains('Stable')) return const Color(0xFF10B981);
+    if (label.contains('Steady') || label.contains('Stable')) {
+      return const Color(0xFF8B5CF6);
+    }
     if (label.contains('High')) return const Color(0xFFF97316);
     return const Color(0xFF3B82F6);
   }
@@ -137,7 +139,7 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
       case 'high':
         return const Color(0xFFF97316);
       case 'stable':
-        return const Color(0xFF10B981);
+        return const Color(0xFF8B5CF6);
       case 'low':
         return const Color(0xFF3B82F6);
       default:
@@ -146,7 +148,9 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
   }
 
   IconData _getClusterIcon(String label) {
-    if (label.contains('Stable')) return Icons.check_circle_outline;
+    if (label.contains('Steady') || label.contains('Stable')) {
+      return Icons.trending_flat;
+    }
     if (label.contains('High')) return Icons.local_fire_department_outlined;
     return Icons.trending_down;
   }

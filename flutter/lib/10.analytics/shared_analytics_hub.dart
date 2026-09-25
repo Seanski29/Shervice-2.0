@@ -222,7 +222,7 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
             if (res.statusCode == 200 && mounted) {
               final parsed = jsonDecode(res.body);
               d['ml_classification'] =
-                  parsed['classification'] ?? d['ml_classification'];
+              parsed['classification'] ?? d['ml_classification'] ?? 'Needs Review';
 
               var ratingVal = parsed['rating'] ?? parsed['average_rating'];
               if (ratingVal != null) {

@@ -3,8 +3,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:math';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../constant.dart';
+import '../core/session_manager.dart';
 import '../layouts/enterprise/enterprise_theme.dart';
 import '../utilities/file_download.dart';
 import '../layouts/enterprise/enterprise_data_grid.dart';
@@ -50,6 +50,15 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
   final int _itemsPerPage = 10;
 
   bool get _isAdmin => widget.userRole.toLowerCase() == 'admin';
+
+  Future<Map<String, String>> _maintenanceHeaders() async {
+    final session = await SessionManager.getUserData();
+    final token = session['accessToken'];
+    return {
+      'Content-Type': 'application/json',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    };
+  }
 
   @override
   void initState() {
@@ -109,6 +118,10 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
       final type = (v['bus_type'] ?? '').toString().toLowerCase();
 
       final status = (v['health_status'] ?? 'Good').toString().toLowerCase();
+      final dueType = (v['maintenance_due_type'] ??
+              (v['needs_attention'] == true ? 'maintenance' : ''))
+          .toString()
+          .toLowerCase();
 
       final matchesSearch =
           plate.contains(_searchQuery.toLowerCase()) ||
@@ -117,9 +130,10 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
       bool matchesStatus = true;
       if (_statusFilter == 'Available') {
         matchesStatus = status == 'good' || status == 'excellent';
-      } else if (_statusFilter == 'Needs Maintenance') {
-        matchesStatus =
-            status.contains('maintenance') || status.contains('repair');
+      } else if (_statusFilter == 'Due Maintenance') {
+        matchesStatus = dueType == 'maintenance';
+      } else if (_statusFilter == 'Due Repair') {
+        matchesStatus = dueType == 'repair';
       }
 
       return matchesSearch && matchesStatus;
@@ -190,14 +204,19 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
       ? 0
       : _baseVehicles.where((v) {
           final s = (v['health_status'] ?? 'Good').toString().toLowerCase();
-          return s == 'good' || s == 'excellent';
+          return (s == 'good' || s == 'excellent') &&
+              v['needs_attention'] != true;
         }).length;
   int get _maintenanceVehicles => _isLoading
       ? 0
       : _baseVehicles.where((v) {
-          final s = (v['health_status'] ?? '').toString().toLowerCase();
-          return s.contains('maintenance') || s.contains('repair');
+          return (v['maintenance_due_type'] ??
+                  (v['needs_attention'] == true ? 'maintenance' : '')) ==
+              'maintenance';
         }).length;
+  int get _repairVehicles => _isLoading
+      ? 0
+      : _baseVehicles.where((v) => v['maintenance_due_type'] == 'repair').length;
 
   Color _getStatusColor(String rawStatus) {
     final status = rawStatus.toLowerCase();
@@ -325,6 +344,27 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
           side: const BorderSide(color: Color(0xFF667085)),
         ),
       ),
+      if (_isAdmin) ...[
+        const SizedBox(width: 6),
+        OutlinedButton.icon(
+          onPressed: () async {
+            final vehicleId = int.tryParse(
+                  (vehicle['vehicle_id'] ?? '').toString(),
+                ) ??
+                0;
+            final logs = await _fetchVehicleLogHistory(vehicleId);
+            if (context.mounted) {
+              _showMaintenanceManagerModal(context, vehicle, logs);
+            }
+          },
+          icon: const Icon(Icons.history, size: 16),
+          label: const Text('View Maintenance Logs'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.white,
+            side: const BorderSide(color: Color(0xFF667085)),
+          ),
+        ),
+      ],
       if (!_isAdmin) ...[
         const SizedBox(width: 6),
         OutlinedButton.icon(
@@ -352,6 +392,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
   void _showLogIssueDialog(Map<String, dynamic> vehicle) {
     final formKey = GlobalKey<FormState>();
     String description = '';
+    String chosenType = 'repair';
     String chosenCategory = 'General';
     DateTime? incidentDate = DateTime.now();
     TimeOfDay? incidentTime = TimeOfDay.now();
@@ -392,32 +433,42 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: Colors.orange.shade300),
+                      DropdownButtonFormField<String>(
+                        initialValue: chosenType,
+                        dropdownColor: isDark
+                            ? const Color(0xFF1E293B)
+                            : Colors.white,
+                        style: TextStyle(color: textColor, fontSize: 14),
+                        decoration: InputDecoration(
+                          labelText: 'Record Type',
+                          labelStyle: TextStyle(
+                            color: isDark
+                                ? Colors.grey.shade400
+                                : Colors.grey.shade600,
+                          ),
+                          filled: true,
+                          fillColor: inputBg,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4),
+                            borderSide: BorderSide(color: borderColor),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(4),
+                            borderSide: BorderSide(color: borderColor),
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.warning_amber_rounded,
-                              color: Colors.orange.shade600,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                "Logging this issue marks the vehicle as 'Maintenance Required'.",
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: isDark
-                                      ? Colors.grey.shade300
-                                      : Colors.black87,
-                                ),
-                              ),
-                            ),
-                          ],
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'repair',
+                            child: Text('Repair'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'maintenance',
+                            child: Text('Maintenance'),
+                          ),
+                        ],
+                        onChanged: (val) => setModalState(
+                          () => chosenType = val ?? 'repair',
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -597,13 +648,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                         if (formKey.currentState?.validate() ?? false) {
                           formKey.currentState?.save();
                           setModalState(() => isSaving = true);
-                          String? currentUserId = widget.userId;
-                          if (currentUserId == null || currentUserId.isEmpty) {
-                            try {
-                              currentUserId =
-                                  Supabase.instance.client.auth.currentUser?.id;
-                            } catch (_) {}
-                          }
+                          final session = await SessionManager.getUserData();
                           String? formatTime(TimeOfDay? time) {
                             if (time == null) return null;
                             return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}:00';
@@ -611,8 +656,9 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
 
                           final payload = {
                             'description': description,
+                            'maintenance_type': chosenType,
                             'vehicle_id': vehicle['vehicle_id'],
-                            'user_id': currentUserId,
+                            'user_id': session['userId'],
                             'category': chosenCategory,
                             'incident_date': incidentDate != null
                                 ? '${incidentDate!.year}-${incidentDate!.month.toString().padLeft(2, '0')}-${incidentDate!.day.toString().padLeft(2, '0')}'
@@ -623,9 +669,9 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                           try {
                             final response = await http.post(
                               Uri.parse('$backendUrl/vehicles/maintenance'),
-                              headers: {'Content-Type': 'application/json'},
+                              headers: await _maintenanceHeaders(),
                               body: jsonEncode(payload),
-                            );
+                            ).timeout(const Duration(seconds: 15));
                             if (response.statusCode == 200 ||
                                 response.statusCode == 201) {
                               widget.onRefreshNeeded();
@@ -640,15 +686,27 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                               }
                             } else {
                               if (context.mounted) {
+                                String message = 'Failed to log issue (${response.statusCode}).';
+                                try {
+                                  final decoded = jsonDecode(response.body);
+                                  if (decoded is Map && decoded['message'] != null) {
+                                    message = decoded['message'].toString();
+                                  }
+                                } catch (_) {}
                                 _showSnackBar(
-                                  'Failed to log issue.',
+                                  message,
                                   Colors.red,
                                 );
                               }
                             }
                           } catch (e) {
                             if (context.mounted) {
-                              _showSnackBar('Network error.', Colors.red);
+                              _showSnackBar(
+                                e.toString().contains('TimeoutException')
+                                    ? 'The server took too long to save the incident.'
+                                    : 'Unable to save the incident: $e',
+                                Colors.red,
+                              );
                             }
                           } finally {
                             setModalState(() => isSaving = false);
@@ -832,7 +890,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                         try {
                           final response = await http.put(
                             Uri.parse('$backendUrl/vehicles/maintenance'),
-                            headers: {'Content-Type': 'application/json'},
+                            headers: await _maintenanceHeaders(),
                             body: jsonEncode(payload),
                           );
                           if (response.statusCode == 200) {
@@ -849,7 +907,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                           } else {
                             if (context.mounted) {
                               _showSnackBar(
-                                'Failed to update log.',
+                                'Failed to update log (${response.statusCode}).',
                                 Colors.red,
                               );
                             }
@@ -892,6 +950,11 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
     List<dynamic> logs,
   ) {
     String currentSort = 'Ongoing First';
+    int selectedMonth = 0;
+    int selectedYear = 0;
+    DateTime? selectedDate;
+    int currentPage = 0;
+    const int pageSize = 8;
     final int vehicleId = int.tryParse(vehicle['vehicle_id'].toString()) ?? 0;
 
     showDialog(
@@ -899,7 +962,30 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
           final isDark = Theme.of(context).brightness == Brightness.dark;
-          List<dynamic> sortedLogs = List.from(logs);
+          DateTime? parseLogDate(dynamic item) {
+            final raw = item['incident_date'] ?? item['repair_date'];
+            return DateTime.tryParse(raw?.toString() ?? '');
+          }
+
+          final availableYears = logs
+              .map(parseLogDate)
+              .whereType<DateTime>()
+              .map((date) => date.year)
+              .toSet()
+              .toList()
+            ..sort((a, b) => b.compareTo(a));
+          final filteredLogs = logs.where((log) {
+            final logDate = parseLogDate(log);
+            if (logDate == null) return selectedYear == 0 && selectedMonth == 0 && selectedDate == null;
+            final matchesYear = selectedYear == 0 || logDate.year == selectedYear;
+            final matchesMonth = selectedMonth == 0 || logDate.month == selectedMonth;
+            final matchesDate = selectedDate == null ||
+                (logDate.year == selectedDate!.year &&
+                    logDate.month == selectedDate!.month &&
+                    logDate.day == selectedDate!.day);
+            return matchesYear && matchesMonth && matchesDate;
+          }).toList();
+          List<dynamic> sortedLogs = List.from(filteredLogs);
 
           sortedLogs.sort((a, b) {
             DateTime parseDateTime(dynamic item) {
@@ -923,6 +1009,14 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
             }
             return dateB.compareTo(dateA);
           });
+
+          final totalPages = max(1, (sortedLogs.length / pageSize).ceil());
+          final safePage = min(currentPage, totalPages - 1);
+          final pageStart = safePage * pageSize;
+          final pageLogs = sortedLogs.sublist(
+            pageStart,
+            min(pageStart + pageSize, sortedLogs.length),
+          );
 
           return AlertDialog(
             backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -956,8 +1050,9 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      ElevatedButton.icon(
-                        onPressed: () => _showLogIssueDialog(vehicle),
+                      if (!_isAdmin)
+                        ElevatedButton.icon(
+                          onPressed: () => _showLogIssueDialog(vehicle),
                         icon: const Icon(
                           Icons.add_alert,
                           color: Colors.white,
@@ -980,7 +1075,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
-                      ),
+                        ),
                       Container(
                         width: 180,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -1029,6 +1124,99 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                     ],
                   ),
                   const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _maintenanceFilterDropdown<int>(
+                        label: 'Year',
+                        value: selectedYear,
+                        items: [0, ...availableYears],
+                        itemLabel: (value) => value == 0 ? 'All Years' : '$value',
+                        onChanged: (value) => setModalState(() {
+                          selectedYear = value ?? 0;
+                          currentPage = 0;
+                        }),
+                        isDark: isDark,
+                      ),
+                      _maintenanceFilterDropdown<int>(
+                        label: 'Month',
+                        value: selectedMonth,
+                        items: [0, ...List.generate(12, (index) => index + 1)],
+                        itemLabel: (value) => value == 0
+                            ? 'All Months'
+                            : _monthName(value),
+                        onChanged: (value) => setModalState(() {
+                          selectedMonth = value ?? 0;
+                          currentPage = 0;
+                        }),
+                        isDark: isDark,
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate ?? DateTime.now(),
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                          );
+                          if (picked != null) {
+                            setModalState(() {
+                              selectedDate = picked;
+                              currentPage = 0;
+                            });
+                          }
+                        },
+                        icon: const Icon(Icons.event, size: 16),
+                        label: Text(selectedDate == null
+                            ? 'Any Date'
+                            : '${selectedDate!.month}/${selectedDate!.day}/${selectedDate!.year}'),
+                      ),
+                      if (selectedDate != null || selectedMonth != 0 || selectedYear != 0)
+                        TextButton(
+                          onPressed: () => setModalState(() {
+                            selectedDate = null;
+                            selectedMonth = 0;
+                            selectedYear = 0;
+                            currentPage = 0;
+                          }),
+                          child: const Text('Clear Filters'),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  if (sortedLogs.isNotEmpty)
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Showing ${pageStart + 1}-${min(pageStart + pageSize, sortedLogs.length)} of ${sortedLogs.length}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              tooltip: 'Previous page',
+                              onPressed: safePage > 0
+                                  ? () => setModalState(() => currentPage--)
+                                  : null,
+                              icon: const Icon(Icons.chevron_left),
+                            ),
+                            Text('${safePage + 1} / $totalPages'),
+                            IconButton(
+                              tooltip: 'Next page',
+                              onPressed: safePage < totalPages - 1
+                                  ? () => setModalState(() => currentPage++)
+                                  : null,
+                              icon: const Icon(Icons.chevron_right),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   Expanded(
                     child: sortedLogs.isEmpty
                         ? Center(
@@ -1038,11 +1226,11 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                             ),
                           )
                         : ListView.separated(
-                            itemCount: sortedLogs.length,
+                            itemCount: pageLogs.length,
                             separatorBuilder: (_, _) =>
                                 const SizedBox(height: 12),
                             itemBuilder: (context, index) {
-                              final log = sortedLogs[index];
+                              final log = pageLogs[index];
                               final bool isResolved =
                                   log['is_resolved'] == true;
                               return Container(
@@ -1076,6 +1264,27 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                                                   color: isDark
                                                       ? Colors.white
                                                       : Colors.black87,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 2,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.blue.withValues(alpha: 0.12),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  (log['maintenance_type'] ?? 'repair')
+                                                      .toString()
+                                                      .toUpperCase(),
+                                                  style: const TextStyle(
+                                                    color: Colors.blue,
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
                                                 ),
                                               ),
                                               const SizedBox(width: 12),
@@ -1152,7 +1361,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                                         ],
                                       ),
                                     ),
-                                    if (!isResolved)
+                                    if (!isResolved && !_isAdmin)
                                       ElevatedButton.icon(
                                         onPressed: () =>
                                             _showMarkRepairedDialog(
@@ -1192,6 +1401,58 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  String _monthName(int month) {
+    const names = [
+      'All Months', 'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+    return names[month.clamp(0, 12).toInt()];
+  }
+
+  Widget _maintenanceFilterDropdown<T extends Object>({
+    required String label,
+    required T value,
+    required List<T> items,
+    required String Function(T value) itemLabel,
+    required ValueChanged<T?> onChanged,
+    required bool isDark,
+  }) {
+    return Container(
+      width: 145,
+      height: 42,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F172A) : Colors.white,
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          value: value,
+          isExpanded: true,
+          dropdownColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black87,
+            fontSize: 12,
+          ),
+          hint: Text(label),
+          items: items
+              .map((item) => DropdownMenuItem<T>(
+                    value: item,
+                    child: Text(
+                      itemLabel(item),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ))
+              .toList(),
+          onChanged: onChanged,
+        ),
       ),
     );
   }
@@ -1336,7 +1597,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                     isDark: isDark,
                     width: 170,
                     value: _statusFilter,
-                    values: ['All', 'Available', 'Needs Maintenance'],
+                    values: ['All', 'Available', 'Due Maintenance', 'Due Repair'],
                     onChanged: (value) {
                       setState(() {
                         _statusFilter = value ?? 'All';
@@ -1386,6 +1647,8 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                       alignment: Alignment.center,
                       child: _FleetStatusLabel(
                         status: (vehicle['health_status'] ?? 'Good').toString(),
+                        dueType: vehicle['maintenance_due_type']?.toString(),
+                        needsAttention: vehicle['needs_attention'] == true,
                       ),
                     ),
                   ),
@@ -1425,11 +1688,18 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
         const Color(0xFF10B981),
       ),
       (
-        'Needs Maintenance',
+        'Due Maintenance',
         '$_maintenanceVehicles',
-        'Currently in shop',
+        'Maintenance due',
         Icons.build_circle_outlined,
         const Color(0xFFEF4444),
+      ),
+      (
+        'Due Repair',
+        '$_repairVehicles',
+        'Repair unresolved',
+        Icons.car_repair,
+        const Color(0xFFF97316),
       ),
     ];
 
@@ -1513,14 +1783,13 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
           );
         }
 
-        return Row(
-          children: [
-            Expanded(child: cardWidgets[0]),
-            const SizedBox(width: 16),
-            Expanded(child: cardWidgets[1]),
-            const SizedBox(width: 16),
-            Expanded(child: cardWidgets[2]),
-          ],
+        final cardWidth = (constraints.maxWidth - 48) / 4;
+        return Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: cardWidgets
+              .map((card) => SizedBox(width: cardWidth, child: card))
+              .toList(),
         );
       },
     );
@@ -1586,17 +1855,31 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
 }
 
 class _FleetStatusLabel extends StatelessWidget {
-  const _FleetStatusLabel({required this.status});
+  const _FleetStatusLabel({
+    required this.status,
+    this.dueType,
+    this.needsAttention = false,
+  });
 
   final String status;
+  final String? dueType;
+  final bool needsAttention;
 
   @override
   Widget build(BuildContext context) {
     final normalized = status.toLowerCase();
-    final color =
-        normalized.contains('maintenance') || normalized.contains('repair')
-            ? EnterpriseColors.danger
-            : EnterpriseColors.success;
+    final effectiveDueType = dueType ?? (needsAttention ? 'maintenance' : null);
+    final isDue = effectiveDueType == 'maintenance' || effectiveDueType == 'repair';
+    final displayStatus = isDue
+        ? (effectiveDueType == 'repair' ? 'Due Repair' : 'Due Maintenance')
+        : (normalized.contains('maintenance') || normalized.contains('repair')
+            ? 'Good'
+            : status);
+    final color = isDue
+        ? (effectiveDueType == 'repair'
+            ? const Color(0xFFF97316)
+            : EnterpriseColors.danger)
+        : EnterpriseColors.success;
     return Align(
       alignment: Alignment.center,
       child: Container(
@@ -1606,12 +1889,16 @@ class _FleetStatusLabel extends StatelessWidget {
           border: Border.all(color: color.withValues(alpha: 0.45)),
           borderRadius: BorderRadius.circular(3),
         ),
-        child: Text(
-          status,
-          style: TextStyle(
-            color: color,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            displayStatus,
+            maxLines: 1,
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ),

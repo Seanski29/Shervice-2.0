@@ -1,5 +1,5 @@
 // Flip this only when switching between your PC backend and Railway.
-const bool useHostedBackend = true;
+const bool useHostedBackend = false;
 
 const String _localBackendRoot = 'http://localhost:5000';
 const String _hostedBackendRoot =
@@ -8,8 +8,9 @@ const String _localEncryptedSocketRoot = 'ws://localhost:5001';
 const String _hostedEncryptedSocketRoot =
     'wss://shervice-python-production.up.railway.app/ws';
 
-const String localIp =
-    useHostedBackend ? _hostedBackendRoot : _localBackendRoot;
+const String localIp = useHostedBackend
+    ? _hostedBackendRoot
+    : _localBackendRoot;
 const String backendUrl = '$localIp/api';
 const String encryptedSocketUrl = useHostedBackend
     ? _hostedEncryptedSocketRoot

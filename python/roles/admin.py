@@ -10,9 +10,11 @@ from flask import Blueprint, jsonify, request
 from supabase import create_client
 
 try:
+    import driver_ml as driver_ml_module
     from driver_ml import is_trained, train_driver_classification_model, model, scaler
 except ImportError:
     is_trained = False
+    driver_ml_module = None
 
 import xlrd
 from openpyxl import Workbook
@@ -506,37 +508,41 @@ def get_dashboard_metrics():
             for vehicle in available_vehicles
         ]
 
-        unavailable_vehicles = safe_query(
-            'maintenance vehicle count',
-            lambda: supabase.table('vehicle')
-            .select('vehicle_id')
-            .eq('is_available', False)
-            .execute()
-        )
-        maintenance_alerts_count = len(unavailable_vehicles)
-
-        alerts_log = safe_query(
-            'maintenance alert logs',
+        unresolved_logs = safe_query(
+            'unresolved maintenance and repair logs',
             lambda: supabase.table('maintenance_log')
-            .select('maintenance_id, description, vehicle_id, vehicle(plate_number)')
+            .select('maintenance_id, description, vehicle_id, maintenance_type, is_resolved, vehicle(plate_number)')
+            .eq('is_resolved', False)
             .order('repair_date', desc=True)
             .limit(100)
             .execute()
         )
 
         formatted_alerts = []
-        for log in alerts_log:
+        for log in unresolved_logs:
             raw_v_id = log.get('vehicle_id')
             vehicle = log.get('vehicle') or {}
             if isinstance(vehicle, list):
                 vehicle = vehicle[0] if vehicle else {}
             resolved_plate = vehicle.get('plate_number', f"Asset {raw_v_id}")
+            record_type = str(log.get('maintenance_type') or 'maintenance').lower()
             formatted_alerts.append({
                 "id": str(log.get('maintenance_id')),
                 "vehicle_id": resolved_plate,
                 "plate_number": resolved_plate,
-                "description": log.get('description', 'No details provided.')
+                "description": log.get('description', 'No details provided.'),
+                "maintenance_type": record_type,
+                "is_resolved": False,
             })
+
+        maintenance_alerts = [
+            alert for alert in formatted_alerts
+            if alert['maintenance_type'] != 'repair'
+        ]
+        repair_alerts = [
+            alert for alert in formatted_alerts
+            if alert['maintenance_type'] == 'repair'
+        ]
 
         selected_month = int(request.args.get('month', datetime.now().month))
         selected_year = int(request.args.get('year', datetime.now().year))
@@ -713,7 +719,9 @@ def get_dashboard_metrics():
                 "activeDrivers": active_drivers_count,
                 "totalDrivers": total_drivers,
                 "activeVehicles": active_vehicles,
-                "maintenanceAlerts": maintenance_alerts_count
+                "maintenanceAlerts": len(maintenance_alerts),
+                "repairAlerts": len(repair_alerts),
+                "totalMaintenanceAlerts": len(formatted_alerts)
             },
             "details": {
                 "Total Trips": total_trip_details,
@@ -725,7 +733,11 @@ def get_dashboard_metrics():
                 ],
                 "All Drivers": driver_details,
                 "Active Vehicles": vehicle_details,
-                "Maintenance Alerts": formatted_alerts
+                "Maintenance Alerts": maintenance_alerts,
+                "Repair Alerts": repair_alerts,
+                "Due Maintenance": maintenance_alerts,
+                "Due Repairs": repair_alerts,
+                "All Maintenance Alerts": formatted_alerts
             },
             "alerts": formatted_alerts,
             "company_monthly_metrics": company_monthly_metrics,
@@ -739,9 +751,9 @@ def get_dashboard_metrics():
 def get_driver_leaderboard():
     global is_trained, model, scaler
     try:
-        if not is_trained:
+        if driver_ml_module is not None and not driver_ml_module.is_trained:
             try:
-                train_driver_classification_model()
+                driver_ml_module.train_driver_classification_model()
             except Exception:
                 pass
 
@@ -757,12 +769,70 @@ def get_driver_leaderboard():
         
         driver_scores = {d['driver_id']: [] for d in all_drivers if d.get('driver_id') is not None}
         driver_details = {d['driver_id']: d for d in all_drivers if d.get('driver_id') is not None}
+        batch_size = 1000
+        is_all_time = (
+            raw_period == 'all'
+            or raw_year == 'all'
+            or raw_year == '0'
+            or not raw_year.isdigit()
+        )
+        month_only = raw_month.isdigit() and (
+            raw_year == 'all' or raw_year == '0' or not raw_year.isdigit()
+        )
+        selected_month_only = int(raw_month) if month_only else None
+
+        # Trip summaries are linked by driver_profile.driver_id. Fetch their
+        # counts using the same period as evaluations so drivers with trips
+        # but no evaluations are still represented correctly.
+        trip_counts = {
+            str(d['driver_id']): 0
+            for d in all_drivers
+            if d.get('driver_id') is not None
+        }
+        trip_offset = 0
+        while True:
+            trips_query = supabase.table('trip_schedule').select(
+                'driver_id, trip_id, schedule_date'
+            )
+            if not is_all_time and raw_year.isdigit():
+                selected_year = int(raw_year)
+                if raw_month == 'all' or raw_month == '0' or raw_period == 'year':
+                    trips_query = trips_query.gte(
+                        'schedule_date', f'{selected_year}-01-01'
+                    ).lt('schedule_date', f'{selected_year + 1}-01-01')
+                elif raw_month.isdigit():
+                    selected_month = int(raw_month)
+                    period_start = f'{selected_year}-{selected_month:02d}-01'
+                    period_end = (
+                        f'{selected_year + 1}-01-01'
+                        if selected_month == 12
+                        else f'{selected_year}-{selected_month + 1:02d}-01'
+                    )
+                    trips_query = trips_query.gte(
+                        'schedule_date', period_start
+                    ).lt('schedule_date', period_end)
+
+            trip_batch = trips_query.range(
+                trip_offset, trip_offset + batch_size - 1
+            ).execute().data or []
+            for trip in trip_batch:
+                if selected_month_only is not None:
+                    raw_date = str(trip.get('schedule_date') or '')[:10]
+                    try:
+                        if datetime.strptime(raw_date, '%Y-%m-%d').month != selected_month_only:
+                            continue
+                    except ValueError:
+                        continue
+                driver_id = trip.get('driver_id')
+                driver_key = str(driver_id) if driver_id is not None else ''
+                if driver_key in trip_counts:
+                    trip_counts[driver_key] += 1
+            if len(trip_batch) < batch_size:
+                break
+            trip_offset += batch_size
 
         raw_evals = []
-        batch_size = 1000
         offset = 0
-        
-        is_all_time = (raw_period == 'all' or raw_year == 'all' or raw_year == '0' or not raw_year.isdigit())
 
         while True:
             evals_query = supabase.table('evaluation').select('driver_id, safety_score, punctuality_score, professionalism_score, submit_date')
@@ -784,10 +854,22 @@ def get_driver_leaderboard():
 
             batch_res = evals_query.range(offset, offset + batch_size - 1).execute()
             batch_data = batch_res.data or []
+            fetched_count = len(batch_data)
+
+            if selected_month_only is not None:
+                filtered_batch = []
+                for evaluation in batch_data:
+                    raw_date = str(evaluation.get('submit_date') or '')[:10]
+                    try:
+                        if datetime.strptime(raw_date, '%Y-%m-%d').month == selected_month_only:
+                            filtered_batch.append(evaluation)
+                    except ValueError:
+                        continue
+                batch_data = filtered_batch
             
             raw_evals.extend(batch_data)
             
-            if len(batch_data) < batch_size:
+            if fetched_count < batch_size:
                 break
             offset += batch_size
 
@@ -818,12 +900,14 @@ def get_driver_leaderboard():
             top_drivers.append({
                 "driver_id": d_id,
                 "full_name": drv_info.get("full_name") or "Unknown Driver",
-                "ml_classification": drv_info.get("ml_classification") or "Pending Sweep",
+                "ml_classification": drv_info.get("ml_classification") or "Needs Review",
                 "employment_status": drv_info.get("employment_status") or "Active",
                 "phone_no": phone_val,
                 "rating": round(avg_rating, 2),
                 "review_count": review_count,
-                "eval_count": review_count
+                "eval_count": review_count,
+                "trip_count": trip_counts.get(str(d_id), 0),
+                "total_trips": trip_counts.get(str(d_id), 0),
             })
 
         top_drivers.sort(key=lambda x: (x['rating'], x['review_count']), reverse=True)
@@ -853,7 +937,7 @@ def update_system_user(user_id):
     try:
         data = request.get_json() or {}
         account = supabase.table("user_account").select("user_id").eq(
-            "staff_id", user_id
+            "staff_number", user_id
         ).maybe_single().execute().data or {}
         auth_user_id = account.get("user_id") or user_id
         new_email = data.get("email", "").strip().lower()
@@ -875,7 +959,7 @@ def update_system_user(user_id):
             "full_name": data.get("full_name"),
             "username": new_email,
             "role": normalized_role
-        }).eq("staff_id", user_id).execute()
+        }).eq("staff_number", user_id).execute()
 
         return jsonify({"success": True, "message": "User profiles synchronized successfully."}), 200
     except Exception as e:
@@ -886,10 +970,10 @@ def update_system_user(user_id):
 def delete_system_user(user_id):
     try:
         account = supabase.table("user_account").select("user_id").eq(
-            "staff_id", user_id
+            "staff_number", user_id
         ).maybe_single().execute().data or {}
         auth_user_id = account.get("user_id") or user_id
-        supabase.table("user_account").delete().eq("staff_id", user_id).execute()
+        supabase.table("user_account").delete().eq("staff_number", user_id).execute()
 
         try:
             admin_supabase = get_admin_client()

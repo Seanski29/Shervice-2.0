@@ -1,9 +1,12 @@
 import os
+import sys
+from pathlib import Path
 import pandas as pd
 import numpy as np
 from datetime import datetime
 from dotenv import load_dotenv
 from sklearn.cluster import KMeans
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import (
     accuracy_score,
@@ -17,12 +20,19 @@ from sklearn.metrics import (
     recall_score,
     silhouette_score,
 )
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold, cross_val_predict, train_test_split
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from supabase import create_client
 
-load_dotenv()
+# Reuse the production driver feature engineering and label rules so this
+# evaluation script cannot drift from driver_ml.py.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from roles import driver_ml
+from roles import predictive_ml
+
+load_dotenv(Path(__file__).resolve().parents[1] / '.env')
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY") or os.getenv("SUPABASE_KEY")
 
@@ -31,80 +41,17 @@ if not SUPABASE_URL or not SUPABASE_KEY:
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# --- Bootstrapping rule for KNN matching driver_ml.py ---
+# --- Label adapter kept for callers of this evaluation script ---
 def generate_ground_truth_labels(row):
-    safety = row['safety_score']
-    punctuality = row['punctuality_score']
-    professionalism = row['professionalism_score']
-    late_mins = row['total_minutes_late']
-    absences = row['absent_count']
-    present = row['present_count']
-    
-    if absences >= 3 or late_mins > 60 or punctuality < 3.0:
-        return 'Tardiness Risk'
-    elif safety < 3.5:
-        return 'Safety Risk'
-    elif safety >= 4.5 and punctuality >= 4.5 and professionalism >= 4.0 and late_mins <= 15 and absences == 0 and present > 0:
-        return 'Elite Performer'
-    else:
-        return 'Needs Review'
+    return driver_ml.generate_ground_truth_labels(row)
 
-def evaluate_objective_3_1_knn():
+def evaluate_legacy_knn_split():
     print("\n=======================================================")
     print("OBJECTIVE 3.1: DRIVER CLASSIFICATION (KNN) EVALUATION")
     print("=======================================================")
 
-    drivers_res = supabase.table('driver_profile').select('driver_id').execute()
-    drivers_df = pd.DataFrame(drivers_res.data or [])
-    
-    evals_res = supabase.table('evaluation').select('driver_id, safety_score, punctuality_score, professionalism_score').execute()
-    evals_df = pd.DataFrame(evals_res.data or [])
-    
-    if not evals_df.empty:
-        evals_agg = evals_df.groupby('driver_id').mean().reset_index()
-    else:
-        evals_agg = pd.DataFrame(columns=['driver_id', 'safety_score', 'punctuality_score', 'professionalism_score'])
-
-    trips_res = supabase.table('trip_schedule').select('driver_id, trip_id').execute()
-    trips_df = pd.DataFrame(trips_res.data or [])
-    
-    if not trips_df.empty:
-        trips_agg = trips_df.groupby('driver_id').size().reset_index(name='trips_amount')
-    else:
-        trips_agg = pd.DataFrame(columns=['driver_id', 'trips_amount'])
-
-    att_res = supabase.table('attendance_record').select('driver_id, total_minutes_late, note').execute()
-    att_df = pd.DataFrame(att_res.data or [])
-    
-    if not att_df.empty:
-        att_df['note'] = att_df['note'].fillna('').astype(str).str.lower()
-        att_df['absent_count'] = att_df['note'].str.contains('absent').astype(int)
-        att_df['half_day_count'] = att_df['note'].str.contains('half day').astype(int)
-        att_df['present_count'] = ((att_df['absent_count'] == 0) & (att_df['half_day_count'] == 0)).astype(int)
-        
-        att_agg = att_df.groupby('driver_id').agg({
-            'total_minutes_late': 'sum',
-            'present_count': 'sum',
-            'half_day_count': 'sum',
-            'absent_count': 'sum'
-        }).reset_index()
-    else:
-        att_agg = pd.DataFrame(columns=['driver_id', 'total_minutes_late', 'present_count', 'half_day_count', 'absent_count'])
-
-    df = drivers_df.merge(evals_agg, on='driver_id', how='left')
-    df = df.merge(trips_agg, on='driver_id', how='left')
-    df = df.merge(att_agg, on='driver_id', how='left')
-
-    df.fillna({
-        'safety_score': 5.0,
-        'punctuality_score': 5.0,
-        'professionalism_score': 5.0,
-        'trips_amount': 0,
-        'total_minutes_late': 0,
-        'present_count': 0,
-        'half_day_count': 0,
-        'absent_count': 0
-    }, inplace=True)
+    driver_ml.supabase = supabase
+    df = driver_ml.fetch_and_prepare_data()
 
     if len(df) < 5:
         print("Insufficient driver records to perform split validation.")
@@ -140,16 +87,19 @@ def evaluate_objective_3_1_knn():
     print(f"Recall    : {recall_score(y_test, y_pred, average='weighted', zero_division=0):.4f}")
     print(f"F1-Score  : {f1_score(y_test, y_pred, average='weighted', zero_division=0):.4f}")
 
+    print("Label distribution:")
+    print(df['target_label'].value_counts().to_string())
+
     print("\nClassification Report:")
     print(classification_report(y_test, y_pred, zero_division=0))
 
 
-def evaluate_objective_3_2_mlr():
+def evaluate_legacy_toy_mlr():
     print("\n=======================================================")
     print("OBJECTIVE 3.2: MAINTENANCE FORECASTING (MLR) EVALUATION")
     print("=======================================================")
 
-    # Based identically on the predictive_ml.py baseline training matrix
+    # Legacy standalone baseline retained for historical comparison.
     X = np.array([
         [8, 120, 14], [1, 15, 1], [5, 95, 8], [2, 40, 2], [9, 180, 22], 
         [1, 8, 0], [6, 110, 11], [3, 55, 3], [10, 0, 0], [8, 60, 4]     
@@ -183,6 +133,132 @@ def evaluate_objective_3_2_mlr():
     print(f"Mean Absolute Error (MAE)       : {mae:.2f} Days")
     print(f"Root Mean Squared Error (RMSE)  : {rmse:.2f} Days")
     print(f"Coefficient of Determination (R²): {r2:.4f}")
+
+
+def evaluate_objective_3_1_knn_cross_validated():
+    print("\n=======================================================")
+    print("OBJECTIVE 3.1: DRIVER CLASSIFICATION (KNN) EVALUATION")
+    print("=======================================================")
+    driver_ml.supabase = supabase
+    df = driver_ml.fetch_and_prepare_data()
+    if len(df) < 5:
+        print("Insufficient driver records to perform validation.")
+        return
+
+    feature_cols = [
+        'safety_score', 'punctuality_score', 'professionalism_score',
+        'trips_amount', 'total_minutes_late', 'present_count',
+        'half_day_count', 'absent_count'
+    ]
+    df['target_label'] = df.apply(generate_ground_truth_labels, axis=1)
+    X = df[feature_cols].values
+    y = df['target_label'].values
+    class_counts = pd.Series(y).value_counts()
+    folds = min(5, int(class_counts.min()))
+    if folds < 2:
+        print('Insufficient examples in one or more classes for cross-validation.')
+        return
+
+    pipeline = Pipeline([
+        ('scale', StandardScaler()),
+        ('knn', KNeighborsClassifier(n_neighbors=min(3, len(df) - 1), weights='distance')),
+    ])
+    cv = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
+    predictions = cross_val_predict(pipeline, X, y, cv=cv)
+    print(f"Stratified cross-validation       : {folds} folds")
+    print(f"Features                          : {feature_cols}")
+    print(f"Accuracy                          : {accuracy_score(y, predictions) * 100:.2f}%")
+    print(f"Macro Precision                   : {precision_score(y, predictions, average='macro', zero_division=0):.4f}")
+    print(f"Macro Recall                      : {recall_score(y, predictions, average='macro', zero_division=0):.4f}")
+    print(f"Macro F1-Score                    : {f1_score(y, predictions, average='macro', zero_division=0):.4f}")
+    print('Label distribution:')
+    print(df['target_label'].value_counts().to_string())
+    print('\nClassification Report:')
+    print(classification_report(y, predictions, zero_division=0))
+
+
+def evaluate_objective_3_2_production():
+    print("\n=======================================================")
+    print("OBJECTIVE 3.2: MAINTENANCE FORECASTING (MLR) EVALUATION")
+    print("=======================================================")
+    predictive_ml.supabase = supabase
+    trained = predictive_ml.train_model()
+    print(f"Training snapshots             : {predictive_ml.training_samples}")
+    print(f"Features                       : {predictive_ml.FEATURE_NAMES}")
+    print("Target Variable                : Days until next recorded maintenance")
+    print("Model                          : Multiple Linear Regression")
+    print("Status                         : " + ("trained on live history" if trained else "insufficient history; workload baseline used"))
+
+
+# Replace the legacy toy-data evaluator with a live, chronological evaluator.
+def _maintenance_training_rows():
+    # predictive_ml uses an injected client in the same way as the Flask app.
+    predictive_ml.supabase = supabase
+    vehicles, trips, repairs = predictive_ml._load_history()
+    trips_by_vehicle, repairs_by_vehicle = {}, {}
+    for trip in trips:
+        trips_by_vehicle.setdefault(trip.get('vehicle_id'), []).append(trip)
+    for repair in repairs:
+        repairs_by_vehicle.setdefault(repair.get('vehicle_id'), []).append(repair)
+
+    rows = []
+    for vehicle in vehicles:
+        vehicle_id = vehicle.get('vehicle_id')
+        vehicle_trips = trips_by_vehicle.get(vehicle_id, [])
+        vehicle_repairs = repairs_by_vehicle.get(vehicle_id, [])
+        repair_dates = sorted(
+            d for d in (
+                predictive_ml._parse_date(r.get('repair_date') or r.get('incident_date'))
+                for r in vehicle_repairs
+            ) if d
+        )
+        for trip in vehicle_trips:
+            snapshot = predictive_ml._parse_date(trip.get('schedule_date'))
+            if not snapshot:
+                continue
+            future = [d for d in repair_dates if d > snapshot]
+            if future:
+                target = min(float((future[0] - snapshot).days), 365.0)
+                rows.append((snapshot, predictive_ml._feature_row(
+                    vehicle, vehicle_trips, vehicle_repairs, snapshot
+                ), target))
+    return sorted(rows, key=lambda row: row[0])
+
+
+def evaluate_objective_3_2_live():
+    print("\n=======================================================")
+    print("OBJECTIVE 3.2: MAINTENANCE FORECASTING (MLR) EVALUATION")
+    print("=======================================================")
+    rows = _maintenance_training_rows()
+    if len(rows) < 20:
+        print("Insufficient live maintenance snapshots for evaluation.")
+        return
+
+    split = max(1, min(len(rows) - 1, int(len(rows) * 0.80)))
+    X_train = np.asarray([row[1] for row in rows[:split]], dtype=float)
+    X_test = np.asarray([row[1] for row in rows[split:]], dtype=float)
+    y_train = np.asarray([row[2] for row in rows[:split]], dtype=float)
+    y_test = np.asarray([row[2] for row in rows[split:]], dtype=float)
+
+    scaler = StandardScaler()
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
+    mlr = LinearRegression().fit(X_train_scaled, y_train)
+    mlr_pred = mlr.predict(X_test_scaled)
+
+    rf = RandomForestRegressor(
+        n_estimators=160, min_samples_leaf=2, random_state=42
+    ).fit(X_train, y_train)
+    rf_pred = rf.predict(X_test)
+
+    print(f"Chronological split             : {len(X_train)} Train | {len(X_test)} Test")
+    print(f"Features                        : {predictive_ml.FEATURE_NAMES}")
+    print("Target Variable                 : Days until next recorded maintenance")
+    for name, predictions in [('MLR production', mlr_pred), ('Random Forest comparison', rf_pred)]:
+        print(f"\n{name}:")
+        print(f"  MAE                          : {mean_absolute_error(y_test, predictions):.2f} Days")
+        print(f"  RMSE                         : {np.sqrt(mean_squared_error(y_test, predictions)):.2f} Days")
+        print(f"  R-squared                    : {r2_score(y_test, predictions):.4f}")
 
 
 def evaluate_objective_3_3_kmeans():
@@ -245,7 +321,7 @@ def evaluate_objective_3_3_kmeans():
 
 
 if __name__ == '__main__':
-    evaluate_objective_3_1_knn()
-    evaluate_objective_3_2_mlr()
+    evaluate_objective_3_1_knn_cross_validated()
+    evaluate_objective_3_2_live()
     evaluate_objective_3_3_kmeans()
     print("\n=======================================================\n")

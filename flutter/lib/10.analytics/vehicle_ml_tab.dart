@@ -22,7 +22,7 @@ class VehicleMlTab extends StatefulWidget {
 
 class _VehicleMlTabState extends State<VehicleMlTab> {
   String _searchQuery = '';
-  String _currentSort = 'Needs Maintenance first';
+  String _currentSort = 'Due Maintenance first';
   int _currentPage = 0;
   static const int _itemsPerPage = 10;
 
@@ -36,11 +36,10 @@ class _VehicleMlTabState extends State<VehicleMlTab> {
           (v['live_risk_score'] as num?)?.toDouble() ?? 0.0;
 
       String dynamicStatus = 'Excellent';
-      if (v['needs_attention'] == true ||
-          dbStatus.toLowerCase().contains('maintenance') ||
-          dbStatus.toLowerCase().contains('repair') ||
-          daysRemaining <= 7.0) {
-        dynamicStatus = 'Needs Maintenance';
+      if (v['needs_attention'] == true) {
+        dynamicStatus = v['maintenance_due_type'] == 'repair'
+            ? 'Due Repair'
+            : 'Due Maintenance';
       } else if (daysRemaining <= 30.0) {
         dynamicStatus = 'Fair';
       } else if (daysRemaining <= 90.0) {
@@ -77,10 +76,7 @@ class _VehicleMlTabState extends State<VehicleMlTab> {
     final dbStatus = (vehicle['health_status'] ?? 'Excellent').toString();
     final daysRemaining =
         (vehicle['live_risk_score'] as num?)?.toDouble() ?? 0.0;
-    if (vehicle['needs_attention'] == true ||
-        dbStatus.toLowerCase().contains('maintenance') ||
-        dbStatus.toLowerCase().contains('repair') ||
-        daysRemaining <= 7.0) {
+    if (vehicle['needs_attention'] == true) {
       return 0;
     }
     if (daysRemaining <= 30.0) return 1;
@@ -188,13 +184,15 @@ class _VehicleMlTabState extends State<VehicleMlTab> {
                       ),
                       items:
                           [
-                                'Needs Maintenance first',
+                                'Due Maintenance first',
+                                'Due Repair first',
                                 'A to Z',
                                 'Z to A',
                                 'Condition: Excellent',
                                 'Condition: Good',
                                 'Condition: Fair',
-                                'Condition: Needs Maintenance',
+                                'Condition: Due Maintenance',
+                                'Condition: Due Repair',
                               ]
                               .map(
                                 (String value) => DropdownMenuItem(
@@ -268,12 +266,14 @@ class _VehicleMlTabState extends State<VehicleMlTab> {
 
                     String statusLabel = 'Excellent';
                     Color statusColor = const Color(0xFF10B981);
-                    if (vehicle['needs_attention'] == true ||
-                        dbStatus.toLowerCase().contains('maintenance') ||
-                        dbStatus.toLowerCase().contains('repair') ||
-                        daysRemaining <= 7.0) {
-                      statusLabel = 'Needs Maintenance';
-                      statusColor = const Color(0xFFEF4444);
+                    if (vehicle['needs_attention'] == true) {
+                      if (vehicle['maintenance_due_type'] == 'repair') {
+                        statusLabel = 'Due Repair';
+                        statusColor = const Color(0xFFF97316);
+                      } else {
+                        statusLabel = 'Due Maintenance';
+                        statusColor = const Color(0xFFEF4444);
+                      }
                     } else if (daysRemaining <= 30.0) {
                       statusLabel = 'Fair';
                       statusColor = const Color(0xFFF97316);
@@ -565,7 +565,7 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
       backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
-        width: isMobile ? double.infinity : 550,
+        width: isMobile ? double.infinity : 760,
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -612,7 +612,7 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
                       CircularProgressIndicator(color: Colors.purple),
                       SizedBox(height: 16),
                       Text(
-                        "Compiling Multiple Linear Regression...",
+                        "Building maintenance forecast...",
                         style: TextStyle(color: Colors.grey),
                       ),
                     ],
@@ -644,26 +644,45 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
   }
 
   Widget _buildResultsView(bool isMobile, bool isDark) {
-    final double daysRemaining = (_results!['risk_index'] ?? 0.0);
+    final responseDays =
+        (_results!['risk_index'] as num?)?.toDouble() ?? 0.0;
+    final storedDays =
+        (widget.vehicle['live_risk_score'] as num?)?.toDouble();
+    final double daysRemaining = storedDays ?? responseDays;
     final Map<String, dynamic> telemetry = _results!['telemetry_metrics'] ?? {};
+    final bool dueMaintenance = widget.vehicle['needs_attention'] == true;
+    final bool dueRepair = dueMaintenance &&
+        widget.vehicle['maintenance_due_type'] == 'repair';
 
     Color statusColor;
     Color bgColor;
     String statusLabel;
     String statusDesc;
 
-    if (daysRemaining <= 7.0) {
-      statusColor = const Color(0xFFEF4444);
-      bgColor = isDark ? const Color(0xFF450A0A) : const Color(0xFFFEF2F2);
-      statusLabel = 'NEEDS MAINTENANCE';
+    if (dueMaintenance) {
+      statusColor = dueRepair
+          ? const Color(0xFFF97316)
+          : const Color(0xFFEF4444);
+      bgColor = dueRepair
+          ? (isDark ? const Color(0xFF451A03) : const Color(0xFFFFF7ED))
+          : (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEF2F2));
+      statusLabel = dueRepair ? 'DUE REPAIR' : 'DUE MAINTENANCE';
       statusDesc =
-          'Multiple Linear Regression forecasts breakdown within 7 days. Lockout triggered.';
+          dueRepair
+              ? 'Staff recorded an unresolved repair issue for this vehicle.'
+              : 'Staff recorded an unresolved maintenance issue for this vehicle.';
+    } else if (daysRemaining <= 7.0) {
+      statusColor = const Color(0xFFDC2626);
+      bgColor = isDark ? const Color(0xFF450A0A) : const Color(0xFFFEF2F2);
+      statusLabel = 'CRITICAL FORECAST';
+      statusDesc =
+          'The model forecasts that maintenance may be required within 7 days.';
     } else if (daysRemaining <= 30.0) {
       statusColor = const Color(0xFFF97316);
       bgColor = isDark ? const Color(0xFF451A03) : const Color(0xFFFFFBEB);
       statusLabel = 'FAIR CONDITION';
       statusDesc =
-          'Asset is operational, but structural wear indicates maintenance needed soon.';
+          'Asset is operational, but workload indicates maintenance is approaching.';
     } else if (daysRemaining <= 90.0) {
       statusColor = const Color(0xFFF59E0B);
       bgColor = isDark ? const Color(0xFF422006) : const Color(0xFFFEF3C7);
@@ -675,7 +694,7 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
       bgColor = isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5);
       statusLabel = 'EXCELLENT CONDITION';
       statusDesc =
-          'Telemetry parameters forecast stable operations for the foreseeable future.';
+          'Trip workload and maintenance history forecast stable operations for now.';
     }
 
     return Column(
@@ -691,7 +710,7 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
           child: Column(
             children: [
               Text(
-                'MULTIPLE LINEAR REGRESSION FORECAST',
+                '${(_results!['telemetry_metrics']?['model'] ?? 'WORKLOAD').toString().toUpperCase()} MAINTENANCE FORECAST',
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.bold,
@@ -728,15 +747,15 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
         const SizedBox(height: 16),
         LayoutBuilder(
           builder: (context, constraints) {
-            double cardWidth = isMobile
-                ? (constraints.maxWidth - 12) / 2
-                : (constraints.maxWidth - 36) / 4;
+            final int columns = isMobile ? 2 : 3;
+            final double cardWidth =
+                (constraints.maxWidth - (columns - 1) * 12) / columns;
             return Wrap(
               spacing: 12,
               runSpacing: 12,
               children: [
                 _buildStatCard(
-                  'Forecast',
+                  'Days',
                   '${daysRemaining.toStringAsFixed(0)} Days Left',
                   Icons.calendar_month,
                   statusColor,
@@ -744,7 +763,7 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
                   isDark,
                 ),
                 _buildStatCard(
-                  'Total Trips',
+                  'Trips',
                   '${telemetry['total_trips']} trips',
                   Icons.route,
                   const Color(0xFF3B82F6),
@@ -752,7 +771,7 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
                   isDark,
                 ),
                 _buildStatCard(
-                  'Fleet Age',
+                  'Age',
                   '${telemetry['age_years']} yrs',
                   Icons.calendar_today,
                   const Color(0xFFF59E0B),
@@ -761,9 +780,25 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
                 ),
                 _buildStatCard(
                   'Repairs',
-                  '${telemetry['past_repairs_count']} logs',
+                  '${telemetry['repair_count'] ?? telemetry['past_repairs_count'] ?? 0}',
                   Icons.build,
                   const Color(0xFF8B5CF6),
+                  cardWidth,
+                  isDark,
+                ),
+                _buildStatCard(
+                  'Maintenance',
+                  '${telemetry['maintenance_count'] ?? 0}',
+                  Icons.handyman,
+                  const Color(0xFF14B8A6),
+                  cardWidth,
+                  isDark,
+                ),
+                _buildStatCard(
+                  'Pax 90d',
+                  '${telemetry['passengers_last_90_days'] ?? 0}',
+                  Icons.groups,
+                  const Color(0xFF0EA5E9),
                   cardWidth,
                   isDark,
                 ),

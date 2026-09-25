@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class MaintenanceAlert {
   final String vehicleId;
   final String description;
+  final String recordType;
   final int daysRemaining;
   final double structuralValue;
   final Color severityColor;
@@ -10,6 +11,7 @@ class MaintenanceAlert {
   const MaintenanceAlert({
     required this.vehicleId,
     required this.description,
+    required this.recordType,
     required this.daysRemaining,
     required this.structuralValue,
     required this.severityColor,
@@ -33,6 +35,9 @@ class MaintenanceAlert {
       description:
           json['description'] ??
           'Vehicle flagged for maintenance. System diagnostics overhaul required.',
+      recordType: (json['maintenance_type'] ?? 'maintenance')
+          .toString()
+          .toLowerCase(),
       daysRemaining: days,
       structuralValue: val,
       severityColor: color,

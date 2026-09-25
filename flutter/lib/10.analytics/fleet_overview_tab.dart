@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../layouts/enterprise/enterprise_theme.dart';
 
@@ -190,24 +191,49 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
         .map((k) => MapEntry(k, timeBuckets[k]!))
         .toList();
 
+    final monthlyMaintenance = List<int>.filled(12, 0);
+    final monthlyRepairs = List<int>.filled(12, 0);
+    for (final log in fMaint) {
+      final date = DateTime.tryParse(
+        (log['incident_date'] ?? log['repair_date'] ?? '').toString(),
+      );
+      if (date == null) continue;
+      final recordType = (log['maintenance_type'] ?? 'maintenance')
+          .toString()
+          .toLowerCase();
+      if (recordType == 'repair') {
+        monthlyRepairs[date.month - 1]++;
+      } else {
+        monthlyMaintenance[date.month - 1]++;
+      }
+    }
+
+    Map<String, int> maintenanceCategoryCounts = {};
+    Map<String, int> repairCategoryCounts = {};
+    for (final log in fMaint) {
+      final category = (log['category'] ?? 'General').toString().trim();
+      final key = category.isEmpty ? 'General' : category;
+      final recordType = (log['maintenance_type'] ?? 'maintenance')
+          .toString()
+          .toLowerCase();
+      final counts = recordType == 'repair'
+          ? repairCategoryCounts
+          : maintenanceCategoryCounts;
+      counts[key] = (counts[key] ?? 0) + 1;
+    }
+    final maintenanceCategoryData = maintenanceCategoryCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final repairCategoryData = repairCategoryCounts.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
     Map<String, int> routeCounts = {};
     for (var t in fTrips) {
       String r = (t['route_name'] ?? '').toString().trim();
       if (r.isEmpty) r = 'Unknown Route';
       routeCounts[r] = (routeCounts[r] ?? 0) + 1;
     }
-    var sortedRoutes = routeCounts.entries.toList()
+    final routeData = routeCounts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    List<MapEntry<String, int>> topRoutesData = sortedRoutes.take(5).toList();
-
-    Map<String, int> maintCounts = {};
-    for (var m in fMaint) {
-      String c = m['category'] ?? 'General';
-      maintCounts[c] = (maintCounts[c] ?? 0) + 1;
-    }
-    var sortedMaint = maintCounts.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-    List<MapEntry<String, int>> maintData = sortedMaint.take(5).toList();
 
     return SingleChildScrollView(
       child: Column(
@@ -438,19 +464,13 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
                       isDark,
                     ),
                     const SizedBox(height: 16),
-                    _buildRiskDistributionBar(widget.vehicles, isDark),
+                    _buildRiskDistributionPie(widget.vehicles, isDark),
                     const SizedBox(height: 16),
-                    _buildHorizontalBarChart(
-                      'Routes',
-                      topRoutesData,
-                      const Color(0xFF8B5CF6),
-                      isDark,
-                    ),
+                    _buildRoutePieChart(routeData, isDark),
                     const SizedBox(height: 16),
-                    _buildHorizontalBarChart(
-                      'Maintenance Categories',
-                      maintData,
-                      const Color(0xFFEF4444),
+                    _buildMaintenanceCategorySection(
+                      maintenanceCategoryData,
+                      repairCategoryData,
                       isDark,
                     ),
                   ] else ...[
@@ -469,7 +489,7 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
                         const SizedBox(width: 16),
                         Expanded(
                           flex: 2,
-                          child: _buildRiskDistributionBar(
+                          child: _buildRiskDistributionPie(
                             widget.vehicles,
                             isDark,
                           ),
@@ -480,20 +500,12 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: _buildHorizontalBarChart(
-                            'Routes',
-                            topRoutesData,
-                            const Color(0xFF8B5CF6),
-                            isDark,
-                          ),
-                        ),
+                        Expanded(child: _buildRoutePieChart(routeData, isDark)),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: _buildHorizontalBarChart(
-                            'Maintenance by Category',
-                            maintData,
-                            const Color(0xFFEF4444),
+                          child: _buildMaintenanceCategorySection(
+                            maintenanceCategoryData,
+                            repairCategoryData,
                             isDark,
                           ),
                         ),
@@ -766,6 +778,210 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
     );
   }
 
+  Widget _buildRiskDistributionPie(List<dynamic> vehicles, bool isDark) {
+    int optimal = 0, fair = 0, risk = 0, maint = 0;
+    for (final vehicle in vehicles) {
+      final days = (vehicle['live_risk_score'] as num?)?.toDouble() ?? 0.0;
+      final status = (vehicle['health_status'] ?? '').toString().toLowerCase();
+      if (status.contains('maintenance') ||
+          status.contains('repair') ||
+          days <= 7.0) {
+        maint++;
+      } else if (days <= 30.0) {
+        risk++;
+      } else if (days <= 90.0) {
+        fair++;
+      } else {
+        optimal++;
+      }
+    }
+
+    return _buildPieChartCard(
+      'Forecasted Maintenance Cycle Distribution',
+      [
+        MapEntry('Optimal (>90d)', optimal),
+        MapEntry('Fair (<90d)', fair),
+        MapEntry('High Risk (<30d)', risk),
+        MapEntry('Critical (<7d)', maint),
+      ],
+      const [
+        Color(0xFF10B981),
+        Color(0xFFF59E0B),
+        Color(0xFFF97316),
+        Color(0xFFEF4444),
+      ],
+      isDark,
+    );
+  }
+
+  Widget _buildRoutePieChart(List<MapEntry<String, int>> routes, bool isDark) {
+    return _buildPieChartCard(
+      'Routes',
+      routes,
+      List<Color>.generate(
+        routes.length,
+        (index) => Colors.primaries[index % Colors.primaries.length],
+      ),
+      isDark,
+    );
+  }
+
+  Widget _buildPieChartCard(
+    String title,
+    List<MapEntry<String, int>> data,
+    List<Color> colors,
+    bool isDark,
+  ) {
+    final total = data.fold<int>(0, (sum, item) => sum + item.value);
+    final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      height: 250,
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: data.isEmpty
+                ? Center(
+                    child: Text(
+                      'No records available.',
+                      style: TextStyle(color: Colors.grey.shade500),
+                    ),
+                  )
+                : Row(
+                    children: [
+                      SizedBox(
+                        width: 145,
+                        child: PieChart(
+                          PieChartData(
+                            sectionsSpace: 2,
+                            centerSpaceRadius: 28,
+                            sections: [
+                              for (var index = 0; index < data.length; index++)
+                                PieChartSectionData(
+                                  value: data[index].value.toDouble(),
+                                  color: colors[index],
+                                  radius: 52,
+                                  title: total == 0
+                                      ? ''
+                                      : '${(data[index].value * 100 / total).round()}%',
+                                  titleStyle: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              for (var index = 0; index < data.length; index++)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 6),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 9,
+                                        height: 9,
+                                        decoration: BoxDecoration(
+                                          color: colors[index],
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          '${data[index].key} (${data[index].value})',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: isDark
+                                                ? Colors.grey.shade300
+                                                : Colors.grey.shade700,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMaintenanceCategorySection(
+    List<MapEntry<String, int>> maintenance,
+    List<MapEntry<String, int>> repairs,
+    bool isDark,
+  ) {
+    final monthLabel = _selectedMonth == 0
+        ? 'All Months'
+        : _monthNames[_selectedMonth - 1];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth < 700
+            ? constraints.maxWidth
+            : (constraints.maxWidth - 12) / 2;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            SizedBox(
+              width: width,
+              child: _buildHorizontalBarChart(
+                'Maintenance Categories - $monthLabel',
+                maintenance,
+                const Color(0xFFEF4444),
+                isDark,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: _buildHorizontalBarChart(
+                'Repair Categories - $monthLabel',
+                repairs,
+                const Color(0xFFF97316),
+                isDark,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _legendItem(String label, int count, Color c, bool isDark) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -879,6 +1095,176 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
       ),
     );
   }
+
+  Widget _buildMonthlyMaintenanceChart(
+    List<int> maintenance,
+    List<int> repairs,
+    bool isDark,
+  ) {
+    final maxValue = max(1, max(maintenance.reduce(max), repairs.reduce(max)));
+    final cardColor = isDark ? const Color(0xFF1E293B) : Colors.white;
+    final textColor = isDark ? Colors.white : Colors.black87;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Monthly Maintenance & Repairs',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _analyticsLegend('Maintenance', const Color(0xFFEF4444), isDark),
+              const SizedBox(width: 16),
+              _analyticsLegend('Repairs', const Color(0xFFF97316), isDark),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 220,
+            width: double.infinity,
+            child: CustomPaint(
+              painter: _MonthlyMaintenancePainter(
+                maintenance: maintenance,
+                repairs: repairs,
+                maxValue: maxValue,
+                monthNames: _monthNames,
+                isDark: isDark,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _analyticsLegend(String label, Color color, bool isDark) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MonthlyMaintenancePainter extends CustomPainter {
+  final List<int> maintenance;
+  final List<int> repairs;
+  final int maxValue;
+  final List<String> monthNames;
+  final bool isDark;
+
+  _MonthlyMaintenancePainter({
+    required this.maintenance,
+    required this.repairs,
+    required this.maxValue,
+    required this.monthNames,
+    required this.isDark,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const left = 28.0;
+    const right = 8.0;
+    const top = 8.0;
+    const bottom = 28.0;
+    final chartWidth = size.width - left - right;
+    final chartHeight = size.height - top - bottom;
+    final gridPaint = Paint()
+      ..color = isDark ? Colors.grey.shade700 : Colors.grey.shade200
+      ..strokeWidth = 1;
+    final maintenancePaint = Paint()..color = const Color(0xFFEF4444);
+    final repairPaint = Paint()..color = const Color(0xFFF97316);
+    final labelStyle = TextStyle(
+      fontSize: 9,
+      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+    );
+
+    for (var line = 0; line <= 3; line++) {
+      final y = top + chartHeight * line / 3;
+      canvas.drawLine(
+        Offset(left, y),
+        Offset(size.width - right, y),
+        gridPaint,
+      );
+    }
+
+    final groupWidth = chartWidth / 12;
+    final barWidth = groupWidth * 0.22;
+    for (var index = 0; index < 12; index++) {
+      final center = left + groupWidth * (index + 0.5);
+      final maintenanceHeight = chartHeight * maintenance[index] / maxValue;
+      final repairHeight = chartHeight * repairs[index] / maxValue;
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(
+            center - barWidth - 1,
+            top + chartHeight - maintenanceHeight,
+            barWidth,
+            maintenanceHeight,
+          ),
+          const Radius.circular(3),
+        ),
+        maintenancePaint,
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(
+            center + 1,
+            top + chartHeight - repairHeight,
+            barWidth,
+            repairHeight,
+          ),
+          const Radius.circular(3),
+        ),
+        repairPaint,
+      );
+      final label = monthNames[index].substring(0, 1);
+      final painter = TextPainter(
+        text: TextSpan(text: label, style: labelStyle),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      painter.paint(
+        canvas,
+        Offset(center - painter.width / 2, size.height - 20),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _MonthlyMaintenancePainter oldDelegate) =>
+      oldDelegate.maintenance != maintenance ||
+      oldDelegate.repairs != repairs ||
+      oldDelegate.maxValue != maxValue ||
+      oldDelegate.isDark != isDark;
 }
 
 class _TripLineChartPainter extends CustomPainter {
@@ -939,7 +1325,10 @@ class _TripLineChartPainter extends CustomPainter {
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [lineColor.withValues(alpha: 0.35), lineColor.withValues(alpha: 0.0)],
+        colors: [
+          lineColor.withValues(alpha: 0.35),
+          lineColor.withValues(alpha: 0.0),
+        ],
       ).createShader(Rect.fromLTWH(0, topPadding, chartWidth, chartHeight));
     canvas.drawPath(fillPath, fillPaint);
 

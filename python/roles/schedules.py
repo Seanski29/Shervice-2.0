@@ -117,6 +117,10 @@ def _record_exists(table, id_field, value):
 def _validate_trip_resources(payload):
     vehicle_id = payload.get('vehicle_id')
     driver_id = payload.get('driver_id')
+    if vehicle_id in (None, ''):
+        return 'A registered vehicle is required for every trip.'
+    if driver_id in (None, ''):
+        return 'A registered driver is required for every trip.'
     if vehicle_id is not None and not _record_exists('vehicle', 'vehicle_id', vehicle_id):
         return f"Vehicle ID {vehicle_id} does not exist."
     if driver_id is not None and not _record_exists('driver_profile', 'driver_id', driver_id):
@@ -516,13 +520,21 @@ def get_dispatch_options():
 @schedules_bp.route('/api/schedules/driver/<string:driver_id>', methods=['GET'])
 def get_driver_trips(driver_id):
     try:
+        try:
+            driver_key = int(driver_id)
+        except (TypeError, ValueError):
+            driver_key = driver_id
+        # Keep this query compatible with databases that have not yet applied
+        # the optional vehicle_type column. The driver_id is the canonical
+        # link shared by trip summaries, driver profiles, and ML features.
         query = supabase.table('trip_schedule').select(
-            'trip_id, summary_id, schedule_date, working_day, route_id, route_name, '
-            'vehicle_id, driver_id, bus_type, vehicle_type, classification, '
-            'ticket_no, seating_capacity, passenger_count, departure_time, '
-            'estimated_arrival_time, utilization_rate, remarks, trip_status'
-        ).eq('driver_id', driver_id).order('schedule_date', desc=True).execute()
-        return jsonify({"success": True, "data": query.data}), 200
+            # Only request fields required for the driver history/count. This
+            # avoids making the entire request fail when an older database is
+            # missing an optional trip column.
+            'trip_id, driver_id, schedule_date'
+        ).eq('driver_id', driver_key).order('schedule_date', desc=True).execute()
+        rows = query.data or []
+        return jsonify({"success": True, "data": rows, "trip_count": len(rows)}), 200
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
 

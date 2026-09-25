@@ -225,8 +225,11 @@ def get_system_users():
                 display_role = "Administrator"
                 permission = "Full Access"
             formatted_users.append({
-                "id": u.get('staff_id'),
-                "staff_id": u.get('staff_id'),
+                # staff_number is the human-facing, incremental identifier.
+                # staff_id remains the internal ownership key used by trips.
+                "id": u.get('staff_number'),
+                "staff_id": u.get('staff_number'),
+                "staff_number": u.get('staff_number'),
                 "auth_user_id": u['user_id'],
                 "name": actual_name,
                 "email": u.get('username', ''),

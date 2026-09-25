@@ -39,6 +39,8 @@ class _StaffTripsState extends State<StaffTrips> {
   DateTime _focusedMonth = DateTime.now();
   DateTime? _selectedDate;
   DateTimeRange? _selectedDateRange;
+  int? _selectedMonth;
+  int? _selectedYear;
 
   String _searchQuery = '';
   String _selectedDriver = 'All Drivers';
@@ -152,6 +154,12 @@ class _StaffTripsState extends State<StaffTrips> {
         );
         if (day.isBefore(start) || day.isAfter(end)) return false;
       }
+      if (_selectedMonth != null && tripDate.month != _selectedMonth) {
+        return false;
+      }
+      if (_selectedYear != null && tripDate.year != _selectedYear) {
+        return false;
+      }
 
       if (_selectedDriver != 'All Drivers' &&
           (trip['driver_name'] ?? 'Unassigned').toString() != _selectedDriver) {
@@ -209,6 +217,21 @@ class _StaffTripsState extends State<StaffTrips> {
             .toList()
           ..sort();
     return ['All Vehicles', ...values];
+  }
+
+  List<String> get _monthOptions => [
+        'All Months',
+        ...List.generate(12, (index) => _monthNames[index]),
+      ];
+
+  List<String> get _yearOptions {
+    final years = _trips
+        .map((trip) => _parseDate(trip['schedule_date'] ?? trip['date'])?.year)
+        .whereType<int>()
+        .toSet()
+        .toList()
+      ..sort((a, b) => b.compareTo(a));
+    return ['All Years', ...years.map((year) => year.toString())];
   }
 
   int get _totalPassengers => _visibleTrips.fold<int>(
@@ -1284,6 +1307,10 @@ class _StaffTripsState extends State<StaffTrips> {
       selectedLabel = _dateKey(_selectedDate!);
     } else if (_selectedDateRange != null) {
       selectedLabel = _compactDateRange(_selectedDateRange!);
+    } else if (_selectedMonth != null || _selectedYear != null) {
+      final month = _selectedMonth == null ? 'All Months' : _monthNames[_selectedMonth! - 1];
+      final year = _selectedYear?.toString() ?? 'All Years';
+      selectedLabel = '$month $year';
     }
 
     // Colored exactly matching the dashboard reference image style
@@ -1449,6 +1476,36 @@ class _StaffTripsState extends State<StaffTrips> {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+          ),
+          const SizedBox(width: 12),
+          _dropdown(
+            isDark: isDark,
+            width: controlWidth,
+            value: _selectedMonth == null
+                ? 'All Months'
+                : _monthNames[_selectedMonth! - 1],
+            values: _monthOptions,
+            onChanged: (value) => setState(() {
+              _selectedMonth = value == null || value == 'All Months'
+                  ? null
+                  : _monthNames.indexOf(value) + 1;
+              _selectedDate = null;
+              _resetPagination();
+            }),
+          ),
+          const SizedBox(width: 12),
+          _dropdown(
+            isDark: isDark,
+            width: controlWidth,
+            value: _selectedYear?.toString() ?? 'All Years',
+            values: _yearOptions,
+            onChanged: (value) => setState(() {
+              _selectedYear = value == null || value == 'All Years'
+                  ? null
+                  : int.tryParse(value);
+              _selectedDate = null;
+              _resetPagination();
+            }),
           ),
           const SizedBox(width: 12),
           _dropdown(
