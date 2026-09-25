@@ -118,10 +118,11 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
       final type = (v['bus_type'] ?? '').toString().toLowerCase();
 
       final status = (v['health_status'] ?? 'Good').toString().toLowerCase();
-      final dueType = (v['maintenance_due_type'] ??
-              (v['needs_attention'] == true ? 'maintenance' : ''))
-          .toString()
-          .toLowerCase();
+      final dueType =
+          (v['maintenance_due_type'] ??
+                  (v['needs_attention'] == true ? 'maintenance' : ''))
+              .toString()
+              .toLowerCase();
 
       final matchesSearch =
           plate.contains(_searchQuery.toLowerCase()) ||
@@ -216,7 +217,9 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
         }).length;
   int get _repairVehicles => _isLoading
       ? 0
-      : _baseVehicles.where((v) => v['maintenance_due_type'] == 'repair').length;
+      : _baseVehicles
+            .where((v) => v['maintenance_due_type'] == 'repair')
+            .length;
 
   Color _getStatusColor(String rawStatus) {
     final status = rawStatus.toLowerCase();
@@ -348,10 +351,8 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
         const SizedBox(width: 6),
         OutlinedButton.icon(
           onPressed: () async {
-            final vehicleId = int.tryParse(
-                  (vehicle['vehicle_id'] ?? '').toString(),
-                ) ??
-                0;
+            final vehicleId =
+                int.tryParse((vehicle['vehicle_id'] ?? '').toString()) ?? 0;
             final logs = await _fetchVehicleLogHistory(vehicleId);
             if (context.mounted) {
               _showMaintenanceManagerModal(context, vehicle, logs);
@@ -369,10 +370,8 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
         const SizedBox(width: 6),
         OutlinedButton.icon(
           onPressed: () async {
-            final vehicleId = int.tryParse(
-                  (vehicle['vehicle_id'] ?? '').toString(),
-                ) ??
-                0;
+            final vehicleId =
+                int.tryParse((vehicle['vehicle_id'] ?? '').toString()) ?? 0;
             final logs = await _fetchVehicleLogHistory(vehicleId);
             if (context.mounted) {
               _showMaintenanceManagerModal(context, vehicle, logs);
@@ -467,9 +466,8 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                             child: Text('Maintenance'),
                           ),
                         ],
-                        onChanged: (val) => setModalState(
-                          () => chosenType = val ?? 'repair',
-                        ),
+                        onChanged: (val) =>
+                            setModalState(() => chosenType = val ?? 'repair'),
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
@@ -496,21 +494,22 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                             borderSide: BorderSide(color: borderColor),
                           ),
                         ),
-                        items: [
-                          'General',
-                          'Engine',
-                          'Exterior',
-                          'Interior',
-                          'Electrical',
-                          'Tires/Wheels',
-                        ]
-                            .map(
-                              (s) => DropdownMenuItem<String>(
-                                value: s,
-                                child: Text(s),
-                              ),
-                            )
-                            .toList(),
+                        items:
+                            [
+                                  'General',
+                                  'Engine',
+                                  'Exterior',
+                                  'Interior',
+                                  'Electrical',
+                                  'Tires/Wheels',
+                                ]
+                                .map(
+                                  (s) => DropdownMenuItem<String>(
+                                    value: s,
+                                    child: Text(s),
+                                  ),
+                                )
+                                .toList(),
                         onChanged: (val) => setModalState(
                           () => chosenCategory = val ?? 'General',
                         ),
@@ -667,11 +666,13 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                             'is_resolved': false,
                           };
                           try {
-                            final response = await http.post(
-                              Uri.parse('$backendUrl/vehicles/maintenance'),
-                              headers: await _maintenanceHeaders(),
-                              body: jsonEncode(payload),
-                            ).timeout(const Duration(seconds: 15));
+                            final response = await http
+                                .post(
+                                  Uri.parse('$backendUrl/vehicles/maintenance'),
+                                  headers: await _maintenanceHeaders(),
+                                  body: jsonEncode(payload),
+                                )
+                                .timeout(const Duration(seconds: 15));
                             if (response.statusCode == 200 ||
                                 response.statusCode == 201) {
                               widget.onRefreshNeeded();
@@ -686,17 +687,16 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                               }
                             } else {
                               if (context.mounted) {
-                                String message = 'Failed to log issue (${response.statusCode}).';
+                                String message =
+                                    'Failed to log issue (${response.statusCode}).';
                                 try {
                                   final decoded = jsonDecode(response.body);
-                                  if (decoded is Map && decoded['message'] != null) {
+                                  if (decoded is Map &&
+                                      decoded['message'] != null) {
                                     message = decoded['message'].toString();
                                   }
                                 } catch (_) {}
-                                _showSnackBar(
-                                  message,
-                                  Colors.red,
-                                );
+                                _showSnackBar(message, Colors.red);
                               }
                             }
                           } catch (e) {
@@ -967,19 +967,26 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
             return DateTime.tryParse(raw?.toString() ?? '');
           }
 
-          final availableYears = logs
-              .map(parseLogDate)
-              .whereType<DateTime>()
-              .map((date) => date.year)
-              .toSet()
-              .toList()
-            ..sort((a, b) => b.compareTo(a));
+          final availableYears =
+              logs
+                  .map(parseLogDate)
+                  .whereType<DateTime>()
+                  .map((date) => date.year)
+                  .toSet()
+                  .toList()
+                ..sort((a, b) => b.compareTo(a));
           final filteredLogs = logs.where((log) {
             final logDate = parseLogDate(log);
-            if (logDate == null) return selectedYear == 0 && selectedMonth == 0 && selectedDate == null;
-            final matchesYear = selectedYear == 0 || logDate.year == selectedYear;
-            final matchesMonth = selectedMonth == 0 || logDate.month == selectedMonth;
-            final matchesDate = selectedDate == null ||
+            if (logDate == null)
+              return selectedYear == 0 &&
+                  selectedMonth == 0 &&
+                  selectedDate == null;
+            final matchesYear =
+                selectedYear == 0 || logDate.year == selectedYear;
+            final matchesMonth =
+                selectedMonth == 0 || logDate.month == selectedMonth;
+            final matchesDate =
+                selectedDate == null ||
                 (logDate.year == selectedDate!.year &&
                     logDate.month == selectedDate!.month &&
                     logDate.day == selectedDate!.day);
@@ -1053,28 +1060,28 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                       if (!_isAdmin)
                         ElevatedButton.icon(
                           onPressed: () => _showLogIssueDialog(vehicle),
-                        icon: const Icon(
-                          Icons.add_alert,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                        label: const Text(
-                          "Log New Issue",
-                          style: TextStyle(
+                          icon: const Icon(
+                            Icons.add_alert,
                             color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                            size: 18,
                           ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange.shade700,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
+                          label: const Text(
+                            "Log New Issue",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange.shade700,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
                           ),
-                        ),
                         ),
                       Container(
                         width: 180,
@@ -1132,7 +1139,8 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                         label: 'Year',
                         value: selectedYear,
                         items: [0, ...availableYears],
-                        itemLabel: (value) => value == 0 ? 'All Years' : '$value',
+                        itemLabel: (value) =>
+                            value == 0 ? 'All Years' : '$value',
                         onChanged: (value) => setModalState(() {
                           selectedYear = value ?? 0;
                           currentPage = 0;
@@ -1143,9 +1151,8 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                         label: 'Month',
                         value: selectedMonth,
                         items: [0, ...List.generate(12, (index) => index + 1)],
-                        itemLabel: (value) => value == 0
-                            ? 'All Months'
-                            : _monthName(value),
+                        itemLabel: (value) =>
+                            value == 0 ? 'All Months' : _monthName(value),
                         onChanged: (value) => setModalState(() {
                           selectedMonth = value ?? 0;
                           currentPage = 0;
@@ -1158,7 +1165,9 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                             context: context,
                             initialDate: selectedDate ?? DateTime.now(),
                             firstDate: DateTime(2020),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 365),
+                            ),
                           );
                           if (picked != null) {
                             setModalState(() {
@@ -1168,11 +1177,15 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                           }
                         },
                         icon: const Icon(Icons.event, size: 16),
-                        label: Text(selectedDate == null
-                            ? 'Any Date'
-                            : '${selectedDate!.month}/${selectedDate!.day}/${selectedDate!.year}'),
+                        label: Text(
+                          selectedDate == null
+                              ? 'Any Date'
+                              : '${selectedDate!.month}/${selectedDate!.day}/${selectedDate!.year}',
+                        ),
                       ),
-                      if (selectedDate != null || selectedMonth != 0 || selectedYear != 0)
+                      if (selectedDate != null ||
+                          selectedMonth != 0 ||
+                          selectedYear != 0)
                         TextButton(
                           onPressed: () => setModalState(() {
                             selectedDate = null;
@@ -1193,7 +1206,9 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                           'Showing ${pageStart + 1}-${min(pageStart + pageSize, sortedLogs.length)} of ${sortedLogs.length}',
                           style: TextStyle(
                             fontSize: 12,
-                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                            color: isDark
+                                ? Colors.grey.shade400
+                                : Colors.grey.shade700,
                           ),
                         ),
                         Row(
@@ -1268,16 +1283,21 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                                               ),
                                               const SizedBox(width: 8),
                                               Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 8,
-                                                  vertical: 2,
-                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 2,
+                                                    ),
                                                 decoration: BoxDecoration(
-                                                  color: Colors.blue.withValues(alpha: 0.12),
-                                                  borderRadius: BorderRadius.circular(4),
+                                                  color: Colors.blue.withValues(
+                                                    alpha: 0.12,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
                                                 ),
                                                 child: Text(
-                                                  (log['maintenance_type'] ?? 'repair')
+                                                  (log['maintenance_type'] ??
+                                                          'repair')
                                                       .toString()
                                                       .toUpperCase(),
                                                   style: const TextStyle(
@@ -1291,18 +1311,18 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                                               Container(
                                                 padding:
                                                     const EdgeInsets.symmetric(
-                                                  horizontal: 8,
-                                                  vertical: 2,
-                                                ),
+                                                      horizontal: 8,
+                                                      vertical: 2,
+                                                    ),
                                                 decoration: BoxDecoration(
                                                   color: isResolved
                                                       ? Colors.green.withValues(
                                                           alpha: 0.2,
                                                         )
                                                       : Colors.orange
-                                                          .withValues(
+                                                            .withValues(
                                                               alpha: 0.2,
-                                                          ),
+                                                            ),
                                                   borderRadius:
                                                       BorderRadius.circular(4),
                                                 ),
@@ -1365,9 +1385,9 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                                       ElevatedButton.icon(
                                         onPressed: () =>
                                             _showMarkRepairedDialog(
-                                          log,
-                                          vehicleId,
-                                        ),
+                                              log,
+                                              vehicleId,
+                                            ),
                                         icon: const Icon(
                                           Icons.check_circle,
                                           color: Colors.white,
@@ -1407,8 +1427,19 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
 
   String _monthName(int month) {
     const names = [
-      'All Months', 'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
+      'All Months',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return names[month.clamp(0, 12).toInt()];
   }
@@ -1443,13 +1474,12 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
           ),
           hint: Text(label),
           items: items
-              .map((item) => DropdownMenuItem<T>(
-                    value: item,
-                    child: Text(
-                      itemLabel(item),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ))
+              .map(
+                (item) => DropdownMenuItem<T>(
+                  value: item,
+                  child: Text(itemLabel(item), overflow: TextOverflow.ellipsis),
+                ),
+              )
               .toList(),
           onChanged: onChanged,
         ),
@@ -1470,203 +1500,244 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          // 1. TOP ROW: Title on Left, Reload/Actions on Right
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 768;
+          return ListView(
+            padding: EdgeInsets.all(compact ? 16 : 24),
             children: [
+              // 1. TOP ROW: Title on Left, Reload/Actions on Right
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  SizedBox(
+                    width: compact ? double.infinity : null,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.title,
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.subtitle,
+                          style: TextStyle(
+                            color: isDark
+                                ? Colors.grey.shade400
+                                : const Color(0xFF64748B),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    alignment: WrapAlignment.end,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      // --- SEARCH BAR TOP RIGHT ---
+                      SizedBox(
+                        width: compact ? constraints.maxWidth - 32 : 260,
+                        height: 42,
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (value) => setState(() {
+                            _searchQuery = value;
+                            if (value.trim().isEmpty) _statusFilter = 'All';
+                            _applyFiltersAndSort();
+                          }),
+                          style: TextStyle(
+                            color: isDark ? Colors.white : Colors.black87,
+                            fontSize: 13,
+                          ),
+                          decoration: _inputDecoration(
+                            isDark,
+                            'Search plate or type',
+                            Icons.search,
+                          ),
+                        ),
+                      ),
+                      if (_isAdmin) ...[
+                        FilledButton.icon(
+                          onPressed: () => _showVehicleModal(context),
+                          icon: const Icon(Icons.add, size: 17),
+                          label: const Text('Add Vehicle'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: EnterpriseColors.generativeAction,
+                          ),
+                        ),
+                      ],
+                      OutlinedButton.icon(
+                        onPressed: _isLoading ? null : _fetchLiveFleetData,
+                        icon: const Icon(Icons.refresh, size: 17),
+                        label: const Text('Refresh'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              SizedBox(height: compact ? 12 : 24),
+
+              // 2. CARDS BEFORE FILTERS
+              if (_isLoading)
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 800;
+                    if (isNarrow) {
+                      return GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        mainAxisSpacing: 8,
+                        crossAxisSpacing: 8,
+                        childAspectRatio: 1.95,
+                        children: List.generate(
+                          4,
+                          (_) => const EnterpriseSummaryCardSkeleton(),
+                        ),
+                      );
+                    }
+                    return Row(
+                      children: const [
+                        Expanded(
+                          child: SizedBox(
+                            height: 112,
+                            child: EnterpriseSummaryCardSkeleton(),
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: SizedBox(
+                            height: 112,
+                            child: EnterpriseSummaryCardSkeleton(),
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: SizedBox(
+                            height: 112,
+                            child: EnterpriseSummaryCardSkeleton(),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                )
+              else
+                _buildSummaryCards(isDark),
+
+              SizedBox(height: compact ? 12 : 32),
+
+              // 3. MAIN WORKSPACE TABLE (WITH FILTERS INSIDE)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    widget.title,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                          color: Theme.of(context).colorScheme.onSurface,
+                  EnterpriseDataGrid<Map<String, dynamic>>(
+                    loading: _isLoading,
+                    rows: vehicles,
+                    rowKey: (vehicle) =>
+                        vehicle['vehicle_id'] ??
+                        vehicle['id'] ??
+                        vehicle.hashCode,
+                    height: 560,
+                    readOnlyOnMobile: !_isAdmin,
+                    // --- FILTERS INSIDE TABLE TOP LEFT ---
+                    filterFields: [
+                      _dropdown(
+                        isDark: isDark,
+                        width: 170,
+                        value: _statusFilter,
+                        values: [
+                          'All',
+                          'Available',
+                          'Due Maintenance',
+                          'Due Repair',
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            _statusFilter = value ?? 'All';
+                            _applyFiltersAndSort();
+                          });
+                        },
+                      ),
+                      const SizedBox(width: 12),
+                      _dropdown(
+                        isDark: isDark,
+                        width: 170,
+                        value: _currentSort,
+                        values: _sortOptions,
+                        onChanged: (value) {
+                          setState(() {
+                            _currentSort = value ?? 'Plate (A to Z)';
+                            _applyFiltersAndSort();
+                          });
+                        },
+                      ),
+                    ],
+                    columns: [
+                      EnterpriseGridColumn(
+                        label: 'Vehicle ID',
+                        width: 110,
+                        value: (vehicle) =>
+                            (vehicle['vehicle_id'] ?? vehicle['id'] ?? '')
+                                .toString(),
+                      ),
+                      EnterpriseGridColumn(
+                        label: 'Plate number',
+                        width: 170,
+                        value: (vehicle) =>
+                            (vehicle['plate_number'] ?? 'Unassigned')
+                                .toString(),
+                      ),
+                      EnterpriseGridColumn(
+                        label: 'Vehicle type',
+                        width: 260,
+                        value: (vehicle) =>
+                            (vehicle['bus_type'] ?? 'Not specified').toString(),
+                      ),
+                      EnterpriseGridColumn(
+                        label: 'Health status',
+                        width: 190,
+                        value: (vehicle) =>
+                            (vehicle['health_status'] ?? 'Good').toString(),
+                        cellBuilder: (context, vehicle) => Align(
+                          alignment: Alignment.center,
+                          child: _FleetStatusLabel(
+                            status: (vehicle['health_status'] ?? 'Good')
+                                .toString(),
+                            dueType: vehicle['maintenance_due_type']
+                                ?.toString(),
+                            needsAttention: vehicle['needs_attention'] == true,
+                          ),
                         ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.subtitle,
-                    style: TextStyle(
-                      color: isDark ? Colors.grey.shade400 : const Color(0xFF64748B),
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // --- SEARCH BAR TOP RIGHT ---
-                  SizedBox(
-                    width: 260,
-                    height: 42,
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: (value) => setState(() {
-                        _searchQuery = value;
-                        if (value.trim().isEmpty) _statusFilter = 'All';
-                        _applyFiltersAndSort();
-                      }),
-                      style: TextStyle(
-                        color: isDark ? Colors.white : Colors.black87,
-                        fontSize: 13,
                       ),
-                      decoration: _inputDecoration(
-                        isDark,
-                        'Search plate or type',
-                        Icons.search,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  if (_isAdmin) ...[
-                    FilledButton.icon(
-                      onPressed: () => _showVehicleModal(context),
-                      icon: const Icon(Icons.add, size: 17),
-                      label: const Text('Add Vehicle'),
-                      style: FilledButton.styleFrom(
-                          backgroundColor: EnterpriseColors.generativeAction),
-                    ),
-                    const SizedBox(width: 12),
-                  ],
-                  OutlinedButton.icon(
-                    onPressed: _isLoading ? null : _fetchLiveFleetData,
-                    icon: const Icon(Icons.refresh, size: 17),
-                    label: const Text('Refresh'),
+                    ],
+                    emptyTitle: _allVehicles.isEmpty
+                        ? 'Register the first vehicle'
+                        : 'Nothing matches the current search or filters',
+                    emptyMessage: _allVehicles.isEmpty
+                        ? 'Vehicle records are required before fleet assignments and maintenance can be tracked.'
+                        : 'No vehicle records match the current plate, type, and status filters.',
+                    emptyActionLabel: null,
+                    onEmptyAction: null,
+                    selectionActionsBuilder: _selectedVehicleActions,
+                    onExportSelection: _exportVehicles,
                   ),
                 ],
               ),
             ],
-          ),
-          const SizedBox(height: 24),
-
-          // 2. CARDS BEFORE FILTERS
-          if (_isLoading)
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isNarrow = constraints.maxWidth < 800;
-                if (isNarrow) {
-                  return Column(
-                    children: List.generate(
-                      3,
-                      (_) => const Padding(
-                        padding: EdgeInsets.only(bottom: 16),
-                        child: SizedBox(
-                          height: 112,
-                          width: double.infinity,
-                          child: EnterpriseSummaryCardSkeleton(),
-                        ),
-                      ),
-                    ),
-                  );
-                }
-                return Row(
-                  children: const [
-                    Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
-                    SizedBox(width: 16),
-                    Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
-                    SizedBox(width: 16),
-                    Expanded(child: SizedBox(height: 112, child: EnterpriseSummaryCardSkeleton())),
-                  ],
-                );
-              },
-            )
-          else
-            _buildSummaryCards(isDark),
-
-          const SizedBox(height: 32),
-
-          // 3. MAIN WORKSPACE TABLE (WITH FILTERS INSIDE)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              EnterpriseDataGrid<Map<String, dynamic>>(
-                loading: _isLoading,
-                rows: vehicles,
-                rowKey: (vehicle) =>
-                    vehicle['vehicle_id'] ?? vehicle['id'] ?? vehicle.hashCode,
-                height: 560,
-                // --- FILTERS INSIDE TABLE TOP LEFT ---
-                filterFields: [
-                  _dropdown(
-                    isDark: isDark,
-                    width: 170,
-                    value: _statusFilter,
-                    values: ['All', 'Available', 'Due Maintenance', 'Due Repair'],
-                    onChanged: (value) {
-                      setState(() {
-                        _statusFilter = value ?? 'All';
-                        _applyFiltersAndSort();
-                      });
-                    },
-                  ),
-                  const SizedBox(width: 12),
-                  _dropdown(
-                    isDark: isDark,
-                    width: 170,
-                    value: _currentSort,
-                    values: _sortOptions,
-                    onChanged: (value) {
-                      setState(() {
-                        _currentSort = value ?? 'Plate (A to Z)';
-                        _applyFiltersAndSort();
-                      });
-                    },
-                  ),
-                ],
-                columns: [
-                  EnterpriseGridColumn(
-                    label: 'Vehicle ID',
-                    width: 110,
-                    value: (vehicle) =>
-                        (vehicle['vehicle_id'] ?? vehicle['id'] ?? '').toString(),
-                  ),
-                  EnterpriseGridColumn(
-                    label: 'Plate number',
-                    width: 170,
-                    value: (vehicle) =>
-                        (vehicle['plate_number'] ?? 'Unassigned').toString(),
-                  ),
-                  EnterpriseGridColumn(
-                    label: 'Vehicle type',
-                    width: 260,
-                    value: (vehicle) =>
-                        (vehicle['bus_type'] ?? 'Not specified').toString(),
-                  ),
-                  EnterpriseGridColumn(
-                    label: 'Health status',
-                    width: 190,
-                    value: (vehicle) =>
-                        (vehicle['health_status'] ?? 'Good').toString(),
-                    cellBuilder: (context, vehicle) => Align(
-                      alignment: Alignment.center,
-                      child: _FleetStatusLabel(
-                        status: (vehicle['health_status'] ?? 'Good').toString(),
-                        dueType: vehicle['maintenance_due_type']?.toString(),
-                        needsAttention: vehicle['needs_attention'] == true,
-                      ),
-                    ),
-                  ),
-                ],
-                emptyTitle: _allVehicles.isEmpty
-                    ? 'Register the first vehicle'
-                    : 'Nothing matches the current search or filters',
-                emptyMessage: _allVehicles.isEmpty
-                    ? 'Vehicle records are required before fleet assignments and maintenance can be tracked.'
-                    : 'No vehicle records match the current plate, type, and status filters.',
-                emptyActionLabel: null,
-                onEmptyAction: null,
-                selectionActionsBuilder: _selectedVehicleActions,
-                onExportSelection: _exportVehicles,
-              ),
-            ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -1710,9 +1781,9 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
         final cardWidgets = cards.map((card) {
           final Color baseColor = card.$5;
           return Container(
-            constraints: const BoxConstraints(minHeight: 112),
-            width: isNarrow ? double.infinity : null, 
-            padding: const EdgeInsets.all(16),
+            constraints: BoxConstraints(minHeight: isNarrow ? 70 : 112),
+            width: isNarrow ? null : null,
+            padding: EdgeInsets.all(isNarrow ? 10 : 16),
             decoration: BoxDecoration(
               color: baseColor.withValues(alpha: 0.08),
               border: Border.all(color: baseColor.withValues(alpha: 0.3)),
@@ -1720,16 +1791,18 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
             ),
             child: Stack(
               children: [
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: Icon(card.$4, color: baseColor, size: 20),
-                ),
+                if (!isNarrow)
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: Icon(card.$4, color: baseColor, size: 20),
+                  ),
                 SizedBox(
                   width: double.infinity,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min, // Prevents vertical overflow
+                    mainAxisSize:
+                        MainAxisSize.min, // Prevents vertical overflow
                     children: [
                       Text(
                         card.$1,
@@ -1738,11 +1811,11 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: baseColor,
-                          fontSize: 14,
+                          fontSize: isNarrow ? 11 : 14,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: isNarrow ? 2 : 8),
                       Text(
                         card.$2,
                         textAlign: TextAlign.center,
@@ -1751,17 +1824,19 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w900,
-                          fontSize: 28,
-                          height: 1.0, 
+                          fontSize: isNarrow ? 19 : 28,
+                          height: 1.0,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: isNarrow ? 1 : 4),
                       Text(
                         card.$3,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                          fontSize: 12,
+                          color: isDark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade600,
+                          fontSize: isNarrow ? 10 : 12,
                         ),
                       ),
                     ],
@@ -1773,13 +1848,14 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
         }).toList();
 
         if (isNarrow) {
-          return Column(
-            children: cardWidgets
-                .map((c) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: c,
-                    ))
-                .toList(),
+          return GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: 1.95,
+            children: cardWidgets,
           );
         }
 
@@ -1869,16 +1945,17 @@ class _FleetStatusLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final normalized = status.toLowerCase();
     final effectiveDueType = dueType ?? (needsAttention ? 'maintenance' : null);
-    final isDue = effectiveDueType == 'maintenance' || effectiveDueType == 'repair';
+    final isDue =
+        effectiveDueType == 'maintenance' || effectiveDueType == 'repair';
     final displayStatus = isDue
         ? (effectiveDueType == 'repair' ? 'Due Repair' : 'Due Maintenance')
         : (normalized.contains('maintenance') || normalized.contains('repair')
-            ? 'Good'
-            : status);
+              ? 'Good'
+              : status);
     final color = isDue
         ? (effectiveDueType == 'repair'
-            ? const Color(0xFFF97316)
-            : EnterpriseColors.danger)
+              ? const Color(0xFFF97316)
+              : EnterpriseColors.danger)
         : EnterpriseColors.success;
     return Align(
       alignment: Alignment.center,
@@ -2266,10 +2343,7 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
                             : (val) => setState(() => _selectedCapacity = val!),
                         items: ['12 Seats', '15 Seats', '18 Seats']
                             .map(
-                              (e) => DropdownMenuItem(
-                                value: e,
-                                child: Text(e),
-                              ),
+                              (e) => DropdownMenuItem(value: e, child: Text(e)),
                             )
                             .toList(),
                       ),

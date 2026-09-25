@@ -537,8 +537,18 @@ class _AttendanceState extends State<Attendance> {
 
   String _monthName(int month) {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     if (month < 1 || month > 12) return 'Unknown';
     return months[month - 1];
@@ -801,8 +811,18 @@ class _AttendanceState extends State<Attendance> {
       final parsed = DateTime.tryParse(cleanDate);
       if (parsed != null) {
         const months = [
-          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
         ];
         return '${months[parsed.month - 1]} ${parsed.day.toString().padLeft(2, '0')}, ${parsed.year}';
       }
@@ -1304,7 +1324,13 @@ class _AttendanceState extends State<Attendance> {
           : '';
       final upperIndexedDay = indexedDay.toUpperCase();
       final hasIndexedDay = [
-        'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT',
+        'SUN',
+        'MON',
+        'TUE',
+        'WED',
+        'THU',
+        'FRI',
+        'SAT',
       ].contains(upperIndexedDay);
       final hasIndexedDate = RegExp(
         r'^\d{1,4}[-/]\d{1,2}[-/]\d{1,4}$',
@@ -1336,7 +1362,13 @@ class _AttendanceState extends State<Attendance> {
           }
           final upper = val.toUpperCase();
           if ([
-            'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT',
+            'SUN',
+            'MON',
+            'TUE',
+            'WED',
+            'THU',
+            'FRI',
+            'SAT',
           ].contains(upper)) {
             rowDay = upper;
             continue;
@@ -1362,8 +1394,15 @@ class _AttendanceState extends State<Attendance> {
         texts.removeWhere(
           (t) =>
               [
-                'IN', 'OUT', 'Work Time', 'Daily Total', 'Note',
-                'Date', 'Day', 'Employee', 'Pay Period',
+                'IN',
+                'OUT',
+                'Work Time',
+                'Daily Total',
+                'Note',
+                'Date',
+                'Day',
+                'Employee',
+                'Pay Period',
               ].contains(t) ||
               t == currentPayPeriod ||
               t == currentEmployee,
@@ -1474,11 +1513,11 @@ class _AttendanceState extends State<Attendance> {
             titleStyle;
       }
       sheet.cell(
-        excel.CellIndex.indexByColumnRow(
-          columnIndex: 0,
-          rowIndex: currentRow,
-        ),
-      )
+          excel.CellIndex.indexByColumnRow(
+            columnIndex: 0,
+            rowIndex: currentRow,
+          ),
+        )
         ..value = excel.TextCellValue(employeeName)
         ..cellStyle = titleStyle;
       currentRow++;
@@ -1490,11 +1529,11 @@ class _AttendanceState extends State<Attendance> {
         excel.CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: currentRow),
       );
       sheet.cell(
-        excel.CellIndex.indexByColumnRow(
-          columnIndex: 1,
-          rowIndex: currentRow,
-        ),
-      )
+          excel.CellIndex.indexByColumnRow(
+            columnIndex: 1,
+            rowIndex: currentRow,
+          ),
+        )
         ..value = excel.TextCellValue('MORNING')
         ..cellStyle = headerStyle;
       sheet
@@ -1512,11 +1551,11 @@ class _AttendanceState extends State<Attendance> {
         excel.CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: currentRow),
       );
       sheet.cell(
-        excel.CellIndex.indexByColumnRow(
-          columnIndex: 3,
-          rowIndex: currentRow,
-        ),
-      )
+          excel.CellIndex.indexByColumnRow(
+            columnIndex: 3,
+            rowIndex: currentRow,
+          ),
+        )
         ..value = excel.TextCellValue('AFTERNOON')
         ..cellStyle = headerStyle;
       sheet
@@ -1534,11 +1573,11 @@ class _AttendanceState extends State<Attendance> {
         excel.CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: currentRow),
       );
       sheet.cell(
-        excel.CellIndex.indexByColumnRow(
-          columnIndex: 5,
-          rowIndex: currentRow,
-        ),
-      )
+          excel.CellIndex.indexByColumnRow(
+            columnIndex: 5,
+            rowIndex: currentRow,
+          ),
+        )
         ..value = excel.TextCellValue('OVERTIME')
         ..cellStyle = headerStyle;
       sheet
@@ -1552,11 +1591,11 @@ class _AttendanceState extends State<Attendance> {
           headerStyle;
 
       sheet.cell(
-        excel.CellIndex.indexByColumnRow(
-          columnIndex: 7,
-          rowIndex: currentRow,
-        ),
-      )
+          excel.CellIndex.indexByColumnRow(
+            columnIndex: 7,
+            rowIndex: currentRow,
+          ),
+        )
         ..value = excel.TextCellValue('TOTAL MINUTES LATE')
         ..cellStyle = headerStyle;
 
@@ -1574,11 +1613,11 @@ class _AttendanceState extends State<Attendance> {
       // Row 3: IN/OUT Headers
       sheet.setRowHeight(currentRow, 21);
       sheet.cell(
-        excel.CellIndex.indexByColumnRow(
-          columnIndex: 0,
-          rowIndex: currentRow,
-        ),
-      )
+          excel.CellIndex.indexByColumnRow(
+            columnIndex: 0,
+            rowIndex: currentRow,
+          ),
+        )
         ..value = excel.TextCellValue('DATE')
         ..cellStyle = headerStyle;
 
@@ -1827,9 +1866,8 @@ class _AttendanceState extends State<Attendance> {
         final cardWidgets = cards.map((card) {
           final Color baseColor = card.$5;
           return Container(
-            constraints: const BoxConstraints(minHeight: 112),
-            width: isNarrow ? double.infinity : null,
-            padding: const EdgeInsets.all(16),
+            constraints: BoxConstraints(minHeight: isNarrow ? 70 : 112),
+            padding: EdgeInsets.all(isNarrow ? 10 : 16),
             decoration: BoxDecoration(
               color: baseColor.withValues(alpha: 0.08),
               border: Border.all(color: baseColor.withValues(alpha: 0.3)),
@@ -1837,10 +1875,11 @@ class _AttendanceState extends State<Attendance> {
             ),
             child: Stack(
               children: [
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: Icon(card.$4, color: baseColor, size: 20),
-                ),
+                if (!isNarrow)
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: Icon(card.$4, color: baseColor, size: 20),
+                  ),
                 SizedBox(
                   width: double.infinity,
                   child: Column(
@@ -1855,11 +1894,11 @@ class _AttendanceState extends State<Attendance> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: baseColor,
-                          fontSize: 14,
+                          fontSize: isNarrow ? 11 : 14,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: isNarrow ? 2 : 8),
                       Text(
                         card.$2,
                         textAlign: TextAlign.center,
@@ -1868,17 +1907,19 @@ class _AttendanceState extends State<Attendance> {
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w900,
-                          fontSize: 28,
+                          fontSize: isNarrow ? 19 : 28,
                           height: 1.0,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: isNarrow ? 1 : 4),
                       Text(
                         card.$3,
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                          fontSize: 12,
+                          color: isDark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade600,
+                          fontSize: isNarrow ? 10 : 12,
                         ),
                       ),
                     ],
@@ -1890,15 +1931,14 @@ class _AttendanceState extends State<Attendance> {
         }).toList();
 
         if (isNarrow) {
-          return Column(
-            children: cardWidgets
-                .map(
-                  (c) => Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: c,
-                  ),
-                )
-                .toList(),
+          return GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: 1.95,
+            children: cardWidgets,
           );
         }
         return Row(
@@ -1924,413 +1964,498 @@ class _AttendanceState extends State<Attendance> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 1. TOP ROW: Title on Left, Actions on Right
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 768;
+            return Padding(
+              padding: EdgeInsets.all(compact ? 16 : 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  // 1. TOP ROW: Title on Left, Actions on Right
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Text(
-                        'Attendance',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // --- SEARCH BAR TOP RIGHT ---
                       SizedBox(
-                        width: 300,
-                        height: 42,
-                        child: TextField(
-                          controller: _searchController,
-                          onChanged: (value) => setState(() => _searchQuery = value),
-                          style: TextStyle(
-                            color: isDark ? Colors.white : Colors.black87,
-                            fontSize: 13,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Search employee or records...',
-                            hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-                            prefixIcon: const Icon(
-                              Icons.search,
-                              size: 18,
-                              color: Color(0xFF64748B),
-                            ),
-                            filled: true,
-                            fillColor: Theme.of(context).cardColor,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(4),
-                              borderSide: BorderSide(color: Theme.of(context).dividerColor),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      FilledButton.icon(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: EnterpriseColors.generativeAction,
-                        ),
-                        onPressed: _isImporting ? null : _pickExcelFile,
-                        icon: _isImporting
-                            ? const SizedBox(
-                                width: 17,
-                                height: 17,
-                                child: EnterpriseLoadingIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(Icons.upload_file_outlined, size: 17),
-                        label: Text(
-                          _isImporting ? 'Importing...' : 'Import Excel',
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      OutlinedButton.icon(
-                        onPressed: _showExportDialog,
-                        icon: const Icon(Icons.download_outlined, size: 17),
-                        label: const Text('Export'),
-                      ),
-                      const SizedBox(width: 12),
-                      OutlinedButton.icon(
-                        onPressed: _loadAttendanceData,
-                        icon: const Icon(Icons.refresh, size: 17),
-                        label: const Text('Refresh'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // 2. CARDS
-              if (_isLoadingSystemData)
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isNarrow = constraints.maxWidth < 900;
-                    if (isNarrow) {
-                      return Column(
-                        children: List.generate(
-                          4,
-                          (_) => const Padding(
-                            padding: EdgeInsets.only(bottom: 16),
-                            child: SizedBox(
-                              height: 112,
-                              width: double.infinity,
-                              child: EnterpriseSummaryCardSkeleton(),
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-                    return Row(
-                      children: const [
-                        Expanded(
-                          child: SizedBox(
-                            height: 112,
-                            child: EnterpriseSummaryCardSkeleton(),
-                          ),
-                        ),
-                        SizedBox(width: 16),
-                        Expanded(
-                          child: SizedBox(
-                            height: 112,
-                            child: EnterpriseSummaryCardSkeleton(),
-                          ),
-                        ),
-                        SizedBox(width: 16),
-                        Expanded(
-                          child: SizedBox(
-                            height: 112,
-                            child: EnterpriseSummaryCardSkeleton(),
-                          ),
-                        ),
-                        SizedBox(width: 16),
-                        Expanded(
-                          child: SizedBox(
-                            height: 112,
-                            child: EnterpriseSummaryCardSkeleton(),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                )
-              else
-                _buildSummaryCards(isDark, activeData),
-
-              const SizedBox(height: 32),
-
-              // 4. DATA GRID (WITH FILTERS INSIDE)
-              Expanded(
-                child: _isLoadingSystemData
-                    ? EnterpriseTableSkeleton(
-                        columns: _columns.isEmpty ? 6 : _columns.length + 1,
-                      )
-                    : activeData.isEmpty
-                    ? EnterpriseEmptyState(
-                        icon: Icons.fact_check_outlined,
-                        title: _rows.isEmpty
-                            ? 'Import the first attendance file'
-                            : 'Nothing matches the current search or filters',
-                        message: _rows.isEmpty
-                            ? 'Import a biometric workbook to establish the attendance register for payroll and workforce reporting.'
-                            : 'No attendance records match the current date range and search query.',
-                        actionLabel: _rows.isEmpty
-                            ? 'Import attendance file'
-                            : null,
-                        onAction: _rows.isEmpty ? _pickExcelFile : null,
-                      )
-                    : EnterpriseDataGrid<Map<String, String>>(
-                        emptyTitle:
-                            'No attendance records match the current search or filters',
-                        emptyMessage:
-                            'Try adjusting the date range or search query to find records.',
-                        rows: activeData,
-                        rowKey: (row) =>
-                            '${row['employee_id'] ?? row['employee'] ?? ''}-${row['date'] ?? ''}',
-                        height: double.infinity,
-                        showDateRange: false, // Disables native top-right Date Range control
-                        selectable: false,
-                        filterFields: [
-                          // --- FILTERS INSIDE THE TABLE TOP LEFT ---
-                          Container(
-                            width: 220,
-                            height: 34,
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
-                              border: Border.all(color: Theme.of(context).dividerColor),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: _selectedRange,
-                                isExpanded: true,
-                                isDense: true,
-                                icon: const Padding(
-                                  padding: EdgeInsets.only(left: 8.0),
-                                  child: Icon(Icons.calendar_today_outlined, size: 16),
-                                ),
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurface,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                dropdownColor: Theme.of(context).cardColor,
-                                selectedItemBuilder: (BuildContext context) {
-                                  return [
-                                    'Today',
-                                    'This Week',
-                                    'Custom Week',
-                                    'Month',
-                                    'All Time',
-                                  ].map((String value) {
-                                    return Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: Text(
-                                        'Date: ${_dateFilterLabel()}',
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    );
-                                  }).toList();
-                                },
-                                items: const [
-                                  DropdownMenuItem(value: 'Today', child: Text('Today')),
-                                  DropdownMenuItem(value: 'This Week', child: Text('This Week')),
-                                  DropdownMenuItem(
-                                    value: 'Custom Week',
-                                    child: Text('Custom Week...'),
+                        width: compact ? double.infinity : null,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Attendance',
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
                                   ),
-                                  DropdownMenuItem(value: 'Month', child: Text('Month...')),
-                                  DropdownMenuItem(value: 'All Time', child: Text('All Time')),
-                                ],
-                                onChanged: (val) async {
-                                  if (val == 'Custom Week') {
-                                    final picked = await showDateRangePicker(
-                                      context: context,
-                                      firstDate: DateTime(2020),
-                                      lastDate: DateTime(2100),
-                                      initialDateRange: _customDateRange,
-                                      builder: (context, child) {
-                                        // --> FIX: CONSTRAINED MODAL BEHAVIOR
-                                        return Center(
-                                          child: ConstrainedBox(
-                                            constraints: const BoxConstraints(
-                                              maxWidth: 400,
-                                              maxHeight: 600,
-                                            ),
-                                            child: child,
-                                          ),
-                                        );
-                                      },
-                                    );
-                                    if (picked != null) {
-                                      final dayCount =
-                                          picked.end.difference(picked.start).inDays + 1;
-                                      if (dayCount > 7) {
-                                        if (!mounted) return;
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Attendance print range can only be one week at most.',
-                                            ),
-                                          ),
-                                        );
-                                        return;
-                                      }
-                                      setState(() {
-                                        _selectedRange = val!;
-                                        _customDateRange = picked;
-                                      });
-                                    }
-                                  } else if (val == 'Month') {
-                                    final picked = await showDatePicker(
-                                      context: context,
-                                      firstDate: DateTime(2020),
-                                      lastDate: DateTime(2100),
-                                      initialDate: _customDateRange?.start ?? DateTime.now(),
-                                      helpText: 'Select month',
-                                      builder: (context, child) {
-                                        return Center(
-                                          child: ConstrainedBox(
-                                            constraints: const BoxConstraints(
-                                              maxWidth: 400,
-                                              maxHeight: 600,
-                                            ),
-                                            child: child,
-                                          ),
-                                        );
-                                      },
-                                    );
-                                    if (picked != null) {
-                                      final start = DateTime(picked.year, picked.month, 1);
-                                      final end = DateTime(picked.year, picked.month + 1, 0);
-                                      setState(() {
-                                        _selectedRange = val!;
-                                        _customDateRange = DateTimeRange(start: start, end: end);
-                                      });
-                                    }
-                                  } else {
-                                    setState(() {
-                                      _selectedRange = val!;
-                                      _customDateRange = null;
-                                    });
-                                  }
-                                },
+                            ),
+                          ],
+                        ),
+                      ),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          // --- SEARCH BAR TOP RIGHT ---
+                          SizedBox(
+                            width: compact ? constraints.maxWidth - 32 : 300,
+                            height: 42,
+                            child: TextField(
+                              controller: _searchController,
+                              onChanged: (value) =>
+                                  setState(() => _searchQuery = value),
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black87,
+                                fontSize: 13,
+                              ),
+                              decoration: InputDecoration(
+                                hintText: 'Search employee or records...',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey.shade500,
+                                  fontSize: 13,
+                                ),
+                                prefixIcon: const Icon(
+                                  Icons.search,
+                                  size: 18,
+                                  color: Color(0xFF64748B),
+                                ),
+                                filled: true,
+                                fillColor: Theme.of(context).cardColor,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(4),
+                                  borderSide: BorderSide(
+                                    color: Theme.of(context).dividerColor,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
-                          Container(
-                            width: 190,
-                            height: 34,
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
-                              border: Border.all(color: Theme.of(context).dividerColor),
-                              borderRadius: BorderRadius.circular(4),
+                          FilledButton.icon(
+                            style: FilledButton.styleFrom(
+                              backgroundColor:
+                                  EnterpriseColors.generativeAction,
                             ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<bool>(
-                                value: _sortDateAscending,
-                                isExpanded: true,
-                                isDense: true,
-                                icon: const Padding(
-                                  padding: EdgeInsets.only(left: 8.0),
-                                  child: Icon(Icons.sort, size: 16),
-                                ),
-                                style: TextStyle(
-                                  color: Theme.of(context).colorScheme.onSurface,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                dropdownColor: Theme.of(context).cardColor,
-                                selectedItemBuilder: (BuildContext context) {
-                                  return [false, true].map((bool value) {
-                                    return Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: Text(
-                                        'Sort: ${value ? 'Oldest First' : 'Newest First'}',
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    );
-                                  }).toList();
-                                },
-                                items: const [
-                                  DropdownMenuItem(value: false, child: Text('Newest First')),
-                                  DropdownMenuItem(value: true, child: Text('Oldest First')),
-                                ],
-                                onChanged: (val) {
-                                  if (val != null) setState(() => _sortDateAscending = val);
-                                },
-                              ),
+                            onPressed: _isImporting ? null : _pickExcelFile,
+                            icon: _isImporting
+                                ? const SizedBox(
+                                    width: 17,
+                                    height: 17,
+                                    child: EnterpriseLoadingIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.upload_file_outlined,
+                                    size: 17,
+                                  ),
+                            label: Text(
+                              _isImporting ? 'Importing...' : 'Import Excel',
                             ),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: _showExportDialog,
+                            icon: const Icon(Icons.download_outlined, size: 17),
+                            label: const Text('Export'),
+                          ),
+                          OutlinedButton.icon(
+                            onPressed: _loadAttendanceData,
+                            icon: const Icon(Icons.refresh, size: 17),
+                            label: const Text('Refresh'),
                           ),
                         ],
-                        columns: _columns
-                            .map(
-                              (column) =>
-                                  EnterpriseGridColumn<Map<String, String>>(
-                                    label: _formatTableHeader(column),
-                                    width:
-                                        column == 'employee' ||
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: compact ? 12 : 24),
+
+                  // 2. CARDS
+                  if (_isLoadingSystemData)
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isNarrow = constraints.maxWidth < 900;
+                        if (isNarrow) {
+                          return GridView.count(
+                            crossAxisCount: 2,
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            mainAxisSpacing: 8,
+                            crossAxisSpacing: 8,
+                            childAspectRatio: 1.95,
+                            children: List.generate(
+                              4,
+                              (_) => const EnterpriseSummaryCardSkeleton(),
+                            ),
+                          );
+                        }
+                        return Row(
+                          children: const [
+                            Expanded(
+                              child: SizedBox(
+                                height: 112,
+                                child: EnterpriseSummaryCardSkeleton(),
+                              ),
+                            ),
+                            SizedBox(width: 16),
+                            Expanded(
+                              child: SizedBox(
+                                height: 112,
+                                child: EnterpriseSummaryCardSkeleton(),
+                              ),
+                            ),
+                            SizedBox(width: 16),
+                            Expanded(
+                              child: SizedBox(
+                                height: 112,
+                                child: EnterpriseSummaryCardSkeleton(),
+                              ),
+                            ),
+                            SizedBox(width: 16),
+                            Expanded(
+                              child: SizedBox(
+                                height: 112,
+                                child: EnterpriseSummaryCardSkeleton(),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    )
+                  else
+                    _buildSummaryCards(isDark, activeData),
+
+                  SizedBox(height: compact ? 12 : 32),
+
+                  // 4. DATA GRID (WITH FILTERS INSIDE)
+                  Expanded(
+                    child: _isLoadingSystemData
+                        ? EnterpriseTableSkeleton(
+                            columns: _columns.isEmpty ? 6 : _columns.length + 1,
+                          )
+                        : activeData.isEmpty
+                        ? EnterpriseEmptyState(
+                            icon: Icons.fact_check_outlined,
+                            title: _rows.isEmpty
+                                ? 'Import the first attendance file'
+                                : 'Nothing matches the current search or filters',
+                            message: _rows.isEmpty
+                                ? 'Import a biometric workbook to establish the attendance register for payroll and workforce reporting.'
+                                : 'No attendance records match the current date range and search query.',
+                            actionLabel: _rows.isEmpty
+                                ? 'Import attendance file'
+                                : null,
+                            onAction: _rows.isEmpty ? _pickExcelFile : null,
+                          )
+                        : EnterpriseDataGrid<Map<String, String>>(
+                            emptyTitle:
+                                'No attendance records match the current search or filters',
+                            emptyMessage:
+                                'Try adjusting the date range or search query to find records.',
+                            rows: activeData,
+                            rowKey: (row) =>
+                                '${row['employee_id'] ?? row['employee'] ?? ''}-${row['date'] ?? ''}',
+                            height: double.infinity,
+                            showDateRange:
+                                false, // Disables native top-right Date Range control
+                            selectable: false,
+                            filterFields: [
+                              // --- FILTERS INSIDE THE TABLE TOP LEFT ---
+                              Container(
+                                width: 220,
+                                height: 34,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).cardColor,
+                                  border: Border.all(
+                                    color: Theme.of(context).dividerColor,
+                                  ),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: _selectedRange,
+                                    isExpanded: true,
+                                    isDense: true,
+                                    icon: const Padding(
+                                      padding: EdgeInsets.only(left: 8.0),
+                                      child: Icon(
+                                        Icons.calendar_today_outlined,
+                                        size: 16,
+                                      ),
+                                    ),
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    dropdownColor: Theme.of(context).cardColor,
+                                    selectedItemBuilder:
+                                        (BuildContext context) {
+                                          return [
+                                            'Today',
+                                            'This Week',
+                                            'Custom Week',
+                                            'Month',
+                                            'All Time',
+                                          ].map((String value) {
+                                            return Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: Text(
+                                                'Date: ${_dateFilterLabel()}',
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            );
+                                          }).toList();
+                                        },
+                                    items: const [
+                                      DropdownMenuItem(
+                                        value: 'Today',
+                                        child: Text('Today'),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'This Week',
+                                        child: Text('This Week'),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'Custom Week',
+                                        child: Text('Custom Week...'),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'Month',
+                                        child: Text('Month...'),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: 'All Time',
+                                        child: Text('All Time'),
+                                      ),
+                                    ],
+                                    onChanged: (val) async {
+                                      if (val == 'Custom Week') {
+                                        final picked = await showDateRangePicker(
+                                          context: context,
+                                          firstDate: DateTime(2020),
+                                          lastDate: DateTime(2100),
+                                          initialDateRange: _customDateRange,
+                                          builder: (context, child) {
+                                            // --> FIX: CONSTRAINED MODAL BEHAVIOR
+                                            return Center(
+                                              child: ConstrainedBox(
+                                                constraints:
+                                                    const BoxConstraints(
+                                                      maxWidth: 400,
+                                                      maxHeight: 600,
+                                                    ),
+                                                child: child,
+                                              ),
+                                            );
+                                          },
+                                        );
+                                        if (picked != null) {
+                                          final dayCount =
+                                              picked.end
+                                                  .difference(picked.start)
+                                                  .inDays +
+                                              1;
+                                          if (dayCount > 7) {
+                                            if (!mounted) return;
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Attendance print range can only be one week at most.',
+                                                ),
+                                              ),
+                                            );
+                                            return;
+                                          }
+                                          setState(() {
+                                            _selectedRange = val!;
+                                            _customDateRange = picked;
+                                          });
+                                        }
+                                      } else if (val == 'Month') {
+                                        final picked = await showDatePicker(
+                                          context: context,
+                                          firstDate: DateTime(2020),
+                                          lastDate: DateTime(2100),
+                                          initialDate:
+                                              _customDateRange?.start ??
+                                              DateTime.now(),
+                                          helpText: 'Select month',
+                                          builder: (context, child) {
+                                            return Center(
+                                              child: ConstrainedBox(
+                                                constraints:
+                                                    const BoxConstraints(
+                                                      maxWidth: 400,
+                                                      maxHeight: 600,
+                                                    ),
+                                                child: child,
+                                              ),
+                                            );
+                                          },
+                                        );
+                                        if (picked != null) {
+                                          final start = DateTime(
+                                            picked.year,
+                                            picked.month,
+                                            1,
+                                          );
+                                          final end = DateTime(
+                                            picked.year,
+                                            picked.month + 1,
+                                            0,
+                                          );
+                                          setState(() {
+                                            _selectedRange = val!;
+                                            _customDateRange = DateTimeRange(
+                                              start: start,
+                                              end: end,
+                                            );
+                                          });
+                                        }
+                                      } else {
+                                        setState(() {
+                                          _selectedRange = val!;
+                                          _customDateRange = null;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ),
+                              Container(
+                                width: 190,
+                                height: 34,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).cardColor,
+                                  border: Border.all(
+                                    color: Theme.of(context).dividerColor,
+                                  ),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<bool>(
+                                    value: _sortDateAscending,
+                                    isExpanded: true,
+                                    isDense: true,
+                                    icon: const Padding(
+                                      padding: EdgeInsets.only(left: 8.0),
+                                      child: Icon(Icons.sort, size: 16),
+                                    ),
+                                    style: TextStyle(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    dropdownColor: Theme.of(context).cardColor,
+                                    selectedItemBuilder: (BuildContext context) {
+                                      return [false, true].map((bool value) {
+                                        return Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Text(
+                                            'Sort: ${value ? 'Oldest First' : 'Newest First'}',
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        );
+                                      }).toList();
+                                    },
+                                    items: const [
+                                      DropdownMenuItem(
+                                        value: false,
+                                        child: Text('Newest First'),
+                                      ),
+                                      DropdownMenuItem(
+                                        value: true,
+                                        child: Text('Oldest First'),
+                                      ),
+                                    ],
+                                    onChanged: (val) {
+                                      if (val != null)
+                                        setState(
+                                          () => _sortDateAscending = val,
+                                        );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                            columns: _columns
+                                .map(
+                                  (column) =>
+                                      EnterpriseGridColumn<Map<String, String>>(
+                                        label: _formatTableHeader(column),
+                                        width:
+                                            column == 'employee' ||
                                                 column == 'employee_name'
                                             ? 240
                                             : 150,
-                                    value: (row) => _formatDisplayValue(
-                                      column,
-                                      row[column] ?? '',
-                                    ),
-                                    cellBuilder: column == 'total_minutes_late'
-                                        ? (context, row) {
-                                            final raw = row[column] ?? '';
-                                            final flagged =
-                                                (int.tryParse(raw) ?? 0) > 0 ||
-                                                raw.toLowerCase().contains(
-                                                  'half',
-                                                ) ||
-                                                raw.toLowerCase().contains(
-                                                  'absent',
+                                        value: (row) => _formatDisplayValue(
+                                          column,
+                                          row[column] ?? '',
+                                        ),
+                                        cellBuilder:
+                                            column == 'total_minutes_late'
+                                            ? (context, row) {
+                                                final raw = row[column] ?? '';
+                                                final flagged =
+                                                    (int.tryParse(raw) ?? 0) >
+                                                        0 ||
+                                                    raw.toLowerCase().contains(
+                                                      'half',
+                                                    ) ||
+                                                    raw.toLowerCase().contains(
+                                                      'absent',
+                                                    );
+                                                return Text(
+                                                  _formatDisplayValue(
+                                                    column,
+                                                    raw,
+                                                  ),
+                                                  style: TextStyle(
+                                                    color: flagged
+                                                        ? Theme.of(
+                                                            context,
+                                                          ).colorScheme.error
+                                                        : null,
+                                                    fontWeight: flagged
+                                                        ? FontWeight.w800
+                                                        : null,
+                                                  ),
                                                 );
-                                            return Text(
-                                              _formatDisplayValue(column, raw),
-                                              style: TextStyle(
-                                                color: flagged
-                                                    ? Theme.of(
-                                                        context,
-                                                      ).colorScheme.error
-                                                    : null,
-                                                fontWeight: flagged
-                                                    ? FontWeight.w800
-                                                    : null,
-                                              ),
-                                            );
-                                          }
-                                        : null,
-                                  ),
-                            )
-                            .toList(),
-                      ),
+                                              }
+                                            : null,
+                                      ),
+                                )
+                                .toList(),
+                          ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );

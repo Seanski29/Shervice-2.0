@@ -263,14 +263,17 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
       padding: const EdgeInsets.all(16),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final columns = constraints.maxWidth > 1200
+          final compact = constraints.maxWidth < 700;
+          final columns = compact
+              ? 3
+              : constraints.maxWidth > 1200
               ? 5
               : constraints.maxWidth > 900
               ? 3
               : constraints.maxWidth > 640
               ? 2
               : 1;
-          final spacing = 16.0;
+          final spacing = compact ? 8.0 : 16.0;
           final cardWidth =
               (constraints.maxWidth - (spacing * (columns - 1))) / columns;
           return Column(
@@ -280,9 +283,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                 spacing: spacing,
                 runSpacing: spacing,
                 children: List.generate(
-                  5,
+                  compact ? 6 : 5,
                   (_) => SizedBox(
-                    width: cardWidth.clamp(180.0, 240.0),
+                    width: compact ? cardWidth : cardWidth.clamp(180.0, 240.0),
                     child: const EnterpriseSummaryCardSkeleton(),
                   ),
                 ),
@@ -448,8 +451,10 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
           LayoutBuilder(
             builder: (context, constraints) {
               final compact = constraints.maxWidth < 700;
-              final spacing = compact ? 12.0 : 16.0;
-              final columns = constraints.maxWidth > 1400
+              final spacing = compact ? 8.0 : 16.0;
+              final columns = compact
+                  ? 3
+                  : constraints.maxWidth > 1400
                   ? 6
                   : constraints.maxWidth > 1000
                   ? 3
@@ -782,6 +787,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
   // --- FIX: THIS IS THE INLINED, PERFECTLY CENTERED KPI GRID ---
   Widget _buildKpiGrid(BuildContext context, double width, double spacing) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final compact = MediaQuery.sizeOf(context).width < 700;
     return Wrap(
       spacing: spacing,
       runSpacing: spacing,
@@ -792,8 +798,8 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
           borderRadius: BorderRadius.circular(12),
           child: Container(
             width: width,
-            constraints: const BoxConstraints(minHeight: 112),
-            padding: const EdgeInsets.all(16),
+            constraints: BoxConstraints(minHeight: compact ? 72 : 112),
+            padding: EdgeInsets.all(compact ? 8 : 16),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.08),
               border: Border.all(color: color.withValues(alpha: 0.3)),
@@ -801,10 +807,11 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
             ),
             child: Stack(
               children: [
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: Icon(metric.icon, color: color, size: 20),
-                ),
+                if (!compact)
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: Icon(metric.icon, color: color, size: 20),
+                  ),
                 SizedBox(
                   width: double.infinity,
                   child: Column(
@@ -819,11 +826,11 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: color,
-                          fontSize: 14,
+                          fontSize: compact ? 10 : 14,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: compact ? 2 : 8),
                       Text(
                         metric.value,
                         textAlign: TextAlign.center,
@@ -832,20 +839,22 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w900,
-                          fontSize: 28,
+                          fontSize: compact ? 18 : 28,
                           height: 1.0,
                         ),
                       ),
                       if (metric.subTitle.isNotEmpty) ...[
-                        const SizedBox(height: 4),
+                        SizedBox(height: compact ? 1 : 4),
                         Text(
                           metric.subTitle,
                           textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: isDark
                                 ? Colors.grey.shade400
                                 : Colors.grey.shade600,
-                            fontSize: 12,
+                            fontSize: compact ? 9 : 12,
                           ),
                         ),
                       ],
@@ -1913,89 +1922,31 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                     ),
                   )
                 : SizedBox(
-                    height: compact ? 270 : 260,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: PieChart(
-                            PieChartData(
-                              sectionsSpace: 2,
-                              centerSpaceRadius: compact ? 34 : 42,
-                              sections: [
-                                for (
-                                  var index = 0;
-                                  index < _companyTrips.length;
-                                  index++
-                                )
-                                  PieChartSectionData(
-                                    value: _companyTrips[index].tripCount
-                                        .toDouble(),
-                                    color: _proceduralColorAssigner(index),
-                                    radius: compact ? 54 : 66,
-                                    title: totalTrips == 0
-                                        ? ''
-                                        : '${((_companyTrips[index].tripCount / totalTrips) * 100).round()}%',
-                                    titleStyle: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                              ],
-                            ),
+                    height: compact ? 190 : 260,
+                    child: compact
+                        ? Column(
+                            children: [
+                              SizedBox(
+                                height: 128,
+                                child: _buildCompanyTripPie(totalTrips, true),
+                              ),
+                              const SizedBox(height: 8),
+                              Expanded(child: _buildCompanyTripLegend()),
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: _buildCompanyTripPie(totalTrips, false),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                flex: 2,
+                                child: _buildCompanyTripLegend(),
+                              ),
+                            ],
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          flex: 2,
-                          child: ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _companyTrips.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(height: 8),
-                            itemBuilder: (context, index) {
-                              final item = _companyTrips[index];
-                              final color = _proceduralColorAssigner(index);
-                              return Row(
-                                children: [
-                                  Container(
-                                    width: 10,
-                                    height: 10,
-                                    decoration: BoxDecoration(
-                                      color: color,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      item.companyName,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            fontSize: _captionTextSize,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                  ),
-                                  Text(
-                                    '${item.tripCount}',
-                                    style: TextStyle(
-                                      color: color,
-                                      fontSize: _captionTextSize,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
           ],
         ),
@@ -2274,6 +2225,73 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
         setState(() => _isTripsChartLoading = false);
       }
     }
+  }
+
+  Widget _buildCompanyTripPie(int totalTrips, bool compact) {
+    return PieChart(
+      PieChartData(
+        sectionsSpace: 2,
+        centerSpaceRadius: compact ? 26 : 42,
+        sections: [
+          for (var index = 0; index < _companyTrips.length; index++)
+            PieChartSectionData(
+              value: _companyTrips[index].tripCount.toDouble(),
+              color: _proceduralColorAssigner(index),
+              radius: compact ? 40 : 66,
+              title: totalTrips == 0
+                  ? ''
+                  : '${((_companyTrips[index].tripCount / totalTrips) * 100).round()}%',
+              titleStyle: TextStyle(
+                color: Colors.white,
+                fontSize: compact ? 9 : 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompanyTripLegend() {
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _companyTrips.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 6),
+      itemBuilder: (context, index) {
+        final item = _companyTrips[index];
+        final color = _proceduralColorAssigner(index);
+        return Row(
+          children: [
+            Container(
+              width: 9,
+              height: 9,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                item.companyName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontSize: _captionTextSize,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Text(
+              '${item.tripCount}',
+              style: TextStyle(
+                color: color,
+                fontSize: _captionTextSize,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _changeDispatchMonth(int month, int year) async {

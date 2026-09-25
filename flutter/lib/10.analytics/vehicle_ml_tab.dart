@@ -20,6 +20,42 @@ class VehicleMlTab extends StatefulWidget {
   State<VehicleMlTab> createState() => _VehicleMlTabState();
 }
 
+class _VehicleMlChip extends StatelessWidget {
+  const _VehicleMlChip({
+    required this.label,
+    required this.color,
+    this.outlined = false,
+  });
+
+  final String label;
+  final Color color;
+  final bool outlined;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: outlined ? 0.08 : 0.1),
+        border: outlined
+            ? Border.all(color: color.withValues(alpha: 0.5))
+            : null,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+}
+
 class _VehicleMlTabState extends State<VehicleMlTab> {
   String _searchQuery = '';
   String _currentSort = 'Due Maintenance first';
@@ -315,125 +351,235 @@ class _VehicleMlTabState extends State<VehicleMlTab> {
                         },
                         child: Padding(
                           padding: const EdgeInsets.all(12),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: Colors.purple.shade50,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(
-                                  Icons.directions_car,
-                                  color: Colors.purple,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
+                          child: isMobile
+                              ? Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      vehicle['plate_number'] ?? 'Unknown',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,
-                                        color: textColor,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 4),
                                     Row(
                                       children: [
-                                        const Icon(
-                                          Icons.directions_bus,
-                                          size: 14,
-                                          color: Color(0xFF64748B),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Flexible(
-                                          child: Text(
-                                            vehicle['bus_type'] ??
-                                                'Unknown Type',
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: Color(0xFF64748B),
+                                        Container(
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: Colors.purple.shade50,
+                                            borderRadius: BorderRadius.circular(
+                                              8,
                                             ),
                                           ),
+                                          child: const Icon(
+                                            Icons.directions_car,
+                                            color: Colors.purple,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                vehicle['plate_number'] ??
+                                                    'Unknown',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 15,
+                                                  color: textColor,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Row(
+                                                children: [
+                                                  const Icon(
+                                                    Icons.directions_bus,
+                                                    size: 14,
+                                                    color: Color(0xFF64748B),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Expanded(
+                                                    child: Text(
+                                                      vehicle['bus_type'] ??
+                                                          'Unknown Type',
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: const TextStyle(
+                                                        fontSize: 12,
+                                                        color: Color(
+                                                          0xFF64748B,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const Icon(
+                                          Icons.chevron_right,
+                                          color: Colors.grey,
                                         ),
                                       ],
                                     ),
+                                    const SizedBox(height: 10),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: [
+                                        _VehicleMlChip(
+                                          label:
+                                              '${daysRemaining.toStringAsFixed(0)} Days',
+                                          color: mlColor,
+                                          outlined: true,
+                                        ),
+                                        _VehicleMlChip(
+                                          label: statusLabel,
+                                          color: statusColor,
+                                        ),
+                                        if (vehicle['maintenance_target_date'] !=
+                                            null)
+                                          _VehicleMlChip(
+                                            label:
+                                                'Target: ${vehicle['maintenance_target_date']}',
+                                            color: statusColor,
+                                            outlined: true,
+                                          ),
+                                      ],
+                                    ),
                                   ],
-                                ),
-                              ),
-                              Expanded(
-                                child: Wrap(
-                                  spacing: 8,
-                                  runSpacing: 4,
-                                  alignment: WrapAlignment.end,
-                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                )
+                              : Row(
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
+                                      padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
-                                        border: Border.all(
-                                          color: mlColor.withValues(alpha: 0.5),
-                                        ),
-                                        borderRadius: BorderRadius.circular(6),
-                                        color: mlColor.withValues(alpha: 0.08),
+                                        color: Colors.purple.shade50,
+                                        borderRadius: BorderRadius.circular(8),
                                       ),
-                                      child: Text(
-                                        '${daysRemaining.toStringAsFixed(0)} Days',
-                                        style: TextStyle(
-                                          color: mlColor,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                      child: const Icon(
+                                        Icons.directions_car,
+                                        color: Colors.purple,
                                       ),
                                     ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: statusColor.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        statusLabel,
-                                        style: TextStyle(
-                                          color: statusColor,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            vehicle['plate_number'] ??
+                                                'Unknown',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15,
+                                              color: textColor,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.directions_bus,
+                                                size: 14,
+                                                color: Color(0xFF64748B),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Flexible(
+                                                child: Text(
+                                                  vehicle['bus_type'] ??
+                                                      'Unknown Type',
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: Color(0xFF64748B),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    if (vehicle['maintenance_target_date'] !=
-                                        null)
-                                      Text(
-                                        'Target: ${vehicle['maintenance_target_date']}',
-                                        style: TextStyle(
-                                          color: statusColor,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                    Expanded(
+                                      child: Wrap(
+                                        spacing: 8,
+                                        runSpacing: 4,
+                                        alignment: WrapAlignment.end,
+                                        crossAxisAlignment:
+                                            WrapCrossAlignment.center,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              border: Border.all(
+                                                color: mlColor.withValues(
+                                                  alpha: 0.5,
+                                                ),
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              color: mlColor.withValues(
+                                                alpha: 0.08,
+                                              ),
+                                            ),
+                                            child: Text(
+                                              '${daysRemaining.toStringAsFixed(0)} Days',
+                                              style: TextStyle(
+                                                color: mlColor,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: statusColor.withValues(
+                                                alpha: 0.1,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              statusLabel,
+                                              style: TextStyle(
+                                                color: statusColor,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                          if (vehicle['maintenance_target_date'] !=
+                                              null)
+                                            Text(
+                                              'Target: ${vehicle['maintenance_target_date']}',
+                                              style: TextStyle(
+                                                color: statusColor,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          const Icon(
+                                            Icons.chevron_right,
+                                            color: Colors.grey,
+                                          ),
+                                        ],
                                       ),
-                                    const Icon(
-                                      Icons.chevron_right,
-                                      color: Colors.grey,
                                     ),
                                   ],
                                 ),
-                              ),
-                            ],
-                          ),
                         ),
                       ),
                     );
@@ -644,15 +790,13 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
   }
 
   Widget _buildResultsView(bool isMobile, bool isDark) {
-    final responseDays =
-        (_results!['risk_index'] as num?)?.toDouble() ?? 0.0;
-    final storedDays =
-        (widget.vehicle['live_risk_score'] as num?)?.toDouble();
+    final responseDays = (_results!['risk_index'] as num?)?.toDouble() ?? 0.0;
+    final storedDays = (widget.vehicle['live_risk_score'] as num?)?.toDouble();
     final double daysRemaining = storedDays ?? responseDays;
     final Map<String, dynamic> telemetry = _results!['telemetry_metrics'] ?? {};
     final bool dueMaintenance = widget.vehicle['needs_attention'] == true;
-    final bool dueRepair = dueMaintenance &&
-        widget.vehicle['maintenance_due_type'] == 'repair';
+    final bool dueRepair =
+        dueMaintenance && widget.vehicle['maintenance_due_type'] == 'repair';
 
     Color statusColor;
     Color bgColor;
@@ -667,10 +811,9 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
           ? (isDark ? const Color(0xFF451A03) : const Color(0xFFFFF7ED))
           : (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEF2F2));
       statusLabel = dueRepair ? 'DUE REPAIR' : 'DUE MAINTENANCE';
-      statusDesc =
-          dueRepair
-              ? 'Staff recorded an unresolved repair issue for this vehicle.'
-              : 'Staff recorded an unresolved maintenance issue for this vehicle.';
+      statusDesc = dueRepair
+          ? 'Staff recorded an unresolved repair issue for this vehicle.'
+          : 'Staff recorded an unresolved maintenance issue for this vehicle.';
     } else if (daysRemaining <= 7.0) {
       statusColor = const Color(0xFFDC2626);
       bgColor = isDark ? const Color(0xFF450A0A) : const Color(0xFFFEF2F2);
@@ -705,7 +848,10 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: statusColor.withValues(alpha: 0.3), width: 1.5),
+            border: Border.all(
+              color: statusColor.withValues(alpha: 0.3),
+              width: 1.5,
+            ),
           ),
           child: Column(
             children: [

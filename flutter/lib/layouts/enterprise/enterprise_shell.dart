@@ -84,6 +84,7 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
               drawer: compact
                   ? Drawer(
                       width: 280,
+                      backgroundColor: EnterpriseColors.sidebar,
                       shape: const RoundedRectangleBorder(),
                       child: _buildSidebar(forceExpanded: true),
                     )
@@ -102,12 +103,14 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                // DELETED the Align block that held the Page Title. 
+                                // DELETED the Align block that held the Page Title.
                                 // Titles are now managed directly by individual screens to save vertical space.
                                 Expanded(
-                                  child: KeyedSubtree(
-                                    key: ValueKey(_selected.label),
-                                    child: _selected.screen,
+                                  child: ClipRect(
+                                    child: KeyedSubtree(
+                                      key: ValueKey(_selected.label),
+                                      child: _selected.screen,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -209,7 +212,7 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
     const sidebarBackground = EnterpriseColors.sidebar;
     final width = expanded ? 260.0 : 76.0;
     final sections = <String>[];
-    
+
     for (final item in widget.navigationItems) {
       if (!sections.contains(item.section)) sections.add(item.section);
     }
@@ -222,14 +225,17 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
         children: [
           _buildSidebarHeader(expanded),
           Expanded(
-            child: ListView(
-              physics: const ClampingScrollPhysics(), 
-              padding: const EdgeInsets.only(top: 4, bottom: 24),
-              children: [
-                for (final section in sections)
-                  if (section != 'Hidden') 
-                    _buildNavigationSection(section, expanded),
-              ],
+            child: ColoredBox(
+              color: sidebarBackground,
+              child: ListView(
+                physics: const ClampingScrollPhysics(),
+                padding: const EdgeInsets.only(top: 4, bottom: 24),
+                children: [
+                  for (final section in sections)
+                    if (section != 'Hidden')
+                      _buildNavigationSection(section, expanded),
+                ],
+              ),
             ),
           ),
         ],
@@ -294,7 +300,7 @@ class _EnterpriseShellState extends State<EnterpriseShell> {
           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
           padding: EdgeInsets.symmetric(
             horizontal: expanded ? 16 : 12,
-            vertical: 10, 
+            vertical: 10,
           ),
           decoration: BoxDecoration(
             color: active ? Colors.blue.shade600 : Colors.transparent,

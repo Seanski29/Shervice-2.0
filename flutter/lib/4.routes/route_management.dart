@@ -10,7 +10,6 @@ import '../utilities/file_download.dart';
 import '../layouts/enterprise/enterprise_data_grid.dart';
 import '../layouts/enterprise/enterprise_states.dart';
 
-
 class RouteDirectory extends StatefulWidget {
   const RouteDirectory({super.key});
 
@@ -51,7 +50,9 @@ class _RouteDirectoryState extends State<RouteDirectory> {
 
     if (query.isNotEmpty) {
       result = result.where((route) {
-        return (route['route_name'] ?? '').toString().toLowerCase().contains(query) ||
+        return (route['route_name'] ?? '').toString().toLowerCase().contains(
+              query,
+            ) ||
             (route['route_id'] ?? '').toString().contains(query);
       }).toList();
     } else {
@@ -290,9 +291,7 @@ class _RouteDirectoryState extends State<RouteDirectory> {
         },
         icon: const Icon(Icons.delete_outline, size: 16),
         label: const Text('Delete'),
-        style: FilledButton.styleFrom(
-          backgroundColor: EnterpriseColors.danger,
-        ),
+        style: FilledButton.styleFrom(backgroundColor: EnterpriseColors.danger),
       ),
     ];
   }
@@ -307,7 +306,12 @@ class _RouteDirectoryState extends State<RouteDirectory> {
     });
   }
 
-  InputDecoration _inputDecoration(String label, String helper, String? error, {String? prefixText}) {
+  InputDecoration _inputDecoration(
+    String label,
+    String helper,
+    String? error, {
+    String? prefixText,
+  }) {
     return InputDecoration(
       labelText: label,
       helperText: helper,
@@ -327,11 +331,16 @@ class _RouteDirectoryState extends State<RouteDirectory> {
     );
   }
 
-Widget _sortDropdown(bool isDark) {
-    final sortOptions = ['Name (A to Z)', 'Name (Z to A)', 'Most Trips', 'Least Trips'];
+  Widget _sortDropdown(bool isDark) {
+    final sortOptions = [
+      'Name (A to Z)',
+      'Name (Z to A)',
+      'Most Trips',
+      'Least Trips',
+    ];
 
     return Container(
-      height: 34, // Slightly taller for breathing room
+      height: 34,
       width: 170,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
@@ -342,8 +351,8 @@ Widget _sortDropdown(bool isDark) {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _currentSort,
-          isExpanded: true, 
-          isDense: true, // <-- THIS IS THE FIX. It forces the text to fit the small box.
+          isExpanded: true,
+          isDense: true,
           icon: const Padding(
             padding: EdgeInsets.only(left: 8.0),
             child: Icon(Icons.sort, size: 16),
@@ -356,9 +365,9 @@ Widget _sortDropdown(bool isDark) {
           dropdownColor: Theme.of(context).cardColor,
           selectedItemBuilder: (BuildContext context) {
             return sortOptions.map((String value) {
-              return Text(
-                'Sort: $value',
-                overflow: TextOverflow.ellipsis,
+              return Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Sort: $value', overflow: TextOverflow.ellipsis),
               );
             }).toList();
           },
@@ -375,257 +384,422 @@ Widget _sortDropdown(bool isDark) {
     );
   }
 
+  Future<void> _showRouteFormModal({
+    required bool isDark,
+    required bool compact,
+    required double maxWidth,
+  }) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        final bottomInset = MediaQuery.viewInsetsOf(sheetContext).bottom;
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + bottomInset),
+            child: SingleChildScrollView(
+              child: Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Theme.of(context).dividerColor),
+                ),
+                child: Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  crossAxisAlignment: WrapCrossAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: maxWidth,
+                      child: TextField(
+                        controller: _nameController,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                        decoration: _inputDecoration(
+                          'Route name',
+                          'Use the dispatch-facing route label.',
+                          _nameError,
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      width: maxWidth,
+                      child: TextField(
+                        controller: _priceController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        style: TextStyle(
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                        decoration: _inputDecoration(
+                          'Rate',
+                          'Non-negative amount.',
+                          _priceError,
+                          prefixText: 'PHP ',
+                        ),
+                      ),
+                    ),
+                    FilledButton.icon(
+                      onPressed: _isSaving ? null : _saveRoute,
+                      icon: _isSaving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: EnterpriseLoadingIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Icon(Icons.save_outlined, size: 17),
+                      label: Text(
+                        _editingRouteId == null ? 'Add route' : 'Update route',
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: EnterpriseColors.generativeAction,
+                      ),
+                    ),
+                    if (_editingRouteId != null)
+                      TextButton(
+                        onPressed: _clearForm,
+                        child: const Text('Cancel'),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final routes = _filteredRoutes;
-    
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 1. TOP ROW: Title on Left, Search + Refresh on Right
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 768;
+          return Padding(
+            padding: EdgeInsets.all(compact ? 16 : 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'Route Management',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+                // 1. TOP ROW: Title on Left, Search + Actions on Right
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     SizedBox(
-                      width: 280,
-                      height: 42,
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (value) => setState(() => _search = value),
-                        style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 13),
-                        decoration: InputDecoration(
-                          hintText: 'Search route or ID',
-                          hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-                          prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
-                          filled: true,
-                          fillColor: Theme.of(context).cardColor,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(4),
-                            borderSide: BorderSide(color: Theme.of(context).dividerColor),
-                          ),
-                        ),
+                      width: compact ? double.infinity : null,
+                      child: Text(
+                        'Route Management',
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    OutlinedButton.icon(
-                      onPressed: _isLoading ? null : _loadRoutes,
-                      icon: const Icon(Icons.refresh, size: 17),
-                      label: const Text('Refresh'),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: compact ? constraints.maxWidth - 32 : 280,
+                          height: 42,
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: (value) => setState(() => _search = value),
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black87,
+                              fontSize: 13,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Search route or ID',
+                              hintStyle: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 13,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.search,
+                                size: 18,
+                                color: Color(0xFF64748B),
+                              ),
+                              filled: true,
+                              fillColor: Theme.of(context).cardColor,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: BorderSide(
+                                  color: Theme.of(context).dividerColor,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // --> FIXED: Add Route button is strictly positioned to the LEFT of the Refresh button
+                        if (compact)
+                          FilledButton.icon(
+                            onPressed: () => _showRouteFormModal(
+                              isDark: isDark,
+                              compact: compact,
+                              maxWidth: constraints.maxWidth,
+                            ),
+                            icon: const Icon(Icons.add, size: 17),
+                            label: Text(
+                              _editingRouteId == null ? 'Add route' : 'Edit route',
+                            ),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: EnterpriseColors.generativeAction,
+                            ),
+                          ),
+                        OutlinedButton.icon(
+                          onPressed: _isLoading ? null : _loadRoutes,
+                          icon: const Icon(Icons.refresh, size: 17),
+                          label: const Text('Refresh'),
+                        ),
+                      ],
                     ),
                   ],
+                ),
+                SizedBox(height: compact ? 12 : 24),
+
+                // 2. FORM AREA & GREEN KPI CARD (Only visible on non-compact screens)
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 900;
+
+                    final formWidget = Container(
+                      padding: EdgeInsets.all(compact ? 14 : 20),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Theme.of(context).dividerColor,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Theme.of(context).shadowColor.withValues(alpha: 0.04),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Wrap(
+                        spacing: compact ? 10 : 16,
+                        runSpacing: compact ? 10 : 16,
+                        crossAxisAlignment: WrapCrossAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: compact ? constraints.maxWidth : 320,
+                            child: TextField(
+                              controller: _nameController,
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                              decoration: _inputDecoration(
+                                'Route name',
+                                'Use the dispatch-facing route label.',
+                                _nameError,
+                              ),
+                            ),
+                          ),
+                          SizedBox(
+                            width: compact ? constraints.maxWidth : 180,
+                            child: TextField(
+                              controller: _priceController,
+                              keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true,
+                              ),
+                              style: TextStyle(
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                              decoration: _inputDecoration(
+                                'Rate',
+                                'Non-negative amount.',
+                                _priceError,
+                                prefixText: 'PHP ',
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                FilledButton.icon(
+                                  onPressed: _isSaving ? null : _saveRoute,
+                                  icon: _isSaving
+                                      ? const SizedBox(
+                                          width: 18,
+                                          height: 18,
+                                          child: EnterpriseLoadingIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.save_outlined,
+                                          size: 17,
+                                        ),
+                                  label: Text(
+                                    _editingRouteId == null
+                                        ? 'Add route'
+                                        : 'Update route',
+                                  ),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: EnterpriseColors.generativeAction,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 18,
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                ),
+                                if (_editingRouteId != null) ...[
+                                  const SizedBox(width: 8),
+                                  TextButton(
+                                    onPressed: _clearForm,
+                                    child: const Text('Cancel'),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    final kpiWidget = EnterpriseSummaryCard(
+                      label: 'Total Destinations',
+                      value: '${_routes.length}',
+                      icon: Icons.map_outlined,
+                      color: const Color(0xFF10B981), // Solid Green match
+                    );
+
+                    if (isNarrow) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (!compact) formWidget,
+                          if (!compact) ...[
+                            const SizedBox(height: 16),
+                            kpiWidget,
+                          ],
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(flex: 5, child: formWidget),
+                        const SizedBox(width: 24),
+                        Expanded(flex: 3, child: kpiWidget),
+                      ],
+                    );
+                  },
+                ),
+                SizedBox(height: compact ? 12 : 24),
+
+                // 3. MAIN WORKSPACE TABLE
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: EnterpriseDataGrid<Map<String, dynamic>>(
+                          loading: _isLoading,
+                          rows: routes,
+                          rowKey: (route) =>
+                              route['route_id'] ?? route.hashCode,
+                          height: double.infinity,
+                          showDateRange: false, // Disables the Date Range button
+                          filterFields: [
+                            // ---> Top-Left Anchored Dropdown filter <---
+                            _sortDropdown(isDark), 
+                          ],
+                          columns: [
+                            EnterpriseGridColumn(
+                              label: 'Route ID',
+                              width: 110,
+                              value: (route) =>
+                                  (route['route_id'] ?? '').toString(),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Route',
+                              width: 280,
+                              value: (route) =>
+                                  (route['route_name'] ?? '').toString(),
+                              editable: true,
+                              onChanged: (route, value) =>
+                                  _updateRouteField(route, 'name', value),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Rate',
+                              width: 170,
+                              value: (route) =>
+                                  'PHP ${_priceOf(route).toStringAsFixed(2)}',
+                              editable: true,
+                              compare: (first, second) =>
+                                  _priceOf(first).compareTo(_priceOf(second)),
+                              onChanged: (route, value) => _updateRouteField(
+                                route,
+                                'price',
+                                value.replaceAll('PHP', '').trim(),
+                              ),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Assigned trips',
+                              width: 150,
+                              value: (route) => '${_tripCount(route)}',
+                              compare: (first, second) => _tripCount(
+                                first,
+                              ).compareTo(_tripCount(second)),
+                            ),
+                          ],
+                          emptyTitle: _routes.isEmpty
+                              ? 'Create the first route'
+                              : 'Nothing matches the current search',
+                          emptyMessage: _routes.isEmpty
+                              ? 'Routes connect trip assignments, rates, payroll, and operational reporting.'
+                              : 'No route records match the current search.',
+                          emptyActionLabel: _routes.isEmpty
+                              ? 'Add first route'
+                              : null,
+                          onEmptyAction: _routes.isEmpty
+                              ? () => _nameController.selection = TextSelection(
+                                    baseOffset: 0,
+                                    extentOffset: _nameController.text.length,
+                                  )
+                              : null,
+                          canDelete: (route) => _tripCount(route) == 0,
+                          onBulkDelete: _bulkDelete,
+                          selectionActionsBuilder: _selectedRouteActions,
+                          onExportSelection: _exportRoutes,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-
-            // 2. FORM AREA & GREEN KPI CARD
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final isNarrow = constraints.maxWidth < 900;
-                
-                final formWidget = Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Theme.of(context).dividerColor),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Theme.of(context).shadowColor.withValues(alpha: 0.04),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Wrap(
-                    spacing: 16,
-                    runSpacing: 16,
-                    crossAxisAlignment: WrapCrossAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: 320,
-                        child: TextField(
-                          controller: _nameController,
-                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                          decoration: _inputDecoration(
-                            'Route name',
-                            'Use the dispatch-facing route label.',
-                            _nameError,
-                          ),
-                        ),
-                      ),
-                      SizedBox(
-                        width: 180,
-                        child: TextField(
-                          controller: _priceController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-                          decoration: _inputDecoration(
-                            'Rate',
-                            'Non-negative amount.',
-                            _priceError,
-                            prefixText: 'PHP ',
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            FilledButton.icon(
-                              onPressed: _isSaving ? null : _saveRoute,
-                              icon: _isSaving
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: EnterpriseLoadingIndicator(color: Colors.white, strokeWidth: 2),
-                                    )
-                                  : const Icon(Icons.save_outlined, size: 17),
-                              label: Text(_editingRouteId == null ? 'Add route' : 'Update route'),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: EnterpriseColors.generativeAction,
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                              ),
-                            ),
-                            if (_editingRouteId != null) ...[
-                              const SizedBox(width: 8),
-                              TextButton(
-                                onPressed: _clearForm,
-                                child: const Text('Cancel'),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-
-                final kpiWidget = EnterpriseSummaryCard(
-                  label: 'Total Destinations',
-                  value: '${_routes.length}',
-                  icon: Icons.map_outlined,
-                  color: const Color(0xFF10B981), // Solid Green match
-                );
-
-                if (isNarrow) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      formWidget,
-                      const SizedBox(height: 16),
-                      kpiWidget,
-                    ],
-                  );
-                }
-
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start, // Shrink-wraps the form vertically
-                  children: [
-                    Expanded(
-                      flex: 5,
-                      child: formWidget,
-                    ),
-                    const SizedBox(width: 24),
-                    Expanded(
-                      flex: 3, // Expands horizontally to fill remaining dead space
-                      child: kpiWidget,
-                    ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // 3. MAIN WORKSPACE TABLE
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: EnterpriseDataGrid<Map<String, dynamic>>(
-                      loading: _isLoading,
-                      rows: routes,
-                      rowKey: (route) => route['route_id'] ?? route.hashCode,
-                      height: double.infinity,
-                      showDateRange: false, // Disables the Date Range button
-                      filterFields: [
-                        _sortDropdown(isDark), // Top-Left Anchored Dropdown filter
-                      ],
-                      columns: [
-                        EnterpriseGridColumn(
-                          label: 'Route ID',
-                          width: 110,
-                          value: (route) => (route['route_id'] ?? '').toString(),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Route',
-                          width: 280,
-                          value: (route) => (route['route_name'] ?? '').toString(),
-                          editable: true,
-                          onChanged: (route, value) => _updateRouteField(route, 'name', value),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Rate',
-                          width: 170,
-                          value: (route) => 'PHP ${_priceOf(route).toStringAsFixed(2)}',
-                          editable: true,
-                          compare: (first, second) => _priceOf(first).compareTo(_priceOf(second)),
-                          onChanged: (route, value) => _updateRouteField(
-                            route,
-                            'price',
-                            value.replaceAll('PHP', '').trim(),
-                          ),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Assigned trips',
-                          width: 150,
-                          value: (route) => '${_tripCount(route)}',
-                          compare: (first, second) => _tripCount(first).compareTo(_tripCount(second)),
-                        ),
-                      ],
-                      emptyTitle: _routes.isEmpty
-                          ? 'Create the first route'
-                          : 'Nothing matches the current search',
-                      emptyMessage: _routes.isEmpty
-                          ? 'Routes connect trip assignments, rates, payroll, and operational reporting.'
-                          : 'No route records match the current search.',
-                      emptyActionLabel: _routes.isEmpty ? 'Add first route' : null,
-                      onEmptyAction: _routes.isEmpty
-                          ? () => _nameController.selection = TextSelection(
-                                baseOffset: 0,
-                                extentOffset: _nameController.text.length,
-                              )
-                          : null,
-                      canDelete: (route) => _tripCount(route) == 0,
-                      onBulkDelete: _bulkDelete,
-                      selectionActionsBuilder: _selectedRouteActions,
-                      onExportSelection: _exportRoutes,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

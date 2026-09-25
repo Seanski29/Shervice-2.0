@@ -197,9 +197,7 @@ class _AdminUsersState extends State<AdminUsers> {
         onPressed: () => _confirmPurgeUser(user),
         icon: const Icon(Icons.delete_outline, size: 16),
         label: const Text('Delete'),
-        style: FilledButton.styleFrom(
-          backgroundColor: EnterpriseColors.danger,
-        ),
+        style: FilledButton.styleFrom(backgroundColor: EnterpriseColors.danger),
       ),
     ];
   }
@@ -371,176 +369,190 @@ class _AdminUsersState extends State<AdminUsers> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 1. TOP ROW: Title on Left, Actions on Right
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 768;
+          return Padding(
+            padding: EdgeInsets.all(compact ? 16 : 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // 1. TOP ROW: Title on Left, Actions on Right
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Text(
-                      'Users',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Search Bar nilipat dito, sa kaliwa ng Register user button
                     SizedBox(
-                      width: 320,
-                      height: 42, // Consistent height with buttons
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (value) {
-                          setState(() {
-                            _searchQuery = value;
-                            _applyFiltersAndSort();
-                          });
-                        },
-                        style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black87,
-                          fontSize: 13,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Search user name, email, or company',
-                          hintStyle: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontSize: 13,
+                      width: compact ? double.infinity : null,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Users',
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                ),
                           ),
-                          prefixIcon: const Icon(
-                            Icons.search,
-                            size: 18,
-                            color: Color(0xFF64748B),
-                          ),
-                          filled: true,
-                          fillColor: Theme.of(context).cardColor,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(4),
-                            borderSide: BorderSide(
-                              color: Theme.of(context).dividerColor,
+                          const SizedBox(height: 4),
+                        ],
+                      ),
+                    ),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        // Search Bar nilipat dito, sa kaliwa ng Register user button
+                        SizedBox(
+                          width: compact ? constraints.maxWidth - 32 : 320,
+                          height: 42, // Consistent height with buttons
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: (value) {
+                              setState(() {
+                                _searchQuery = value;
+                                _applyFiltersAndSort();
+                              });
+                            },
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black87,
+                              fontSize: 13,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Search user name, email, or company',
+                              hintStyle: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 13,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.search,
+                                size: 18,
+                                color: Color(0xFF64748B),
+                              ),
+                              filled: true,
+                              fillColor: Theme.of(context).cardColor,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: BorderSide(
+                                  color: Theme.of(context).dividerColor,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    FilledButton.icon(
-                      onPressed: () => _showUserModal(context),
-                      icon: const Icon(Icons.person_add_alt_1, size: 17),
-                      label: const Text('Register user'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: EnterpriseColors.generativeAction,
-                        minimumSize: const Size(0, 42),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    OutlinedButton.icon(
-                      onPressed: _isLoading ? null : _fetchSystemUsers,
-                      icon: const Icon(Icons.refresh, size: 17),
-                      label: const Text('Refresh'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 42),
-                      ),
+                        FilledButton.icon(
+                          onPressed: () => _showUserModal(context),
+                          icon: const Icon(Icons.person_add_alt_1, size: 17),
+                          label: const Text('Register user'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: EnterpriseColors.generativeAction,
+                            minimumSize: const Size(0, 42),
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _isLoading ? null : _fetchSystemUsers,
+                          icon: const Icon(Icons.refresh, size: 17),
+                          label: const Text('Refresh'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 42),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
+                SizedBox(height: compact ? 8 : 24),
+
+                // 3. MAIN WORKSPACE TABLE (WITH FILTERS ANCHORED LEFT)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: EnterpriseDataGrid<Map<String, dynamic>>(
+                          loading: _isLoading,
+                          rows: users,
+                          rowKey: (user) => user['id'] ?? user.hashCode,
+                          height: double.infinity,
+                          showDateRange: false, // Disables Date Range control
+                          filterFields: [
+                            // Ang sorting dropdown na lang ang naiwan dito
+                            _sortDropdown(isDark),
+                          ],
+                          columns: [
+                            EnterpriseGridColumn(
+                              label: 'Staff ID',
+                              width: 130,
+                              value: (user) =>
+                                  (user['staff_id'] ?? '').toString(),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Name',
+                              width: 230,
+                              value: (user) =>
+                                  (user['name'] ?? 'System User').toString(),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Email',
+                              width: 260,
+                              value: (user) =>
+                                  (user['email'] ?? 'Not provided').toString(),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Company',
+                              width: 220,
+                              value: (user) =>
+                                  (user['company'] ?? 'Internal').toString(),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Role',
+                              width: 130,
+                              value: (user) =>
+                                  (user['role'] ?? 'Staff').toString(),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Permission',
+                              width: 150,
+                              value: (user) =>
+                                  (user['permission'] ?? 'Standard').toString(),
+                            ),
+                          ],
+                          emptyTitle: _allUsers.isEmpty
+                              ? 'Register the first user'
+                              : 'Nothing matches the current search or filters',
+                          emptyMessage: _allUsers.isEmpty
+                              ? 'Create an account to establish role-based access to Shervice.'
+                              : 'No user accounts match the current search and sort criteria.',
+                          emptyActionLabel: _allUsers.isEmpty
+                              ? 'Register first user'
+                              : null,
+                          onEmptyAction: _allUsers.isEmpty
+                              ? () => _showUserModal(context)
+                              : null,
+                          onBulkDelete: _deleteUsers,
+                          selectionActionsBuilder: _selectedUserActions,
+                          onExportSelection: _exportUsers,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 24),
-
-            // 3. MAIN WORKSPACE TABLE (WITH FILTERS ANCHORED LEFT)
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: EnterpriseDataGrid<Map<String, dynamic>>(
-                      loading: _isLoading,
-                      rows: users,
-                      rowKey: (user) => user['id'] ?? user.hashCode,
-                      height: double.infinity,
-                      showDateRange: false, // Disables Date Range control
-                      filterFields: [
-                        // Ang sorting dropdown na lang ang naiwan dito
-                        _sortDropdown(isDark),
-                      ],
-                      columns: [
-                        EnterpriseGridColumn(
-                          label: 'Staff ID',
-                          width: 130,
-                          value: (user) => (user['staff_id'] ?? '').toString(),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Name',
-                          width: 230,
-                          value: (user) =>
-                              (user['name'] ?? 'System User').toString(),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Email',
-                          width: 260,
-                          value: (user) =>
-                              (user['email'] ?? 'Not provided').toString(),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Company',
-                          width: 220,
-                          value: (user) =>
-                              (user['company'] ?? 'Internal').toString(),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Role',
-                          width: 130,
-                          value: (user) => (user['role'] ?? 'Staff').toString(),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Permission',
-                          width: 150,
-                          value: (user) =>
-                              (user['permission'] ?? 'Standard').toString(),
-                        ),
-                      ],
-                      emptyTitle: _allUsers.isEmpty
-                          ? 'Register the first user'
-                          : 'Nothing matches the current search or filters',
-                      emptyMessage: _allUsers.isEmpty
-                          ? 'Create an account to establish role-based access to Shervice.'
-                          : 'No user accounts match the current search and sort criteria.',
-                      emptyActionLabel: _allUsers.isEmpty
-                          ? 'Register first user'
-                          : null,
-                      onEmptyAction: _allUsers.isEmpty
-                          ? () => _showUserModal(context)
-                          : null,
-                      onBulkDelete: _deleteUsers,
-                      selectionActionsBuilder: _selectedUserActions,
-                      onExportSelection: _exportUsers,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

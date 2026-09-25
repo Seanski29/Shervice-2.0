@@ -15,14 +15,17 @@ class _StaffDriversState extends State<StaffDrivers> {
   String _refreshSeed = DateTime.now().millisecondsSinceEpoch.toString();
 
   void _showDriverModal(BuildContext context, DriverProfileModel driver) {
+    final isMobile = MediaQuery.sizeOf(context).width < 768;
     DriverFormDialogs.showViewDriverModal(
       context,
       driver,
-      onEdit: () => DriverFormDialogs.showEditDriverDialog(
-        context,
-        driver,
-        onSuccess: _triggerInstantRefresh,
-      ),
+      onEdit: isMobile
+          ? null
+          : () => DriverFormDialogs.showEditDriverDialog(
+              context,
+              driver,
+              onSuccess: _triggerInstantRefresh,
+            ),
       // Staff cannot delete records, so onDelete is purposely omitted.
     );
   }
