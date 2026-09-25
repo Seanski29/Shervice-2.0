@@ -2,7 +2,7 @@
 ///
 /// Keep environment-specific values in this file so feature code does not
 /// need to own or duplicate backend configuration.
-const bool useHostedBackend = false;
+const bool useHostedBackend = true;
 
 const String _localBackendRoot = 'http://localhost:5000';
 const String _hostedBackendRoot =
