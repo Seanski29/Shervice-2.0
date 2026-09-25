@@ -197,6 +197,23 @@ class _DeferredWorkspaceScreenState extends State<_DeferredWorkspaceScreen> {
       future: _screen,
       builder: (context, snapshot) {
         if (snapshot.hasData) return snapshot.data!;
+        if (snapshot.hasError) {
+          return Scaffold(
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: SelectableText(
+                  'Workspace failed to load:\n${snapshot.error}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
         return const Scaffold(
           body: Center(
             child: SizedBox(
