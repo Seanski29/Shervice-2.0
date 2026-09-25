@@ -157,7 +157,7 @@ class _AdminUsersState extends State<AdminUsers> {
       String csv(dynamic value) =>
           (value ?? '').toString().replaceAll('"', '""');
       buffer.writeln(
-        '"${csv(user['id'])}","${csv(user['name'])}",'
+        '"${csv(user['staff_id'])}","${csv(user['name'])}",'
         '"${csv(user['email'])}","${csv(user['company'])}",'
         '"${csv(user['role'])}","${csv(user['permission'])}",'
         '"${csv(user['status'])}"',

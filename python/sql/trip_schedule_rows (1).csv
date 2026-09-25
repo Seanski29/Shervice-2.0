@@ -1,0 +1,1001 @@
+trip_id,schedule_date,departure_time,route_name,vehicle_id,passenger_count,estimated_arrival_time,staff_id,company_id,working_day,bus_type,classification,seating_capacity,ticket_no,utilization_rate,remarks,summary_id,driver_id,rejection_reason,expiry_reason,route_id
+1536,2026-09-11,09:04:00,Batangas,29,15,10:45:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-06,1.0,On schedule,SUM-20260911-01,24,,,20
+1429,2026-08-25,09:14:00,Los Baños,120,15,11:23:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-76,1.0,Smooth travel,SUM-20260825-01,24,,,1
+571,2026-04-04,06:00:00,Los Baños,124,15,08:41:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-87,1.0,Routine trip,SUM-20260404-01,24,,,1
+507,2026-03-25,05:02:00,SM Lipa,55,15,06:08:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-93,1.0,Clear weather,SUM-20260325-01,24,,,12
+101,2026-01-17,06:27:00,Batangas,103,15,08:50:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-58,1.0,Heavy traffic delayed arrival,SUM-20260117-01,24,,,20
+1008,2026-06-17,06:00:00,Batangas,55,14,07:40:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-05,0.93,Smooth travel,SUM-20260617-01,24,,,20
+967,2026-06-10,09:07:00,Los Baños,124,14,10:11:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-28,0.93,Heavy traffic delayed arrival,SUM-20260610-01,24,,,1
+515,2026-03-26,11:17:00,TCP,42,14,13:38:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-07,0.93,On schedule,SUM-20260326-01,24,,,6
+28,2026-01-05,15:08:00,Batangas,112,14,17:22:00,,2,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-85,0.93,On schedule,SUM-20260105-01,24,,,20
+1011,2026-06-17,14:20:00,Los Baños,42,13,16:41:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-05,0.87,On schedule,SUM-20260617-01,24,,,1
+874,2026-05-26,10:05:00,Los Baños,119,13,12:23:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-17,0.87,Routine trip,SUM-20260526-01,24,,,1
+757,2026-05-06,11:00:00,Plaridel,120,13,13:01:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-44,0.87,Heavy traffic delayed arrival,SUM-20260506-01,24,,,2
+521,2026-03-27,05:20:00,Sto.Tomas,100,12,07:41:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-69,0.8,Clear weather,SUM-20260327-01,24,,,18
+301,2026-02-19,15:25:00,San Pablo,47,12,16:11:00,,3,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-20,0.8,Heavy traffic delayed arrival,SUM-20260219-01,24,,,11
+212,2026-02-04,13:20:00,Bugtong Payapa,19,12,15:02:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-31,0.8,Smooth travel,SUM-20260204-01,24,,,14
+1529,2026-09-10,06:09:00,Tanauan,27,11,07:41:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-72,0.73,Clear weather,SUM-20260910-01,24,,,10
+1003,2026-06-16,10:03:00,Caloocan,123,11,12:37:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-48,0.73,Heavy traffic delayed arrival,SUM-20260616-01,24,,,15
+563,2026-04-03,06:03:00,Bugtong Payapa,40,10,08:24:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-03,0.67,On schedule,SUM-20260403-01,24,,,14
+537,2026-03-30,12:11:00,Rosario,20,10,14:36:00,,2,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-08,0.67,Routine trip,SUM-20260330-01,24,,,4
+32,2026-01-06,06:17:00,SM Lipa,126,10,08:02:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-04,0.67,Smooth travel,SUM-20260106-01,24,,,12
+1579,2026-09-17,10:22:00,Muzon,115,9,11:08:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-88,0.6,On schedule,SUM-20260917-01,24,,,8
+720,2026-04-29,06:11:00,Robinson,103,9,07:36:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-74,0.6,Routine trip,SUM-20260429-01,24,,,13
+519,2026-03-27,11:00:00,Rosario,34,9,13:07:00,,4,FRIDAY,12 Seats - Hyundai Starex,Morning,12,TK-87,0.75,Routine trip,SUM-20260327-01,24,,,4
+1166,2026-07-13,10:18:00,Cabuyao,37,8,12:21:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-32,0.53,Clear weather,SUM-20260713-01,24,,,5
+1021,2026-06-18,05:02:00,Bugtong Payapa,100,8,07:44:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-55,0.53,Smooth travel,SUM-20260618-01,24,,,14
+787,2026-05-11,08:11:00,Taguig,121,8,09:19:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-17,0.53,Heavy traffic delayed arrival,SUM-20260511-01,24,,,21
+113,2026-01-19,08:19:00,Muzon,101,8,09:23:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-22,0.53,Routine trip,SUM-20260119-01,24,,,8
+1436,2026-08-26,07:17:00,Robinson,123,7,08:24:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-50,0.47,On schedule,SUM-20260826-01,24,,,13
+929,2026-06-04,11:17:00,TCP,41,7,12:57:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-83,0.47,Clear weather,SUM-20260604-01,24,,,6
+834,2026-05-19,10:30:00,Taguig,19,7,12:55:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-89,0.47,Smooth travel,SUM-20260519-01,24,,,21
+207,2026-02-03,05:25:00,Plaridel,40,7,06:51:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-05,0.47,Heavy traffic delayed arrival,SUM-20260203-01,24,,,2
+982,2026-06-12,08:19:00,Bugtong Payapa,117,6,09:33:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-68,0.4,Smooth travel,SUM-20260612-01,24,,,14
+133,2026-01-22,07:22:00,Robinson,122,6,09:37:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-82,0.4,Smooth travel,SUM-20260122-01,24,,,13
+1578,2026-09-17,13:29:00,Rosario,22,5,14:00:00,,3,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-06,0.33,Smooth travel,SUM-20260917-01,24,,,4
+1593,2026-09-19,09:25:00,San Pablo,100,3,11:47:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-10,0.2,Routine trip,SUM-20260919-01,24,,,11
+1450,2026-08-28,10:24:00,Robinson,116,3,11:11:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-84,0.2,Heavy traffic delayed arrival,SUM-20260828-01,24,,,13
+1432,2026-08-25,10:19:00,Taguig,104,3,12:04:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-43,0.2,On schedule,SUM-20260825-01,24,,,21
+33,2026-01-06,05:18:00,Sto.Tomas,43,3,06:52:00,,4,TUESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-76,0.17,Clear weather,SUM-20260106-01,24,,,18
+1378,2026-08-17,07:00:00,Muzon,32,2,09:17:00,,3,MONDAY,12 Seats - Hyundai Starex,Morning,12,TK-16,0.17,Smooth travel,SUM-20260817-01,24,,,8
+315,2026-02-21,08:01:00,Cabuyao,109,2,10:48:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-56,0.13,Routine trip,SUM-20260221-01,24,,,5
+1041,2026-06-22,07:14:00,TCP,39,17,09:52:00,,4,MONDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-19,0.94,Smooth travel,SUM-20260622-01,33,,,6
+671,2026-04-21,07:22:00,SM Lipa,46,17,08:04:00,,2,TUESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-44,0.94,Routine trip,SUM-20260421-01,33,,,12
+1360,2026-08-13,11:19:00,Los Baños,39,15,12:53:00,,4,THURSDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-68,0.83,Clear weather,SUM-20260813-01,33,,,1
+1228,2026-07-22,12:28:00,Sto.Tomas,118,15,13:39:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-51,1.0,Clear weather,SUM-20260722-01,33,,,18
+1126,2026-07-06,15:04:00,Plaridel,46,15,16:14:00,,2,MONDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-21,0.83,Clear weather,SUM-20260706-01,33,,,2
+651,2026-04-18,06:12:00,Sto.Tomas,41,15,08:15:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-64,1.0,Smooth travel,SUM-20260418-01,33,,,18
+1634,2026-09-26,15:22:00,Tanauan,110,14,17:19:00,,4,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-79,0.93,Smooth travel,SUM-20260926-01,33,,,10
+1048,2026-06-23,10:08:00,Taguig,20,14,11:53:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-75,0.93,Heavy traffic delayed arrival,SUM-20260623-01,33,,,21
+955,2026-06-09,15:00:00,Rosario,22,14,16:05:00,,4,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-24,0.93,On schedule,SUM-20260609-01,33,,,4
+331,2026-02-24,13:02:00,SM Lipa,55,14,15:52:00,,4,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-93,0.93,Clear weather,SUM-20260224-01,33,,,12
+1320,2026-08-07,13:20:00,Bugtong Payapa,53,13,15:34:00,,4,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-08,0.87,Clear weather,SUM-20260807-01,33,,,14
+1199,2026-07-17,10:30:00,Los Baños,123,13,12:29:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-06,0.87,Routine trip,SUM-20260717-01,33,,,1
+319,2026-02-21,07:14:00,Taguig,128,13,08:05:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-01,0.87,On schedule,SUM-20260221-01,33,,,21
+876,2026-05-26,07:02:00,Los Baños,120,12,09:42:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-31,0.8,Heavy traffic delayed arrival,SUM-20260526-01,33,,,1
+404,2026-03-07,07:28:00,Batangas,104,12,08:55:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-76,0.8,Routine trip,SUM-20260307-01,33,,,20
+1623,2026-09-25,07:02:00,Muzon,37,10,08:22:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-81,0.67,Clear weather,SUM-20260925-01,33,,,8
+714,2026-04-29,10:30:00,Bugtong Payapa,121,10,12:37:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-68,0.67,Heavy traffic delayed arrival,SUM-20260429-01,33,,,14
+1527,2026-09-10,12:13:00,Bugtong Payapa,48,9,14:51:00,,2,THURSDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-78,0.75,Heavy traffic delayed arrival,SUM-20260910-01,33,,,14
+1163,2026-07-11,05:15:00,Robinson,129,9,07:27:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-70,0.6,Clear weather,SUM-20260711-01,33,,,13
+756,2026-05-06,05:19:00,SM Lipa,113,9,06:40:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-50,0.6,On schedule,SUM-20260506-01,33,,,12
+1526,2026-09-10,13:27:00,Rosario,125,7,14:21:00,,3,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-59,0.47,On schedule,SUM-20260910-01,33,,,4
+1369,2026-08-15,12:25:00,SM Lipa,17,7,14:42:00,,4,SATURDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-88,0.58,Heavy traffic delayed arrival,SUM-20260815-01,33,,,12
+1245,2026-07-25,05:00:00,Sto.Tomas,129,6,07:17:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-06,0.4,Routine trip,SUM-20260725-01,33,,,18
+471,2026-03-19,12:20:00,Caloocan,47,5,13:42:00,,3,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-40,0.33,On schedule,SUM-20260319-01,33,,,15
+493,2026-03-23,06:21:00,Rosario,22,4,07:47:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-23,0.27,Routine trip,SUM-20260323-01,33,,,4
+237,2026-02-07,13:00:00,Sto.Tomas,42,4,14:37:00,,3,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-32,0.27,Routine trip,SUM-20260207-01,33,,,18
+1217,2026-07-21,11:09:00,Rosario,125,3,13:42:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-48,0.2,Heavy traffic delayed arrival,SUM-20260721-01,33,,,4
+1160,2026-07-11,07:02:00,Tanauan,39,3,08:42:00,,2,SATURDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-72,0.17,Smooth travel,SUM-20260711-01,33,,,10
+1032,2026-06-20,14:23:00,Rosario,33,3,15:03:00,,3,SATURDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-76,0.17,Smooth travel,SUM-20260620-01,33,,,4
+731,2026-05-01,15:02:00,Sto.Tomas,113,3,17:05:00,,4,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-96,0.2,Smooth travel,SUM-20260501-01,33,,,18
+117,2026-01-20,14:23:00,Muzon,28,3,15:47:00,,4,TUESDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-72,0.17,Routine trip,SUM-20260120-01,33,,,8
+1290,2026-08-01,11:08:00,Sto.Tomas,21,2,13:09:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-63,0.13,Routine trip,SUM-20260801-01,33,,,18
+823,2026-05-16,11:08:00,SM Lipa,16,2,12:39:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-63,0.13,Routine trip,SUM-20260516-01,33,,,12
+508,2026-03-25,07:28:00,TCP,30,2,09:00:00,,3,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-13,0.11,Heavy traffic delayed arrival,SUM-20260325-01,33,,,6
+940,2026-06-05,15:11:00,Rosario,43,17,17:20:00,,4,FRIDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-84,0.94,Clear weather,SUM-20260605-01,40,,,4
+636,2026-04-15,14:25:00,Los Baños,39,17,16:01:00,,3,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-77,0.94,Clear weather,SUM-20260415-01,40,,,1
+1614,2026-09-23,08:30:00,San Pablo,28,15,09:26:00,,3,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-72,0.83,Heavy traffic delayed arrival,SUM-20260923-01,40,,,11
+1268,2026-07-29,14:08:00,Batangas,15,15,16:26:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-58,1.0,Routine trip,SUM-20260729-01,40,,,20
+1040,2026-06-22,15:29:00,Los Baños,103,15,17:56:00,,2,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-05,1.0,Clear weather,SUM-20260622-01,40,,,1
+447,2026-03-14,10:03:00,Plaridel,109,15,12:09:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-28,1.0,Heavy traffic delayed arrival,SUM-20260314-01,40,,,2
+1596,2026-09-21,14:15:00,Robinson,35,14,15:43:00,,3,MONDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-66,0.78,Heavy traffic delayed arrival,SUM-20260921-01,40,,,13
+659,2026-04-20,07:30:00,Caloocan,42,14,08:00:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-60,0.93,Routine trip,SUM-20260420-01,40,,,15
+357,2026-02-28,13:15:00,Tanauan,30,14,14:49:00,,3,SATURDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-30,0.78,Clear weather,SUM-20260228-01,40,,,10
+343,2026-02-26,06:13:00,Batangas,103,14,08:08:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-19,0.93,On schedule,SUM-20260226-01,40,,,20
+219,2026-02-05,06:20:00,Sto.Tomas,115,14,07:38:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-30,0.93,On schedule,SUM-20260205-01,40,,,18
+202,2026-02-02,05:27:00,SM Lipa,118,14,06:45:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-78,0.93,On schedule,SUM-20260202-01,40,,,12
+1595,2026-09-19,14:29:00,Cabuyao,55,13,16:26:00,,4,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-89,0.87,Heavy traffic delayed arrival,SUM-20260919-01,40,,,5
+1506,2026-09-07,07:11:00,Batangas,120,13,09:25:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-88,0.87,Heavy traffic delayed arrival,SUM-20260907-01,40,,,20
+1431,2026-08-25,11:23:00,Cabuyao,114,13,13:20:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-17,0.87,Heavy traffic delayed arrival,SUM-20260825-01,40,,,5
+1157,2026-07-10,13:00:00,SM Lipa,16,13,14:59:00,,2,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-71,0.87,Routine trip,SUM-20260710-01,40,,,12
+206,2026-02-03,09:18:00,SM Lipa,15,13,11:19:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-01,0.87,On schedule,SUM-20260203-01,40,,,12
+62,2026-01-10,15:05:00,Los Baños,128,13,16:41:00,,2,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-55,0.87,On schedule,SUM-20260110-01,40,,,1
+1616,2026-09-24,14:26:00,Robinson,32,12,16:15:00,,4,THURSDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-53,1.0,Smooth travel,SUM-20260924-01,40,,,13
+1471,2026-09-01,09:06:00,Rosario,116,12,10:21:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-66,0.8,Routine trip,SUM-20260901-01,40,,,4
+1292,2026-08-03,14:25:00,Batangas,18,12,16:27:00,,4,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-99,0.8,On schedule,SUM-20260803-01,40,,,20
+1015,2026-06-18,15:11:00,SM Lipa,100,12,17:49:00,,3,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-54,0.8,Routine trip,SUM-20260618-01,40,,,12
+899,2026-05-30,09:14:00,Batangas,42,12,10:44:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-11,0.8,Smooth travel,SUM-20260530-01,40,,,20
+1328,2026-08-08,09:15:00,Rosario,127,11,10:54:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-76,0.73,Clear weather,SUM-20260808-01,40,,,4
+992,2026-06-15,06:27:00,Bugtong Payapa,34,10,08:09:00,,3,MONDAY,12 Seats - Hyundai Starex,Morning,12,TK-42,0.83,Routine trip,SUM-20260615-01,40,,,14
+883,2026-05-27,13:01:00,Tanauan,15,10,14:13:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-80,0.67,On schedule,SUM-20260527-01,40,,,10
+187,2026-01-30,08:13:00,Caloocan,122,9,09:25:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-50,0.6,On schedule,SUM-20260130-01,40,,,15
+946,2026-06-06,13:07:00,Muzon,129,8,14:53:00,,4,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-92,0.53,On schedule,SUM-20260606-01,40,,,8
+6,2026-01-01,09:10:00,Plaridel,114,8,10:55:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-47,0.53,Heavy traffic delayed arrival,SUM-20260101-01,40,,,2
+1647,2026-09-29,07:01:00,TCP,124,7,08:47:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-92,0.47,Clear weather,SUM-20260929-01,40,,,6
+966,2026-06-10,11:13:00,Tanauan,124,7,13:09:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-98,0.47,Smooth travel,SUM-20260610-01,40,,,10
+557,2026-04-02,07:12:00,Plaridel,104,7,09:16:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-32,0.47,Routine trip,SUM-20260402-01,40,,,2
+1241,2026-07-24,10:19:00,Robinson,19,6,11:54:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-94,0.4,Smooth travel,SUM-20260724-01,40,,,13
+543,2026-03-31,14:10:00,Cabuyao,115,6,16:07:00,,2,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-07,0.4,Smooth travel,SUM-20260331-01,40,,,5
+483,2026-03-20,14:12:00,Tanauan,15,6,15:45:00,,3,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-95,0.4,Routine trip,SUM-20260320-01,40,,,10
+233,2026-02-07,15:18:00,TCP,117,6,16:43:00,,3,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-25,0.4,On schedule,SUM-20260207-01,40,,,6
+132,2026-01-22,15:04:00,Rosario,119,6,16:34:00,,4,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-19,0.4,On schedule,SUM-20260122-01,40,,,4
+1286,2026-08-01,10:27:00,San Pablo,106,5,11:30:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-70,0.33,On schedule,SUM-20260801-01,40,,,11
+1279,2026-07-31,08:05:00,TCP,119,5,09:31:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-70,0.33,Clear weather,SUM-20260731-01,40,,,6
+765,2026-05-07,06:17:00,Cabuyao,108,5,07:26:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-14,0.33,On schedule,SUM-20260507-01,40,,,5
+1299,2026-08-04,07:01:00,Rosario,118,4,08:53:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-77,0.27,On schedule,SUM-20260804-01,40,,,4
+1224,2026-07-22,06:18:00,Caloocan,102,4,08:28:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-32,0.27,Smooth travel,SUM-20260722-01,40,,,15
+271,2026-02-13,12:15:00,Plaridel,110,3,14:04:00,,2,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-91,0.2,On schedule,SUM-20260213-01,40,,,2
+72,2026-01-12,09:05:00,Cabuyao,32,3,11:41:00,,3,MONDAY,12 Seats - Hyundai Starex,Morning,12,TK-27,0.25,Heavy traffic delayed arrival,SUM-20260112-01,40,,,5
+23,2026-01-05,07:14:00,Sto.Tomas,44,3,08:05:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-65,0.2,Clear weather,SUM-20260105-01,40,,,18
+1138,2026-07-08,05:22:00,TCP,53,2,07:33:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-07,0.13,Clear weather,SUM-20260708-01,40,,,6
+144,2026-01-24,12:22:00,TCP,110,2,14:04:00,,4,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-59,0.13,Routine trip,SUM-20260124-01,40,,,6
+921,2026-06-03,09:08:00,Cabuyao,33,18,11:22:00,,2,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-50,1.0,Clear weather,SUM-20260603-01,41,,,5
+1521,2026-09-09,06:19:00,Robinson,121,15,08:50:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-68,1.0,Smooth travel,SUM-20260909-01,41,,,13
+954,2026-06-08,09:25:00,Los Baños,28,15,10:09:00,,2,MONDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-70,0.83,Routine trip,SUM-20260608-01,41,,,1
+724,2026-04-30,11:23:00,SM Lipa,22,15,13:33:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-23,1.0,Routine trip,SUM-20260430-01,41,,,12
+667,2026-04-21,07:08:00,Los Baños,103,15,08:48:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-76,1.0,On schedule,SUM-20260421-01,41,,,1
+579,2026-04-06,13:29:00,San Pablo,120,15,15:16:00,,3,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-35,1.0,Clear weather,SUM-20260406-01,41,,,11
+397,2026-03-06,10:26:00,Bugtong Payapa,46,15,11:00:00,,4,FRIDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-69,0.83,Routine trip,SUM-20260306-01,41,,,14
+282,2026-02-16,10:09:00,Rosario,124,15,12:47:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-53,1.0,Smooth travel,SUM-20260216-01,41,,,4
+105,2026-01-17,15:07:00,Batangas,39,15,16:53:00,,3,SATURDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-33,0.83,Routine trip,SUM-20260117-01,41,,,20
+1341,2026-08-11,12:20:00,Batangas,37,14,14:59:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-61,0.93,Smooth travel,SUM-20260811-01,41,,,20
+1272,2026-07-30,10:04:00,SM Lipa,128,13,11:26:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-12,0.87,Routine trip,SUM-20260730-01,41,,,12
+1201,2026-07-17,05:26:00,Sto.Tomas,114,13,07:49:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-25,0.87,Smooth travel,SUM-20260717-01,41,,,18
+296,2026-02-18,09:06:00,Tanauan,126,13,10:38:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-40,0.87,Smooth travel,SUM-20260218-01,41,,,10
+548,2026-04-01,11:14:00,Plaridel,114,12,12:14:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-86,0.8,Clear weather,SUM-20260401-01,41,,,2
+351,2026-02-27,10:29:00,Los Baños,100,12,11:14:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-15,0.8,Heavy traffic delayed arrival,SUM-20260227-01,41,,,1
+939,2026-06-05,08:28:00,Sto.Tomas,110,11,10:23:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-38,0.73,Clear weather,SUM-20260605-01,41,,,18
+497,2026-03-23,07:03:00,Cabuyao,55,11,09:30:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-77,0.73,Clear weather,SUM-20260323-01,41,,,5
+1446,2026-08-28,11:24:00,Caloocan,43,10,12:09:00,,4,FRIDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-60,0.56,On schedule,SUM-20260828-01,41,,,15
+228,2026-02-06,14:18:00,Bugtong Payapa,111,10,15:19:00,,4,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-78,0.67,On schedule,SUM-20260206-01,41,,,14
+145,2026-01-24,06:10:00,Muzon,105,10,08:20:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-63,0.67,Clear weather,SUM-20260124-01,41,,,8
+175,2026-01-29,12:29:00,Tanauan,42,9,13:49:00,,3,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-81,0.6,Routine trip,SUM-20260129-01,41,,,10
+781,2026-05-11,07:14:00,San Pablo,115,8,08:39:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-17,0.53,On schedule,SUM-20260511-01,41,,,11
+573,2026-04-04,10:11:00,Muzon,103,8,12:15:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-09,0.53,Routine trip,SUM-20260404-01,41,,,8
+1643,2026-09-29,11:21:00,TCP,39,7,13:27:00,,4,TUESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-92,0.39,Routine trip,SUM-20260929-01,41,,,6
+644,2026-04-16,08:07:00,Robinson,128,7,09:10:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-21,0.47,Clear weather,SUM-20260416-01,41,,,13
+1123,2026-07-06,07:04:00,Muzon,127,6,08:40:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-66,0.4,Routine trip,SUM-20260706-01,41,,,8
+609,2026-04-10,10:21:00,Robinson,18,6,12:12:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-26,0.4,Clear weather,SUM-20260410-01,41,,,13
+249,2026-02-10,13:22:00,Tanauan,128,6,14:49:00,,2,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-01,0.4,Routine trip,SUM-20260210-01,41,,,10
+1365,2026-08-14,08:15:00,Tanauan,17,5,09:51:00,,4,FRIDAY,12 Seats - Hyundai Starex,Morning,12,TK-97,0.42,Clear weather,SUM-20260814-01,41,,,10
+1309,2026-08-05,06:11:00,Bugtong Payapa,110,5,07:47:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-09,0.33,Heavy traffic delayed arrival,SUM-20260805-01,41,,,14
+1082,2026-06-29,15:04:00,SM Lipa,45,5,17:13:00,,4,MONDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-63,0.42,Heavy traffic delayed arrival,SUM-20260629-01,41,,,12
+1047,2026-06-23,10:17:00,Bugtong Payapa,53,5,12:17:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-84,0.33,Routine trip,SUM-20260623-01,41,,,14
+91,2026-01-15,14:08:00,Rosario,101,5,16:54:00,,2,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-81,0.33,Clear weather,SUM-20260115-01,41,,,4
+1390,2026-08-19,11:22:00,Rosario,48,4,12:04:00,,4,WEDNESDAY,12 Seats - Hyundai Starex,Morning,12,TK-88,0.33,Heavy traffic delayed arrival,SUM-20260819-01,41,,,4
+852,2026-05-22,14:22:00,Muzon,100,4,15:36:00,,2,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-27,0.27,On schedule,SUM-20260522-01,41,,,8
+500,2026-03-24,13:17:00,Robinson,22,4,14:33:00,,4,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-76,0.27,Smooth travel,SUM-20260324-01,41,,,13
+121,2026-01-21,15:09:00,Sto.Tomas,41,3,17:08:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-73,0.2,Heavy traffic delayed arrival,SUM-20260121-01,41,,,18
+1219,2026-07-21,12:19:00,Rosario,15,2,14:56:00,,4,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-06,0.13,Smooth travel,SUM-20260721-01,41,,,4
+52,2026-01-08,08:20:00,Bugtong Payapa,43,18,09:57:00,,4,THURSDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-14,1.0,On schedule,SUM-20260108-01,42,,,14
+1375,2026-08-17,13:24:00,Tanauan,33,17,14:28:00,,2,MONDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-36,0.94,Heavy traffic delayed arrival,SUM-20260817-01,42,,,10
+670,2026-04-21,09:15:00,Batangas,47,15,10:22:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-27,1.0,Clear weather,SUM-20260421-01,42,,,20
+415,2026-03-10,13:14:00,Tanauan,16,15,14:56:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-41,1.0,Clear weather,SUM-20260310-01,42,,,10
+269,2026-02-13,06:02:00,Tanauan,126,15,08:18:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-12,1.0,Heavy traffic delayed arrival,SUM-20260213-01,42,,,10
+229,2026-02-06,06:04:00,SM Lipa,21,15,07:42:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-16,1.0,Routine trip,SUM-20260206-01,42,,,12
+1577,2026-09-17,07:12:00,Cabuyao,15,14,09:56:00,,3,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-75,0.93,Routine trip,SUM-20260917-01,42,,,5
+1426,2026-08-24,08:24:00,Tanauan,20,14,10:12:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-62,0.93,Routine trip,SUM-20260824-01,42,,,10
+1278,2026-07-31,11:30:00,Tanauan,41,14,12:18:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-04,0.93,Smooth travel,SUM-20260731-01,42,,,10
+1636,2026-09-28,11:00:00,Bugtong Payapa,15,13,12:03:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-51,0.87,On schedule,SUM-20260928-01,42,,,14
+1583,2026-09-18,11:22:00,Muzon,109,13,12:16:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-04,0.87,Heavy traffic delayed arrival,SUM-20260918-01,42,,,8
+1168,2026-07-13,12:23:00,TCP,39,13,14:30:00,,2,MONDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-80,0.72,Clear weather,SUM-20260713-01,42,,,6
+173,2026-01-29,09:06:00,Los Baños,27,13,11:22:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-73,0.87,Clear weather,SUM-20260129-01,42,,,1
+2,2026-01-01,15:15:00,Taguig,37,13,16:09:00,,4,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-79,0.87,Routine trip,SUM-20260101-01,42,,,21
+1635,2026-09-28,12:29:00,TCP,22,12,13:42:00,,3,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-57,0.8,Routine trip,SUM-20260928-01,42,,,6
+1484,2026-09-03,14:14:00,Caloocan,127,12,16:22:00,,3,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-57,0.8,On schedule,SUM-20260903-01,42,,,15
+235,2026-02-07,09:13:00,Bugtong Payapa,109,12,11:06:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-55,0.8,Routine trip,SUM-20260207-01,42,,,14
+227,2026-02-06,05:17:00,Rosario,103,10,06:43:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-65,0.67,Clear weather,SUM-20260206-01,42,,,4
+1252,2026-07-27,14:21:00,San Pablo,114,9,16:02:00,,4,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-41,0.6,Routine trip,SUM-20260727-01,42,,,11
+906,2026-05-30,10:26:00,Sto.Tomas,34,9,12:04:00,,4,SATURDAY,12 Seats - Hyundai Starex,Morning,12,TK-86,0.75,Routine trip,SUM-20260530-01,42,,,18
+695,2026-04-25,12:03:00,San Pablo,17,9,14:38:00,,4,SATURDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-97,0.75,Heavy traffic delayed arrival,SUM-20260425-01,42,,,11
+565,2026-04-03,09:19:00,Tanauan,42,9,11:41:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-75,0.6,Smooth travel,SUM-20260403-01,42,,,10
+118,2026-01-20,08:05:00,Caloocan,45,9,09:41:00,,2,TUESDAY,12 Seats - Hyundai Starex,Morning,12,TK-08,0.75,Heavy traffic delayed arrival,SUM-20260120-01,42,,,15
+80,2026-01-13,08:02:00,Taguig,100,9,10:50:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-71,0.6,Heavy traffic delayed arrival,SUM-20260113-01,42,,,21
+1170,2026-07-13,12:17:00,Muzon,35,7,13:56:00,,4,MONDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-64,0.39,Heavy traffic delayed arrival,SUM-20260713-01,42,,,8
+713,2026-04-29,13:26:00,Tanauan,32,7,15:26:00,,4,WEDNESDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-13,0.58,Routine trip,SUM-20260429-01,42,,,10
+1398,2026-08-20,05:03:00,Caloocan,114,6,06:04:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-11,0.4,Heavy traffic delayed arrival,SUM-20260820-01,42,,,15
+332,2026-02-24,15:18:00,Taguig,41,6,16:05:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-23,0.4,On schedule,SUM-20260224-01,42,,,21
+318,2026-02-21,10:13:00,Caloocan,32,6,11:04:00,,2,SATURDAY,12 Seats - Hyundai Starex,Morning,12,TK-45,0.5,Clear weather,SUM-20260221-01,42,,,15
+1311,2026-08-05,11:27:00,Plaridel,18,5,12:45:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-25,0.33,Routine trip,SUM-20260805-01,42,,,2
+539,2026-03-31,07:24:00,Sto.Tomas,45,5,09:38:00,,2,TUESDAY,12 Seats - Hyundai Starex,Morning,12,TK-52,0.42,Clear weather,SUM-20260331-01,42,,,18
+1368,2026-08-15,12:06:00,Muzon,17,4,14:28:00,,2,SATURDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-03,0.33,Routine trip,SUM-20260815-01,42,,,8
+45,2026-01-08,06:30:00,Plaridel,114,4,08:18:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-50,0.27,Smooth travel,SUM-20260108-01,42,,,2
+635,2026-04-15,05:17:00,Sto.Tomas,22,3,07:19:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-26,0.2,Smooth travel,SUM-20260415-01,42,,,18
+370,2026-03-02,14:00:00,Sto.Tomas,43,3,15:07:00,,3,MONDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-29,0.17,Smooth travel,SUM-20260302-01,42,,,18
+244,2026-02-09,11:28:00,Plaridel,115,3,13:26:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-47,0.2,Smooth travel,SUM-20260209-01,42,,,2
+1563,2026-09-15,15:05:00,Taguig,129,2,16:15:00,,4,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-45,0.13,Smooth travel,SUM-20260915-01,42,,,21
+1433,2026-08-26,10:26:00,Robinson,39,2,11:47:00,,3,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-11,0.11,Heavy traffic delayed arrival,SUM-20260826-01,42,,,13
+664,2026-04-20,09:07:00,TCP,21,2,10:39:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-34,0.13,On schedule,SUM-20260420-01,42,,,6
+533,2026-03-30,06:19:00,Tanauan,124,2,08:12:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-66,0.13,Routine trip,SUM-20260330-01,42,,,10
+285,2026-02-16,09:04:00,Plaridel,31,2,11:13:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-64,0.13,Routine trip,SUM-20260216-01,42,,,2
+3,2026-01-01,11:12:00,Rosario,27,2,12:07:00,,3,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-48,0.13,Heavy traffic delayed arrival,SUM-20260101-01,42,,,4
+1402,2026-08-20,05:28:00,Taguig,46,17,07:40:00,,3,THURSDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-97,0.94,Clear weather,SUM-20260820-01,43,,,21
+96,2026-01-16,09:06:00,Batangas,43,17,11:05:00,,3,FRIDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-77,0.94,Routine trip,SUM-20260116-01,43,,,20
+1560,2026-09-15,13:04:00,SM Lipa,121,15,14:50:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-41,1.0,Routine trip,SUM-20260915-01,43,,,12
+1340,2026-08-10,07:12:00,Muzon,115,15,09:04:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-64,1.0,On schedule,SUM-20260810-01,43,,,8
+1373,2026-08-15,05:12:00,Cabuyao,114,14,06:50:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-24,0.93,Heavy traffic delayed arrival,SUM-20260815-01,43,,,5
+1152,2026-07-10,14:28:00,Los Baños,43,14,16:35:00,,2,FRIDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-69,0.78,Smooth travel,SUM-20260710-01,43,,,1
+592,2026-04-08,08:15:00,Tanauan,27,14,09:37:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-62,0.93,Heavy traffic delayed arrival,SUM-20260408-01,43,,,10
+421,2026-03-10,08:13:00,San Pablo,31,14,09:14:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-82,0.93,Heavy traffic delayed arrival,SUM-20260310-01,43,,,11
+95,2026-01-16,05:27:00,Los Baños,41,14,06:12:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-77,0.93,Routine trip,SUM-20260116-01,43,,,1
+1438,2026-08-26,14:30:00,Plaridel,18,13,16:05:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-21,0.87,Routine trip,SUM-20260826-01,43,,,2
+1264,2026-07-29,10:18:00,Los Baños,36,13,12:33:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-20,0.87,Clear weather,SUM-20260729-01,43,,,1
+1078,2026-06-27,09:06:00,Los Baños,19,13,10:40:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-52,0.87,On schedule,SUM-20260627-01,43,,,1
+197,2026-02-02,15:18:00,Los Baños,114,13,17:25:00,,3,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-44,0.87,On schedule,SUM-20260202-01,43,,,1
+137,2026-01-23,15:25:00,Los Baños,47,13,17:45:00,,3,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-21,0.87,Routine trip,SUM-20260123-01,43,,,1
+1548,2026-09-12,06:06:00,Sto.Tomas,108,12,08:46:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-09,0.8,On schedule,SUM-20260912-01,43,,,18
+1321,2026-08-07,08:08:00,SM Lipa,104,12,10:16:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-15,0.8,Routine trip,SUM-20260807-01,43,,,12
+1296,2026-08-03,15:07:00,Bugtong Payapa,41,12,16:28:00,,4,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-72,0.8,Smooth travel,SUM-20260803-01,43,,,14
+367,2026-03-02,14:07:00,Sto.Tomas,119,12,15:11:00,,3,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-29,0.8,Clear weather,SUM-20260302-01,43,,,18
+114,2026-01-20,09:08:00,Muzon,22,12,11:54:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-43,0.8,Clear weather,SUM-20260120-01,43,,,8
+1625,2026-09-25,12:12:00,Plaridel,127,11,13:40:00,,3,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-36,0.73,On schedule,SUM-20260925-01,43,,,2
+1359,2026-08-13,06:05:00,Robinson,106,11,07:48:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-23,0.73,Routine trip,SUM-20260813-01,43,,,13
+750,2026-05-05,09:17:00,Bugtong Payapa,30,11,10:41:00,,2,TUESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-52,0.61,Smooth travel,SUM-20260505-01,43,,,14
+138,2026-01-23,07:19:00,Cabuyao,104,11,08:22:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-06,0.73,Routine trip,SUM-20260123-01,43,,,5
+968,2026-06-10,13:12:00,Cabuyao,122,10,15:32:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-16,0.67,On schedule,SUM-20260610-01,43,,,5
+838,2026-05-20,10:04:00,Tanauan,31,10,11:20:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-41,0.67,Clear weather,SUM-20260520-01,43,,,10
+683,2026-04-23,15:12:00,Cabuyao,117,10,16:11:00,,3,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-78,0.67,On schedule,SUM-20260423-01,43,,,5
+432,2026-03-12,09:13:00,Sto.Tomas,121,10,11:25:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-36,0.67,Heavy traffic delayed arrival,SUM-20260312-01,43,,,18
+286,2026-02-16,10:01:00,Batangas,32,10,11:32:00,,4,MONDAY,12 Seats - Hyundai Starex,Morning,12,TK-71,0.83,Smooth travel,SUM-20260216-01,43,,,20
+1428,2026-08-25,05:00:00,Plaridel,18,9,06:00:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-14,0.6,Routine trip,SUM-20260825-01,43,,,2
+1179,2026-07-14,14:00:00,San Pablo,41,9,15:31:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-47,0.6,On schedule,SUM-20260714-01,43,,,11
+1119,2026-07-04,11:02:00,Bugtong Payapa,37,9,13:52:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-63,0.6,On schedule,SUM-20260704-01,43,,,14
+391,2026-03-05,06:13:00,Robinson,111,9,07:45:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-11,0.6,Routine trip,SUM-20260305-01,43,,,13
+1104,2026-07-02,10:00:00,Bugtong Payapa,126,8,11:50:00,,3,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-67,0.53,Smooth travel,SUM-20260702-01,43,,,14
+418,2026-03-10,07:19:00,Taguig,102,8,09:37:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-94,0.53,Heavy traffic delayed arrival,SUM-20260310-01,43,,,21
+1345,2026-08-11,09:05:00,Muzon,118,7,11:54:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-08,0.47,Clear weather,SUM-20260811-01,43,,,8
+1334,2026-08-10,13:25:00,Muzon,19,7,15:47:00,,4,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-29,0.47,Smooth travel,SUM-20260810-01,43,,,8
+1604,2026-09-22,13:29:00,Caloocan,47,6,15:31:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-01,0.4,On schedule,SUM-20260922-01,43,,,15
+1303,2026-08-04,07:29:00,Robinson,105,6,09:22:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-97,0.4,Heavy traffic delayed arrival,SUM-20260804-01,43,,,13
+668,2026-04-21,15:28:00,Muzon,116,6,16:10:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-44,0.4,Clear weather,SUM-20260421-01,43,,,8
+1470,2026-09-01,08:00:00,Taguig,15,5,09:04:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-68,0.33,Smooth travel,SUM-20260901-01,43,,,21
+1060,2026-06-25,10:07:00,Rosario,43,5,11:18:00,,4,THURSDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-13,0.28,Smooth travel,SUM-20260625-01,43,,,4
+923,2026-06-03,15:21:00,Sto.Tomas,43,5,17:44:00,,4,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-88,0.28,Heavy traffic delayed arrival,SUM-20260603-01,43,,,18
+232,2026-02-06,11:20:00,Tanauan,20,5,12:25:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-97,0.33,Clear weather,SUM-20260206-01,43,,,10
+401,2026-03-06,06:23:00,Plaridel,37,4,08:27:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-77,0.27,Clear weather,SUM-20260306-01,43,,,2
+1057,2026-06-24,07:13:00,Tanauan,28,3,08:10:00,,3,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-19,0.17,On schedule,SUM-20260624-01,43,,,10
+398,2026-03-06,14:29:00,Sto.Tomas,100,3,15:10:00,,2,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-40,0.2,On schedule,SUM-20260306-01,43,,,18
+288,2026-02-17,14:15:00,Sto.Tomas,108,3,16:50:00,,4,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-66,0.2,Smooth travel,SUM-20260217-01,43,,,18
+160,2026-01-27,09:01:00,Robinson,27,3,11:48:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-90,0.2,On schedule,SUM-20260127-01,43,,,13
+707,2026-04-28,12:04:00,Sto.Tomas,103,2,14:33:00,,4,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-64,0.13,Heavy traffic delayed arrival,SUM-20260428-01,43,,,18
+628,2026-04-14,11:25:00,Los Baños,28,18,12:11:00,,2,TUESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-53,1.0,On schedule,SUM-20260414-01,44,,,1
+1358,2026-08-13,05:24:00,Batangas,21,15,07:11:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-02,1.0,Clear weather,SUM-20260813-01,44,,,20
+1305,2026-08-04,08:15:00,Sto.Tomas,28,15,10:11:00,,2,TUESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-98,0.83,Smooth travel,SUM-20260804-01,44,,,18
+1226,2026-07-22,11:05:00,Los Baños,19,15,13:34:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-97,1.0,Smooth travel,SUM-20260722-01,44,,,1
+1026,2026-06-19,12:26:00,Robinson,39,15,13:51:00,,3,FRIDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-57,0.83,Smooth travel,SUM-20260619-01,44,,,13
+1404,2026-08-20,10:27:00,Robinson,42,14,12:09:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-01,0.93,On schedule,SUM-20260820-01,44,,,13
+451,2026-03-16,08:21:00,Batangas,105,14,10:20:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-39,0.93,Smooth travel,SUM-20260316-01,44,,,20
+1159,2026-07-11,11:01:00,Rosario,31,13,12:35:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-85,0.87,Heavy traffic delayed arrival,SUM-20260711-01,44,,,4
+981,2026-06-12,05:28:00,Taguig,42,13,07:25:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-80,0.87,Clear weather,SUM-20260612-01,44,,,21
+742,2026-05-04,14:13:00,Cabuyao,126,13,15:43:00,,4,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-88,0.87,Clear weather,SUM-20260504-01,44,,,5
+360,2026-02-28,14:17:00,Los Baños,20,13,16:29:00,,4,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-94,0.87,Clear weather,SUM-20260228-01,44,,,1
+1581,2026-09-18,13:22:00,Los Baños,111,12,15:49:00,,4,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-45,0.8,Clear weather,SUM-20260918-01,44,,,1
+1285,2026-08-01,08:07:00,Los Baños,116,12,10:21:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-91,0.8,On schedule,SUM-20260801-01,44,,,1
+1069,2026-06-26,09:15:00,Sto.Tomas,41,12,11:17:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-58,0.8,On schedule,SUM-20260626-01,44,,,18
+584,2026-04-07,07:12:00,Muzon,124,12,09:40:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-22,0.8,Routine trip,SUM-20260407-01,44,,,8
+408,2026-03-07,14:26:00,Plaridel,53,12,16:19:00,,4,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-93,0.8,Smooth travel,SUM-20260307-01,44,,,2
+1547,2026-09-12,05:11:00,Rosario,36,11,07:16:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-67,0.73,Smooth travel,SUM-20260912-01,44,,,4
+927,2026-06-04,14:22:00,Plaridel,45,10,15:03:00,,3,THURSDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-30,0.83,Routine trip,SUM-20260604-01,44,,,2
+621,2026-04-13,05:03:00,Tanauan,108,10,06:46:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-20,0.67,Routine trip,SUM-20260413-01,44,,,10
+1463,2026-08-31,11:05:00,Robinson,20,9,13:19:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-46,0.6,Clear weather,SUM-20260831-01,44,,,13
+919,2026-06-02,07:05:00,Batangas,48,9,09:04:00,,4,TUESDAY,12 Seats - Hyundai Starex,Morning,12,TK-24,0.75,Clear weather,SUM-20260602-01,44,,,20
+1072,2026-06-26,09:21:00,Cabuyao,20,8,11:17:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-12,0.53,Routine trip,SUM-20260626-01,44,,,5
+482,2026-03-20,07:05:00,SM Lipa,15,8,09:28:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-28,0.53,Smooth travel,SUM-20260320-01,44,,,12
+405,2026-03-07,14:23:00,Sto.Tomas,120,7,16:37:00,,4,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-92,0.47,Heavy traffic delayed arrival,SUM-20260307-01,44,,,18
+973,2026-06-11,05:18:00,SM Lipa,101,6,07:45:00,,3,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-64,0.4,Routine trip,SUM-20260611-01,44,,,12
+692,2026-04-25,11:21:00,Sto.Tomas,113,6,13:19:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-65,0.4,Clear weather,SUM-20260425-01,44,,,18
+715,2026-04-29,09:09:00,Caloocan,108,5,11:33:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-68,0.33,On schedule,SUM-20260429-01,44,,,15
+143,2026-01-24,05:00:00,Caloocan,15,5,06:08:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-79,0.33,Smooth travel,SUM-20260124-01,44,,,15
+1234,2026-07-23,13:17:00,Cabuyao,19,4,15:31:00,,2,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-20,0.27,On schedule,SUM-20260723-01,44,,,5
+831,2026-05-18,07:08:00,Muzon,109,4,09:21:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-98,0.27,Smooth travel,SUM-20260518-01,44,,,8
+1409,2026-08-21,14:18:00,Rosario,101,3,15:39:00,,2,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-22,0.2,Routine trip,SUM-20260821-01,44,,,4
+945,2026-06-06,14:10:00,Sto.Tomas,31,3,16:25:00,,2,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-21,0.2,Smooth travel,SUM-20260606-01,44,,,18
+802,2026-05-13,14:13:00,San Pablo,53,3,15:17:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-06,0.2,Heavy traffic delayed arrival,SUM-20260513-01,44,,,11
+703,2026-04-27,12:22:00,Muzon,116,2,13:18:00,,2,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-62,0.13,On schedule,SUM-20260427-01,44,,,8
+554,2026-04-02,08:04:00,Muzon,27,2,10:10:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-17,0.13,Heavy traffic delayed arrival,SUM-20260402-01,44,,,8
+222,2026-02-05,09:11:00,Sto.Tomas,109,2,10:35:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-43,0.13,Smooth travel,SUM-20260205-01,44,,,18
+718,2026-04-29,07:17:00,Batangas,33,17,08:54:00,,4,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-01,0.94,Routine trip,SUM-20260429-01,45,,,20
+729,2026-05-01,14:02:00,Caloocan,129,15,15:34:00,,3,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-97,1.0,Clear weather,SUM-20260501-01,45,,,15
+650,2026-04-17,07:14:00,Sto.Tomas,114,15,08:43:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-09,1.0,Routine trip,SUM-20260417-01,45,,,18
+376,2026-03-03,08:10:00,Rosario,33,15,09:16:00,,3,TUESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-97,0.83,Smooth travel,SUM-20260303-01,45,,,4
+935,2026-06-05,11:15:00,TCP,106,14,12:07:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-30,0.93,Smooth travel,SUM-20260605-01,45,,,6
+685,2026-04-24,09:14:00,Tanauan,101,14,11:47:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-21,0.93,On schedule,SUM-20260424-01,45,,,10
+298,2026-02-18,06:14:00,Muzon,55,14,07:17:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-89,0.93,Smooth travel,SUM-20260218-01,45,,,8
+297,2026-02-18,11:05:00,Batangas,44,14,13:43:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-05,0.93,Clear weather,SUM-20260218-01,45,,,20
+1342,2026-08-11,15:23:00,San Pablo,19,13,16:58:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-59,0.87,Routine trip,SUM-20260811-01,45,,,11
+623,2026-04-13,12:04:00,Batangas,100,13,14:28:00,,2,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-66,0.87,Clear weather,SUM-20260413-01,45,,,20
+580,2026-04-06,14:24:00,Plaridel,30,13,16:07:00,,2,MONDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-40,0.72,Clear weather,SUM-20260406-01,45,,,2
+443,2026-03-14,05:12:00,Cabuyao,36,13,07:25:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-98,0.87,Heavy traffic delayed arrival,SUM-20260314-01,45,,,5
+1503,2026-09-05,11:29:00,SM Lipa,29,12,12:17:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-99,0.8,Routine trip,SUM-20260905-01,45,,,12
+1441,2026-08-27,08:14:00,Tanauan,105,12,09:33:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-75,0.8,Routine trip,SUM-20260827-01,45,,,10
+1389,2026-08-18,10:11:00,Rosario,38,12,11:41:00,,2,TUESDAY,12 Seats - Hyundai Starex,Morning,12,TK-42,1.0,On schedule,SUM-20260818-01,45,,,4
+1257,2026-07-28,08:25:00,Batangas,22,12,10:34:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-62,0.8,Clear weather,SUM-20260728-01,45,,,20
+717,2026-04-29,06:27:00,Tanauan,39,12,07:57:00,,3,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-78,0.67,On schedule,SUM-20260429-01,45,,,10
+477,2026-03-19,15:28:00,Robinson,30,11,17:43:00,,4,THURSDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-08,0.61,Heavy traffic delayed arrival,SUM-20260319-01,45,,,13
+1639,2026-09-28,05:15:00,Bugtong Payapa,55,9,07:03:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-32,0.6,Routine trip,SUM-20260928-01,45,,,14
+624,2026-04-14,11:03:00,Plaridel,38,9,13:27:00,,2,TUESDAY,12 Seats - Hyundai Starex,Morning,12,TK-61,0.75,On schedule,SUM-20260414-01,45,,,2
+425,2026-03-11,13:26:00,Caloocan,37,9,14:44:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-58,0.6,Clear weather,SUM-20260311-01,45,,,15
+1049,2026-06-23,10:07:00,Sto.Tomas,27,8,12:02:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-31,0.53,Routine trip,SUM-20260623-01,45,,,18
+920,2026-06-03,12:14:00,Rosario,127,8,14:14:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-73,0.53,Routine trip,SUM-20260603-01,45,,,4
+1528,2026-09-10,12:13:00,San Pablo,33,7,13:30:00,,2,THURSDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-67,0.39,Heavy traffic delayed arrival,SUM-20260910-01,45,,,11
+1042,2026-06-22,06:25:00,Bugtong Payapa,37,7,07:33:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-10,0.47,Clear weather,SUM-20260622-01,45,,,14
+704,2026-04-27,06:20:00,Robinson,31,7,07:00:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-03,0.47,Routine trip,SUM-20260427-01,45,,,13
+566,2026-04-03,06:26:00,San Pablo,40,7,08:40:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-58,0.47,Smooth travel,SUM-20260403-01,45,,,11
+1221,2026-07-21,11:10:00,Tanauan,15,5,12:21:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-76,0.33,Smooth travel,SUM-20260721-01,45,,,10
+1112,2026-07-03,10:26:00,San Pablo,20,5,12:16:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-70,0.33,On schedule,SUM-20260703-01,45,,,11
+755,2026-05-06,06:06:00,Bugtong Payapa,123,5,07:37:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-37,0.33,Smooth travel,SUM-20260506-01,45,,,14
+290,2026-02-17,05:01:00,Robinson,106,5,06:25:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-99,0.33,Routine trip,SUM-20260217-01,45,,,13
+1500,2026-09-05,09:12:00,Caloocan,119,4,10:42:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-17,0.27,Smooth travel,SUM-20260905-01,45,,,15
+1319,2026-08-07,10:30:00,Taguig,116,4,12:35:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-87,0.27,On schedule,SUM-20260807-01,45,,,21
+805,2026-05-14,11:15:00,Plaridel,21,3,12:30:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-32,0.2,Smooth travel,SUM-20260514-01,45,,,2
+752,2026-05-05,06:17:00,San Pablo,109,3,08:15:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-14,0.2,Routine trip,SUM-20260505-01,45,,,11
+589,2026-04-08,11:18:00,Rosario,45,3,12:30:00,,4,WEDNESDAY,12 Seats - Hyundai Starex,Morning,12,TK-84,0.25,On schedule,SUM-20260408-01,45,,,4
+31,2026-01-06,14:14:00,TCP,34,2,15:46:00,,2,TUESDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-06,0.17,Clear weather,SUM-20260106-01,45,,,6
+53,2026-01-09,06:17:00,Los Baños,28,18,08:05:00,,4,FRIDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-80,1.0,Routine trip,SUM-20260109-01,81,,,1
+1425,2026-08-24,08:10:00,Rosario,35,15,10:43:00,,4,MONDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-48,0.83,Routine trip,SUM-20260824-01,81,,,4
+1204,2026-07-18,10:13:00,Taguig,110,15,11:21:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-98,1.0,Heavy traffic delayed arrival,SUM-20260718-01,81,,,21
+698,2026-04-25,10:06:00,TCP,44,15,12:10:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-74,1.0,Smooth travel,SUM-20260425-01,81,,,6
+581,2026-04-06,14:06:00,TCP,120,15,15:30:00,,3,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-68,1.0,Heavy traffic delayed arrival,SUM-20260406-01,81,,,6
+1098,2026-07-01,15:25:00,Sto.Tomas,55,14,17:04:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-79,0.93,Smooth travel,SUM-20260701-01,81,,,18
+488,2026-03-21,14:00:00,Cabuyao,118,14,16:05:00,,4,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-61,0.93,Heavy traffic delayed arrival,SUM-20260321-01,81,,,5
+36,2026-01-06,10:15:00,Los Baños,128,14,12:49:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-08,0.93,On schedule,SUM-20260106-01,81,,,1
+1175,2026-07-14,09:14:00,SM Lipa,105,13,10:38:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-94,0.87,Smooth travel,SUM-20260714-01,81,,,12
+928,2026-06-04,15:17:00,Batangas,105,13,17:29:00,,2,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-07,0.87,Heavy traffic delayed arrival,SUM-20260604-01,81,,,20
+676,2026-04-22,10:06:00,Cabuyao,114,13,11:28:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-64,0.87,Clear weather,SUM-20260422-01,81,,,5
+251,2026-02-10,14:23:00,Los Baños,20,13,15:56:00,,2,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-07,0.87,Smooth travel,SUM-20260210-01,81,,,1
+1232,2026-07-23,13:30:00,Batangas,110,12,15:43:00,,4,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-50,0.8,Heavy traffic delayed arrival,SUM-20260723-01,81,,,20
+416,2026-03-10,06:28:00,Bugtong Payapa,17,12,07:00:00,,3,TUESDAY,12 Seats - Hyundai Starex,Morning,12,TK-87,1.0,On schedule,SUM-20260310-01,81,,,14
+294,2026-02-18,13:10:00,Sto.Tomas,45,12,15:57:00,,3,WEDNESDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-96,1.0,On schedule,SUM-20260218-01,81,,,18
+1418,2026-08-22,13:26:00,SM Lipa,128,11,14:15:00,,3,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-86,0.73,On schedule,SUM-20260822-01,81,,,12
+1121,2026-07-06,09:30:00,San Pablo,16,11,11:54:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-18,0.73,On schedule,SUM-20260706-01,81,,,11
+1301,2026-08-04,15:22:00,Bugtong Payapa,31,10,16:16:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-71,0.67,Routine trip,SUM-20260804-01,81,,,14
+978,2026-06-12,11:07:00,San Pablo,124,10,13:55:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-66,0.67,On schedule,SUM-20260612-01,81,,,11
+815,2026-05-15,12:26:00,Cabuyao,55,10,14:10:00,,2,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-37,0.67,On schedule,SUM-20260515-01,81,,,5
+848,2026-05-21,08:14:00,Taguig,124,8,10:28:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-50,0.53,Heavy traffic delayed arrival,SUM-20260521-01,81,,,21
+1236,2026-07-23,06:14:00,Plaridel,129,7,07:20:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-94,0.47,Heavy traffic delayed arrival,SUM-20260723-01,81,,,2
+814,2026-05-15,05:08:00,SM Lipa,110,7,06:56:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-82,0.47,Smooth travel,SUM-20260515-01,81,,,12
+1437,2026-08-26,09:25:00,Muzon,111,6,11:10:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-34,0.4,Routine trip,SUM-20260826-01,81,,,8
+1424,2026-08-24,15:10:00,Caloocan,107,6,17:22:00,,3,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-19,0.4,Clear weather,SUM-20260824-01,81,,,15
+988,2026-06-13,07:19:00,Robinson,122,6,09:56:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-82,0.4,Heavy traffic delayed arrival,SUM-20260613-01,81,,,13
+837,2026-05-19,07:01:00,Muzon,18,6,09:55:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-04,0.4,Heavy traffic delayed arrival,SUM-20260519-01,81,,,8
+339,2026-02-25,10:00:00,SM Lipa,36,6,11:24:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-02,0.4,Heavy traffic delayed arrival,SUM-20260225-01,81,,,12
+1539,2026-09-11,07:20:00,TCP,19,5,09:12:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-28,0.33,Clear weather,SUM-20260911-01,81,,,6
+1273,2026-07-30,14:12:00,SM Lipa,121,5,16:51:00,,4,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-98,0.33,Heavy traffic delayed arrival,SUM-20260730-01,81,,,12
+1080,2026-06-29,13:03:00,Robinson,53,5,14:53:00,,2,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-35,0.33,Clear weather,SUM-20260629-01,81,,,13
+645,2026-04-17,05:26:00,Tanauan,15,5,07:07:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-31,0.33,Clear weather,SUM-20260417-01,81,,,10
+358,2026-02-28,07:20:00,Tanauan,104,5,08:06:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-52,0.33,Routine trip,SUM-20260228-01,81,,,10
+283,2026-02-16,08:18:00,Muzon,18,5,10:11:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-69,0.33,Smooth travel,SUM-20260216-01,81,,,8
+205,2026-02-03,07:00:00,TCP,48,5,09:49:00,,2,TUESDAY,12 Seats - Hyundai Starex,Morning,12,TK-78,0.42,Smooth travel,SUM-20260203-01,81,,,6
+1491,2026-09-04,07:15:00,Muzon,30,4,08:04:00,,2,FRIDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-36,0.22,Smooth travel,SUM-20260904-01,81,,,8
+1339,2026-08-10,05:16:00,Caloocan,119,4,07:59:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-82,0.27,Heavy traffic delayed arrival,SUM-20260810-01,81,,,15
+778,2026-05-09,09:25:00,Caloocan,108,4,11:35:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-97,0.27,Smooth travel,SUM-20260509-01,81,,,15
+442,2026-03-14,07:12:00,SM Lipa,126,4,08:36:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-53,0.27,Routine trip,SUM-20260314-01,81,,,12
+1362,2026-08-14,06:19:00,San Pablo,22,3,08:50:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-54,0.2,On schedule,SUM-20260814-01,81,,,11
+1275,2026-07-30,06:18:00,Plaridel,27,3,07:08:00,,3,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-91,0.2,Heavy traffic delayed arrival,SUM-20260730-01,81,,,2
+666,2026-04-21,09:08:00,Robinson,32,3,11:49:00,,2,TUESDAY,12 Seats - Hyundai Starex,Morning,12,TK-62,0.25,On schedule,SUM-20260421-01,81,,,13
+17,2026-01-03,14:10:00,SM Lipa,41,3,16:36:00,,2,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-53,0.2,Clear weather,SUM-20260103-01,81,,,12
+746,2026-05-04,15:22:00,Plaridel,44,2,16:17:00,,2,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-29,0.13,Smooth travel,SUM-20260504-01,81,,,2
+555,2026-04-02,08:14:00,Batangas,33,18,10:31:00,,2,THURSDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-37,1.0,Smooth travel,SUM-20260402-01,82,,,20
+10,2026-01-02,15:06:00,Muzon,35,17,17:58:00,,2,FRIDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-70,0.94,On schedule,SUM-20260102-01,82,,,8
+1580,2026-09-18,11:22:00,SM Lipa,42,15,12:41:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-15,1.0,Heavy traffic delayed arrival,SUM-20260918-01,82,,,12
+176,2026-01-29,09:16:00,SM Lipa,115,15,10:40:00,,3,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-22,1.0,Smooth travel,SUM-20260129-01,82,,,12
+162,2026-01-27,08:25:00,Cabuyao,127,15,09:56:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-53,1.0,Smooth travel,SUM-20260127-01,82,,,5
+1466,2026-08-31,11:19:00,San Pablo,28,14,12:34:00,,4,MONDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-66,0.78,Clear weather,SUM-20260831-01,82,,,11
+1401,2026-08-20,09:00:00,Taguig,55,14,11:23:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-64,0.93,Clear weather,SUM-20260820-01,82,,,21
+1248,2026-07-25,11:28:00,Los Baños,105,14,12:29:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-29,0.93,Clear weather,SUM-20260725-01,82,,,1
+460,2026-03-17,11:05:00,Los Baños,115,13,13:25:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-95,0.87,On schedule,SUM-20260317-01,82,,,1
+355,2026-02-27,11:05:00,Caloocan,108,13,12:19:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-31,0.87,Smooth travel,SUM-20260227-01,82,,,15
+326,2026-02-23,07:03:00,Batangas,117,13,08:11:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-61,0.87,Heavy traffic delayed arrival,SUM-20260223-01,82,,,20
+141,2026-01-23,12:25:00,Robinson,108,13,14:32:00,,2,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-81,0.87,Smooth travel,SUM-20260123-01,82,,,13
+1187,2026-07-15,15:03:00,Muzon,106,12,17:54:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-75,0.8,Smooth travel,SUM-20260715-01,82,,,8
+656,2026-04-18,10:28:00,Tanauan,36,12,11:40:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-22,0.8,Smooth travel,SUM-20260418-01,82,,,10
+468,2026-03-18,14:03:00,SM Lipa,116,12,16:06:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-41,0.8,Smooth travel,SUM-20260318-01,82,,,12
+413,2026-03-09,13:07:00,Caloocan,53,12,14:30:00,,3,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-49,0.8,Smooth travel,SUM-20260309-01,82,,,15
+322,2026-02-23,13:18:00,Muzon,48,12,15:15:00,,2,MONDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-54,1.0,Routine trip,SUM-20260223-01,82,,,8
+1079,2026-06-29,15:28:00,Caloocan,32,11,16:54:00,,2,MONDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-19,0.92,Clear weather,SUM-20260629-01,82,,,15
+1075,2026-06-27,14:21:00,Plaridel,46,11,15:03:00,,4,SATURDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-16,0.61,Clear weather,SUM-20260627-01,82,,,2
+422,2026-03-11,10:15:00,Bugtong Payapa,44,11,11:33:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-06,0.73,Clear weather,SUM-20260311-01,82,,,14
+1489,2026-09-03,11:23:00,Muzon,19,10,13:28:00,,3,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-65,0.67,Clear weather,SUM-20260903-01,82,,,8
+963,2026-06-10,10:15:00,Sto.Tomas,53,10,11:59:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-20,0.67,Smooth travel,SUM-20260610-01,82,,,18
+361,2026-02-28,10:11:00,Cabuyao,32,10,12:15:00,,2,SATURDAY,12 Seats - Hyundai Starex,Morning,12,TK-25,0.83,Clear weather,SUM-20260228-01,82,,,5
+1461,2026-08-31,11:15:00,Bugtong Payapa,109,9,12:06:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-34,0.6,Heavy traffic delayed arrival,SUM-20260831-01,82,,,14
+969,2026-06-10,13:10:00,Muzon,17,9,14:11:00,,2,WEDNESDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-03,0.75,Smooth travel,SUM-20260610-01,82,,,8
+1569,2026-09-16,11:24:00,Muzon,129,7,13:37:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-94,0.47,Routine trip,SUM-20260916-01,82,,,8
+1448,2026-08-28,14:19:00,Caloocan,124,7,16:56:00,,4,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-51,0.47,Heavy traffic delayed arrival,SUM-20260828-01,82,,,15
+1244,2026-07-24,09:06:00,SM Lipa,127,7,10:26:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-86,0.47,On schedule,SUM-20260724-01,82,,,12
+673,2026-04-22,09:00:00,Robinson,102,7,10:44:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-25,0.47,Routine trip,SUM-20260422-01,82,,,13
+396,2026-03-06,07:02:00,Robinson,35,7,09:33:00,,3,FRIDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-75,0.39,Clear weather,SUM-20260306-01,82,,,13
+111,2026-01-19,11:09:00,SM Lipa,109,7,12:11:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-22,0.47,Clear weather,SUM-20260119-01,82,,,12
+1617,2026-09-24,06:03:00,TCP,110,6,08:56:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-09,0.4,Heavy traffic delayed arrival,SUM-20260924-01,82,,,6
+1237,2026-07-24,07:18:00,SM Lipa,108,6,09:30:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-03,0.4,Clear weather,SUM-20260724-01,82,,,12
+438,2026-03-13,09:04:00,Robinson,126,6,11:22:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-86,0.4,Heavy traffic delayed arrival,SUM-20260313-01,82,,,13
+1276,2026-07-31,06:04:00,Muzon,129,5,08:12:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-76,0.33,Routine trip,SUM-20260731-01,82,,,8
+1449,2026-08-28,05:11:00,San Pablo,116,4,06:08:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-30,0.27,On schedule,SUM-20260828-01,82,,,11
+1198,2026-07-17,15:09:00,SM Lipa,33,4,16:29:00,,3,FRIDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-67,0.22,Routine trip,SUM-20260717-01,82,,,12
+743,2026-05-04,06:29:00,Rosario,30,4,07:30:00,,4,MONDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-49,0.22,Routine trip,SUM-20260504-01,82,,,4
+693,2026-04-25,11:04:00,Plaridel,111,4,12:29:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-15,0.27,Clear weather,SUM-20260425-01,82,,,2
+485,2026-03-21,10:26:00,Robinson,120,4,11:36:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-76,0.27,On schedule,SUM-20260321-01,82,,,13
+35,2026-01-06,06:18:00,Cabuyao,128,4,08:25:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-81,0.27,On schedule,SUM-20260106-01,82,,,5
+1038,2026-06-22,09:07:00,Rosario,123,3,10:47:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-85,0.2,Smooth travel,SUM-20260622-01,82,,,4
+1295,2026-08-03,15:00:00,Bugtong Payapa,36,2,17:11:00,,2,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-82,0.13,On schedule,SUM-20260803-01,82,,,14
+247,2026-02-10,05:03:00,Cabuyao,18,2,07:00:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-56,0.13,Smooth travel,SUM-20260210-01,82,,,5
+59,2026-01-09,09:26:00,Plaridel,30,2,11:50:00,,4,FRIDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-92,0.11,Smooth travel,SUM-20260109-01,82,,,2
+950,2026-06-08,13:15:00,Tanauan,39,16,15:29:00,,3,MONDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-36,0.89,Heavy traffic delayed arrival,SUM-20260608-01,83,,,10
+882,2026-05-27,12:18:00,Robinson,101,15,14:15:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-25,1.0,Clear weather,SUM-20260527-01,83,,,13
+46,2026-01-08,05:08:00,Batangas,120,15,07:29:00,,3,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-25,1.0,Smooth travel,SUM-20260108-01,83,,,20
+40,2026-01-07,13:27:00,Caloocan,30,15,15:39:00,,2,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-73,0.83,On schedule,SUM-20260107-01,83,,,15
+1567,2026-09-16,07:10:00,SM Lipa,35,14,09:12:00,,2,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-41,0.78,Smooth travel,SUM-20260916-01,83,,,12
+648,2026-04-17,10:12:00,Robinson,27,14,11:28:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-83,0.93,Clear weather,SUM-20260417-01,83,,,13
+547,2026-04-01,08:24:00,Tanauan,33,14,09:11:00,,2,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-77,0.78,Heavy traffic delayed arrival,SUM-20260401-01,83,,,10
+490,2026-03-21,09:23:00,Batangas,46,14,10:24:00,,3,SATURDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-29,0.78,Clear weather,SUM-20260321-01,83,,,20
+5,2026-01-01,07:12:00,Sto.Tomas,110,14,09:46:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-83,0.93,On schedule,SUM-20260101-01,83,,,18
+1469,2026-09-01,10:10:00,Batangas,126,13,12:30:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-72,0.87,Heavy traffic delayed arrival,SUM-20260901-01,83,,,20
+1127,2026-07-06,07:21:00,Muzon,19,13,08:25:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-25,0.87,Routine trip,SUM-20260706-01,83,,,8
+849,2026-05-21,08:06:00,Los Baños,115,13,09:12:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-18,0.87,Smooth travel,SUM-20260521-01,83,,,1
+1550,2026-09-14,07:30:00,Taguig,16,12,09:36:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-21,0.8,Smooth travel,SUM-20260914-01,83,,,21
+1117,2026-07-04,08:08:00,Los Baños,124,12,09:43:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-39,0.8,On schedule,SUM-20260704-01,83,,,1
+790,2026-05-12,11:17:00,Muzon,129,12,12:27:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-08,0.8,Routine trip,SUM-20260512-01,83,,,8
+689,2026-04-24,11:28:00,Tanauan,44,12,13:05:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-12,0.8,Smooth travel,SUM-20260424-01,83,,,10
+1132,2026-07-07,08:02:00,Rosario,111,11,10:55:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-45,0.73,Routine trip,SUM-20260707-01,83,,,4
+855,2026-05-22,13:15:00,Rosario,106,11,15:02:00,,2,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-24,0.73,Clear weather,SUM-20260522-01,83,,,4
+154,2026-01-26,06:23:00,Plaridel,121,11,08:42:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-67,0.73,On schedule,SUM-20260126-01,83,,,2
+1549,2026-09-14,11:08:00,San Pablo,17,10,12:53:00,,2,MONDAY,12 Seats - Hyundai Starex,Morning,12,TK-39,0.83,On schedule,SUM-20260914-01,83,,,11
+1372,2026-08-15,07:03:00,Batangas,34,9,08:32:00,,2,SATURDAY,12 Seats - Hyundai Starex,Morning,12,TK-54,0.75,On schedule,SUM-20260815-01,83,,,20
+1353,2026-08-13,14:08:00,Cabuyao,15,9,15:50:00,,2,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-52,0.6,Heavy traffic delayed arrival,SUM-20260813-01,83,,,5
+1274,2026-07-30,12:26:00,Rosario,106,9,13:18:00,,4,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-77,0.6,Routine trip,SUM-20260730-01,83,,,4
+440,2026-03-13,11:05:00,Taguig,41,9,13:05:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-44,0.6,Routine trip,SUM-20260313-01,83,,,21
+151,2026-01-26,15:17:00,Cabuyao,103,9,17:40:00,,4,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-70,0.6,Clear weather,SUM-20260126-01,83,,,5
+1085,2026-06-29,14:16:00,Muzon,33,8,16:56:00,,4,MONDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-03,0.44,Routine trip,SUM-20260629-01,83,,,8
+1501,2026-09-05,05:24:00,Muzon,121,7,06:33:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-99,0.47,On schedule,SUM-20260905-01,83,,,8
+1391,2026-08-19,09:02:00,Taguig,102,7,10:04:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-70,0.47,Heavy traffic delayed arrival,SUM-20260819-01,83,,,21
+1388,2026-08-18,15:11:00,San Pablo,32,7,17:44:00,,4,TUESDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-78,0.58,Routine trip,SUM-20260818-01,83,,,11
+542,2026-03-31,09:18:00,Tanauan,127,7,11:00:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-81,0.47,On schedule,SUM-20260331-01,83,,,10
+263,2026-02-12,09:03:00,SM Lipa,102,7,10:54:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-14,0.47,Heavy traffic delayed arrival,SUM-20260212-01,83,,,12
+350,2026-02-27,05:09:00,TCP,125,6,07:06:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-67,0.4,Smooth travel,SUM-20260227-01,83,,,6
+1655,2026-09-30,14:22:00,Sto.Tomas,40,5,16:50:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-15,0.33,Smooth travel,SUM-20260930-01,83,,,18
+243,2026-02-09,11:03:00,Caloocan,15,5,12:31:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-19,0.33,Smooth travel,SUM-20260209-01,83,,,15
+90,2026-01-15,14:25:00,Sto.Tomas,28,5,16:43:00,,4,THURSDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-15,0.28,Routine trip,SUM-20260115-01,83,,,18
+758,2026-05-06,12:11:00,Taguig,123,4,14:26:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-79,0.27,Heavy traffic delayed arrival,SUM-20260506-01,83,,,21
+182,2026-01-30,07:26:00,SM Lipa,48,4,09:16:00,,2,FRIDAY,12 Seats - Hyundai Starex,Morning,12,TK-24,0.33,Heavy traffic delayed arrival,SUM-20260130-01,83,,,12
+1486,2026-09-03,11:16:00,Tanauan,44,3,12:45:00,,3,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-15,0.2,Routine trip,SUM-20260903-01,83,,,10
+948,2026-06-08,09:21:00,Sto.Tomas,128,3,11:01:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-12,0.2,Clear weather,SUM-20260608-01,83,,,18
+104,2026-01-17,09:15:00,San Pablo,124,3,10:18:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-96,0.2,Routine trip,SUM-20260117-01,83,,,11
+1192,2026-07-16,06:13:00,San Pablo,43,2,08:34:00,,2,THURSDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-94,0.11,Routine trip,SUM-20260716-01,83,,,11
+1109,2026-07-03,15:21:00,Sto.Tomas,113,2,17:05:00,,4,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-86,0.13,On schedule,SUM-20260703-01,83,,,18
+208,2026-02-03,12:13:00,SM Lipa,112,2,14:39:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-82,0.13,Smooth travel,SUM-20260203-01,83,,,12
+1546,2026-09-12,12:18:00,Robinson,43,16,14:33:00,,2,SATURDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-73,0.89,Smooth travel,SUM-20260912-01,84,,,13
+1631,2026-09-26,07:28:00,Plaridel,44,15,09:34:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-72,1.0,Heavy traffic delayed arrival,SUM-20260926-01,84,,,2
+953,2026-06-08,06:24:00,Los Baños,28,15,07:00:00,,2,MONDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-53,0.83,Smooth travel,SUM-20260608-01,84,,,1
+808,2026-05-14,10:05:00,Robinson,111,15,11:39:00,,3,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-01,1.0,Heavy traffic delayed arrival,SUM-20260514-01,84,,,13
+1640,2026-09-28,06:01:00,Taguig,29,14,07:22:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-99,0.93,Clear weather,SUM-20260928-01,84,,,21
+1566,2026-09-16,10:00:00,Robinson,118,14,11:37:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-28,0.93,On schedule,SUM-20260916-01,84,,,13
+1289,2026-08-01,14:27:00,Los Baños,124,14,15:02:00,,2,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-16,0.93,Heavy traffic delayed arrival,SUM-20260801-01,84,,,1
+1083,2026-06-29,09:23:00,Rosario,30,14,10:46:00,,3,MONDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-05,0.78,Routine trip,SUM-20260629-01,84,,,4
+14,2026-01-02,07:27:00,Batangas,129,14,09:59:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-01,0.93,On schedule,SUM-20260102-01,84,,,20
+903,2026-05-30,14:11:00,Plaridel,104,13,15:59:00,,4,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-26,0.87,Smooth travel,SUM-20260530-01,84,,,2
+70,2026-01-12,15:17:00,Muzon,47,13,17:59:00,,4,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-74,0.87,Smooth travel,SUM-20260112-01,84,,,8
+1518,2026-09-08,15:03:00,TCP,42,12,17:19:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-80,0.8,Clear weather,SUM-20260908-01,84,,,6
+1089,2026-06-30,10:02:00,Los Baños,106,12,11:06:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-31,0.8,Clear weather,SUM-20260630-01,84,,,1
+1043,2026-06-22,05:27:00,Plaridel,119,12,06:45:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-30,0.8,Smooth travel,SUM-20260622-01,84,,,2
+800,2026-05-13,09:14:00,SM Lipa,109,11,10:06:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-53,0.73,Smooth travel,SUM-20260513-01,84,,,12
+612,2026-04-11,09:30:00,Cabuyao,102,11,10:38:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-12,0.73,Heavy traffic delayed arrival,SUM-20260411-01,84,,,5
+678,2026-04-22,09:29:00,Taguig,21,10,11:16:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-51,0.67,Clear weather,SUM-20260422-01,84,,,21
+1118,2026-07-04,05:09:00,TCP,27,9,06:22:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-98,0.6,Smooth travel,SUM-20260704-01,84,,,6
+861,2026-05-23,15:05:00,Rosario,29,9,16:56:00,,4,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-89,0.6,Heavy traffic delayed arrival,SUM-20260523-01,84,,,4
+1188,2026-07-15,10:28:00,Cabuyao,21,8,11:09:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-41,0.53,Heavy traffic delayed arrival,SUM-20260715-01,84,,,5
+530,2026-03-30,12:00:00,Rosario,118,8,14:02:00,,2,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-62,0.53,Clear weather,SUM-20260330-01,84,,,4
+359,2026-02-28,07:09:00,Robinson,114,8,08:39:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-75,0.53,Clear weather,SUM-20260228-01,84,,,13
+1629,2026-09-26,06:06:00,TCP,35,6,08:32:00,,4,SATURDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-15,0.33,On schedule,SUM-20260926-01,84,,,6
+983,2026-06-13,07:13:00,Caloocan,104,6,08:48:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-42,0.4,Clear weather,SUM-20260613-01,84,,,15
+498,2026-03-24,08:13:00,Plaridel,108,6,10:28:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-74,0.4,Heavy traffic delayed arrival,SUM-20260324-01,84,,,2
+479,2026-03-20,14:19:00,San Pablo,22,6,16:46:00,,4,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-74,0.4,Heavy traffic delayed arrival,SUM-20260320-01,84,,,11
+448,2026-03-16,09:07:00,Bugtong Payapa,28,6,10:23:00,,2,MONDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-39,0.33,Clear weather,SUM-20260316-01,84,,,14
+1392,2026-08-19,07:02:00,Taguig,108,5,09:44:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-14,0.33,Smooth travel,SUM-20260819-01,84,,,21
+999,2026-06-16,12:05:00,Cabuyao,106,5,13:20:00,,2,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-72,0.33,Clear weather,SUM-20260616-01,84,,,5
+588,2026-04-08,13:01:00,SM Lipa,103,5,15:09:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-60,0.33,Smooth travel,SUM-20260408-01,84,,,12
+316,2026-02-21,10:08:00,TCP,29,5,11:46:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-96,0.33,On schedule,SUM-20260221-01,84,,,6
+1406,2026-08-21,13:16:00,Robinson,106,4,15:24:00,,3,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-69,0.27,On schedule,SUM-20260821-01,84,,,13
+110,2026-01-19,14:21:00,Plaridel,110,3,16:33:00,,2,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-35,0.2,Clear weather,SUM-20260119-01,84,,,2
+48,2026-01-08,12:18:00,Caloocan,121,3,14:09:00,,4,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-53,0.2,Routine trip,SUM-20260108-01,84,,,15
+1511,2026-09-07,14:14:00,Robinson,102,2,16:25:00,,2,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-09,0.13,Heavy traffic delayed arrival,SUM-20260907-01,84,,,13
+1019,2026-06-18,05:14:00,Rosario,22,2,07:18:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-52,0.13,Clear weather,SUM-20260618-01,84,,,4
+1659,2026-09-27,11:00:00,Los Banos,42,18,12:00:00,c1ae8857-78ea-4248-bc8b-eb6c2eb8dfac,3,SUNDAY,Jeep,Morning,18,TKT-1041,1.0,Minor delays due to roadwork.,SUM-20260925-062740,85,,,24
+1658,2026-09-27,15:00:00,Tanuan,18,18,16:00:00,c1ae8857-78ea-4248-bc8b-eb6c2eb8dfac,3,SUNDAY,Van,Morning,18,TKT-1047,1.0,Clear traffic conditions; optimal asset performance.,SUM-20260925-062740,85,,,23
+100,2026-01-16,08:09:00,Caloocan,30,17,10:19:00,,2,FRIDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-50,0.94,Clear weather,SUM-20260116-01,85,,,15
+1517,2026-09-08,14:02:00,Bugtong Payapa,123,15,16:32:00,,2,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-93,1.0,Smooth travel,SUM-20260908-01,85,,,14
+1385,2026-08-18,07:24:00,Batangas,116,15,08:52:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-59,1.0,Routine trip,SUM-20260818-01,85,,,20
+872,2026-05-26,12:14:00,Plaridel,28,15,14:20:00,,3,TUESDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-84,0.83,Heavy traffic delayed arrival,SUM-20260526-01,85,,,2
+847,2026-05-21,15:21:00,Los Baños,110,14,17:13:00,,2,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-36,0.93,Routine trip,SUM-20260521-01,85,,,1
+830,2026-05-18,09:26:00,Plaridel,55,14,10:25:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-13,0.93,Heavy traffic delayed arrival,SUM-20260518-01,85,,,2
+544,2026-03-31,11:29:00,SM Lipa,40,14,12:29:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-21,0.93,Routine trip,SUM-20260331-01,85,,,12
+512,2026-03-26,12:24:00,San Pablo,30,14,13:13:00,,4,THURSDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-77,0.78,Heavy traffic delayed arrival,SUM-20260326-01,85,,,11
+67,2026-01-10,09:06:00,Taguig,104,14,11:11:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-20,0.93,On schedule,SUM-20260110-01,85,,,21
+1066,2026-06-26,12:21:00,Cabuyao,101,13,13:11:00,,2,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-01,0.87,Routine trip,SUM-20260626-01,85,,,5
+647,2026-04-17,15:27:00,Caloocan,110,13,16:05:00,,2,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-22,0.87,Clear weather,SUM-20260417-01,85,,,15
+406,2026-03-07,08:00:00,Tanauan,106,13,09:35:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-38,0.87,Smooth travel,SUM-20260307-01,85,,,10
+1367,2026-08-14,15:07:00,TCP,16,12,17:26:00,,4,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-13,0.8,Routine trip,SUM-20260814-01,85,,,6
+1314,2026-08-06,05:19:00,Bugtong Payapa,17,12,07:48:00,,2,THURSDAY,12 Seats - Hyundai Starex,Morning,12,TK-66,1.0,Heavy traffic delayed arrival,SUM-20260806-01,85,,,14
+69,2026-01-12,12:29:00,Los Baños,117,12,14:55:00,,2,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-06,0.8,On schedule,SUM-20260112-01,85,,,1
+1128,2026-07-06,06:10:00,Taguig,121,11,07:38:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-62,0.73,Heavy traffic delayed arrival,SUM-20260706-01,85,,,21
+747,2026-05-05,10:00:00,Tanauan,31,11,11:06:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-52,0.73,On schedule,SUM-20260505-01,85,,,10
+741,2026-05-04,14:10:00,Bugtong Payapa,127,11,15:54:00,,2,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-75,0.73,Clear weather,SUM-20260504-01,85,,,14
+597,2026-04-09,10:16:00,SM Lipa,110,11,12:55:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-37,0.73,On schedule,SUM-20260409-01,85,,,12
+94,2026-01-15,06:27:00,Robinson,117,11,08:47:00,,3,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-82,0.73,Clear weather,SUM-20260115-01,85,,,13
+1552,2026-09-14,07:09:00,Taguig,106,10,08:20:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-17,0.67,Smooth travel,SUM-20260914-01,85,,,21
+990,2026-06-13,14:19:00,Cabuyao,124,10,15:53:00,,2,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-31,0.67,Smooth travel,SUM-20260613-01,85,,,5
+177,2026-01-29,12:05:00,San Pablo,125,10,14:49:00,,4,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-53,0.67,On schedule,SUM-20260129-01,85,,,11
+1435,2026-08-26,12:04:00,Sto.Tomas,45,9,14:36:00,,2,WEDNESDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-33,0.75,Smooth travel,SUM-20260826-01,85,,,18
+1240,2026-07-24,15:18:00,Los Baños,45,9,17:55:00,,4,FRIDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-02,0.75,On schedule,SUM-20260724-01,85,,,1
+727,2026-04-30,14:14:00,Caloocan,44,9,15:34:00,,4,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-64,0.6,Routine trip,SUM-20260430-01,85,,,15
+136,2026-01-23,05:15:00,Sto.Tomas,128,9,06:44:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-35,0.6,Heavy traffic delayed arrival,SUM-20260123-01,85,,,18
+41,2026-01-07,13:00:00,Sto.Tomas,120,9,15:55:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-21,0.6,On schedule,SUM-20260107-01,85,,,18
+18,2026-01-03,05:28:00,SM Lipa,39,9,06:50:00,,3,SATURDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-08,0.5,Routine trip,SUM-20260103-01,85,,,12
+1514,2026-09-08,10:15:00,Tanauan,125,8,12:46:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-79,0.53,Routine trip,SUM-20260908-01,85,,,10
+922,2026-06-03,09:13:00,Cabuyao,118,8,11:09:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-04,0.53,Heavy traffic delayed arrival,SUM-20260603-01,85,,,5
+245,2026-02-10,05:28:00,Caloocan,44,8,06:15:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-58,0.53,On schedule,SUM-20260210-01,85,,,15
+1582,2026-09-18,15:30:00,Taguig,29,7,16:26:00,,4,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-82,0.47,Clear weather,SUM-20260918-01,85,,,21
+365,2026-03-02,07:27:00,TCP,108,7,08:33:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-92,0.47,On schedule,SUM-20260302-01,85,,,6
+1167,2026-07-13,11:00:00,Bugtong Payapa,55,6,12:52:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-03,0.4,Routine trip,SUM-20260713-01,85,,,14
+629,2026-04-14,07:09:00,SM Lipa,31,6,09:01:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-40,0.4,Routine trip,SUM-20260414-01,85,,,12
+449,2026-03-16,14:06:00,Tanauan,30,6,16:12:00,,4,MONDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-79,0.33,Routine trip,SUM-20260316-01,85,,,10
+934,2026-06-05,07:21:00,Plaridel,107,5,09:11:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-35,0.33,Heavy traffic delayed arrival,SUM-20260605-01,85,,,2
+751,2026-05-05,13:09:00,Bugtong Payapa,35,5,15:39:00,,4,TUESDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-17,0.28,Heavy traffic delayed arrival,SUM-20260505-01,85,,,14
+1477,2026-09-02,13:27:00,Rosario,32,4,15:27:00,,3,WEDNESDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-75,0.33,Heavy traffic delayed arrival,SUM-20260902-01,85,,,4
+748,2026-05-05,08:10:00,Robinson,42,4,10:07:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-49,0.27,On schedule,SUM-20260505-01,85,,,13
+99,2026-01-16,09:09:00,Plaridel,107,4,11:58:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-07,0.27,Heavy traffic delayed arrival,SUM-20260116-01,85,,,2
+1612,2026-09-23,12:03:00,SM Lipa,20,3,14:10:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-21,0.2,Smooth travel,SUM-20260923-01,85,,,12
+1568,2026-09-16,05:11:00,Tanauan,123,3,06:19:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-25,0.2,Smooth travel,SUM-20260916-01,85,,,10
+1537,2026-09-11,12:26:00,Sto.Tomas,118,3,13:56:00,,2,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-73,0.2,Heavy traffic delayed arrival,SUM-20260911-01,85,,,18
+1165,2026-07-11,10:03:00,TCP,19,2,12:40:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-03,0.13,On schedule,SUM-20260711-01,85,,,6
+905,2026-05-30,11:13:00,Rosario,48,2,13:58:00,,4,SATURDAY,12 Seats - Hyundai Starex,Morning,12,TK-14,0.17,Smooth travel,SUM-20260530-01,85,,,4
+270,2026-02-13,11:21:00,San Pablo,21,2,12:57:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-88,0.13,Clear weather,SUM-20260213-01,85,,,11
+1663,2026-09-20,15:05:00,Batangas,46,18,15:40:00,c1ae8857-78ea-4248-bc8b-eb6c2eb8dfac,3,SUNDAY,Van,MORNING,18,TK-01,1.0,WOW,SUM-20260925-145615,86,,,20
+321,2026-02-23,09:25:00,Batangas,30,18,10:12:00,,3,MONDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-55,1.0,Smooth travel,SUM-20260223-01,86,,,20
+1347,2026-08-12,07:26:00,Muzon,39,15,09:09:00,,2,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-77,0.83,Smooth travel,SUM-20260812-01,86,,,8
+1033,2026-06-20,12:15:00,Los Baños,18,15,14:52:00,,4,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-03,1.0,Heavy traffic delayed arrival,SUM-20260620-01,86,,,1
+569,2026-04-04,08:02:00,Rosario,128,15,09:12:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-17,1.0,Smooth travel,SUM-20260404-01,86,,,4
+1304,2026-08-04,08:09:00,Rosario,122,14,09:10:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-57,0.93,Routine trip,SUM-20260804-01,86,,,4
+1185,2026-07-15,13:07:00,Plaridel,20,14,15:11:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-99,0.93,Clear weather,SUM-20260715-01,86,,,2
+829,2026-05-18,09:00:00,Muzon,20,14,11:40:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-05,0.93,Clear weather,SUM-20260518-01,86,,,8
+64,2026-01-10,07:24:00,Plaridel,20,14,08:16:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-76,0.93,Clear weather,SUM-20260110-01,86,,,2
+21,2026-01-03,05:03:00,Sto.Tomas,31,14,07:04:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-91,0.93,Smooth travel,SUM-20260103-01,86,,,18
+1419,2026-08-22,13:24:00,Taguig,123,13,15:48:00,,4,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-97,0.87,Heavy traffic delayed arrival,SUM-20260822-01,86,,,21
+1348,2026-08-12,15:07:00,Sto.Tomas,126,13,16:22:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-51,0.87,Heavy traffic delayed arrival,SUM-20260812-01,86,,,18
+828,2026-05-18,14:21:00,Batangas,109,13,16:32:00,,2,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-74,0.87,Routine trip,SUM-20260518-01,86,,,20
+1255,2026-07-27,08:07:00,TCP,19,12,09:17:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-29,0.8,Routine trip,SUM-20260727-01,86,,,6
+775,2026-05-09,06:12:00,Plaridel,124,12,08:33:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-25,0.8,On schedule,SUM-20260509-01,86,,,2
+85,2026-01-14,05:26:00,Bugtong Payapa,111,12,06:48:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-33,0.8,Heavy traffic delayed arrival,SUM-20260114-01,86,,,14
+1233,2026-07-23,10:30:00,Caloocan,118,11,12:00:00,,3,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-68,0.73,On schedule,SUM-20260723-01,86,,,15
+725,2026-04-30,13:12:00,Bugtong Payapa,34,11,15:48:00,,2,THURSDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-96,0.92,Heavy traffic delayed arrival,SUM-20260430-01,86,,,14
+287,2026-02-17,13:29:00,Muzon,112,11,15:00:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-65,0.73,On schedule,SUM-20260217-01,86,,,8
+199,2026-02-02,15:22:00,Robinson,103,10,16:36:00,,2,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-33,0.67,Smooth travel,SUM-20260202-01,86,,,13
+74,2026-01-12,08:22:00,Robinson,44,10,09:57:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-25,0.67,Clear weather,SUM-20260112-01,86,,,13
+1597,2026-09-21,09:27:00,SM Lipa,47,9,11:49:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-92,0.6,Routine trip,SUM-20260921-01,86,,,12
+1151,2026-07-09,08:07:00,Cabuyao,111,9,09:56:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-22,0.6,Clear weather,SUM-20260709-01,86,,,5
+1090,2026-06-30,09:01:00,TCP,120,9,11:50:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-73,0.6,On schedule,SUM-20260630-01,86,,,6
+373,2026-03-03,15:02:00,Taguig,19,9,16:50:00,,4,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-37,0.6,Smooth travel,SUM-20260303-01,86,,,21
+236,2026-02-07,05:13:00,Plaridel,119,9,07:43:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-72,0.6,On schedule,SUM-20260207-01,86,,,2
+1052,2026-06-24,05:11:00,Plaridel,123,8,06:44:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-40,0.53,Routine trip,SUM-20260624-01,86,,,2
+816,2026-05-15,10:07:00,Robinson,44,8,11:38:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-27,0.53,Clear weather,SUM-20260515-01,86,,,13
+586,2026-04-07,11:09:00,Sto.Tomas,108,8,13:57:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-83,0.53,Clear weather,SUM-20260407-01,86,,,18
+936,2026-06-05,11:15:00,Caloocan,33,7,13:22:00,,3,FRIDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-25,0.39,Heavy traffic delayed arrival,SUM-20260605-01,86,,,15
+907,2026-06-01,11:22:00,Muzon,111,7,13:54:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-99,0.47,On schedule,SUM-20260601-01,86,,,8
+1183,2026-07-15,15:10:00,Robinson,39,6,17:29:00,,3,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-74,0.33,On schedule,SUM-20260715-01,86,,,13
+1161,2026-07-11,13:21:00,Caloocan,37,6,15:45:00,,2,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-85,0.4,Routine trip,SUM-20260711-01,86,,,15
+791,2026-05-12,13:03:00,Muzon,105,6,14:29:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-06,0.4,Heavy traffic delayed arrival,SUM-20260512-01,86,,,8
+719,2026-04-29,13:07:00,Taguig,22,6,15:29:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-73,0.4,On schedule,SUM-20260429-01,86,,,21
+461,2026-03-17,11:21:00,Tanauan,122,6,13:00:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-01,0.4,Routine trip,SUM-20260317-01,86,,,10
+1371,2026-08-15,08:05:00,TCP,55,5,10:46:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-29,0.33,Heavy traffic delayed arrival,SUM-20260815-01,86,,,6
+1147,2026-07-09,05:21:00,Sto.Tomas,121,5,06:53:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-83,0.33,On schedule,SUM-20260709-01,86,,,18
+1355,2026-08-13,12:10:00,Caloocan,32,4,13:37:00,,4,THURSDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-81,0.33,Clear weather,SUM-20260813-01,86,,,15
+83,2026-01-14,09:21:00,Cabuyao,110,4,10:15:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-62,0.27,Routine trip,SUM-20260114-01,86,,,5
+1380,2026-08-17,13:26:00,Taguig,55,3,14:41:00,,4,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-30,0.2,Clear weather,SUM-20260817-01,86,,,21
+1146,2026-07-09,15:24:00,Robinson,102,3,17:17:00,,4,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-48,0.2,Clear weather,SUM-20260709-01,86,,,13
+553,2026-04-01,10:06:00,Tanauan,45,3,11:43:00,,4,WEDNESDAY,12 Seats - Hyundai Starex,Morning,12,TK-82,0.25,Smooth travel,SUM-20260401-01,86,,,10
+178,2026-01-29,14:21:00,Tanauan,118,3,16:43:00,,4,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-37,0.2,Clear weather,SUM-20260129-01,86,,,10
+1208,2026-07-18,07:09:00,Muzon,127,2,08:00:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-89,0.13,Heavy traffic delayed arrival,SUM-20260718-01,86,,,8
+1660,2026-09-27,11:00:00,TCP,18,18,12:00:00,c1ae8857-78ea-4248-bc8b-eb6c2eb8dfac,3,SUNDAY,Van,Evening,18,TKT-1037,1.0,All destination waypoints cleared efficiently.,SUM-20260925-062740,87,,,6
+1357,2026-08-13,13:04:00,Batangas,28,18,14:46:00,,2,THURSDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-13,1.0,Clear weather,SUM-20260813-01,87,,,20
+627,2026-04-14,05:02:00,Bugtong Payapa,33,16,06:27:00,,4,TUESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-39,0.89,On schedule,SUM-20260414-01,87,,,14
+1525,2026-09-09,07:17:00,Los Baños,37,15,09:21:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-58,1.0,Smooth travel,SUM-20260909-01,87,,,1
+657,2026-04-20,09:21:00,Plaridel,126,15,11:23:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-15,1.0,Smooth travel,SUM-20260420-01,87,,,2
+341,2026-02-25,12:03:00,Los Baños,112,15,14:20:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-80,1.0,Routine trip,SUM-20260225-01,87,,,1
+1572,2026-09-17,14:18:00,Sto.Tomas,112,14,16:59:00,,4,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-34,0.93,Heavy traffic delayed arrival,SUM-20260917-01,87,,,18
+1325,2026-08-08,09:09:00,TCP,103,14,10:12:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-71,0.93,Routine trip,SUM-20260808-01,87,,,6
+1251,2026-07-27,13:25:00,Batangas,115,14,14:35:00,,2,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-51,0.93,Smooth travel,SUM-20260727-01,87,,,20
+201,2026-02-02,08:19:00,Los Baños,47,14,09:32:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-10,0.93,Heavy traffic delayed arrival,SUM-20260202-01,87,,,1
+998,2026-06-16,13:25:00,Los Baños,118,13,14:09:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-73,0.87,Clear weather,SUM-20260616-01,87,,,1
+897,2026-05-29,11:13:00,Caloocan,101,13,12:39:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-22,0.87,On schedule,SUM-20260529-01,87,,,15
+1570,2026-09-16,13:20:00,Los Baños,40,12,15:46:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-91,0.8,Routine trip,SUM-20260916-01,87,,,1
+1381,2026-08-17,11:28:00,Los Baños,40,12,12:54:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-47,0.8,Smooth travel,SUM-20260817-01,87,,,1
+753,2026-05-06,11:15:00,Rosario,45,12,13:38:00,,4,WEDNESDAY,12 Seats - Hyundai Starex,Morning,12,TK-66,1.0,Routine trip,SUM-20260506-01,87,,,4
+551,2026-04-01,08:04:00,Muzon,38,12,09:08:00,,2,WEDNESDAY,12 Seats - Hyundai Starex,Morning,12,TK-14,1.0,Routine trip,SUM-20260401-01,87,,,8
+550,2026-04-01,07:00:00,Tanauan,22,11,09:56:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-33,0.73,Smooth travel,SUM-20260401-01,87,,,10
+1379,2026-08-17,09:09:00,Caloocan,126,10,10:39:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-97,0.67,On schedule,SUM-20260817-01,87,,,15
+1107,2026-07-02,14:14:00,Batangas,48,10,16:16:00,,3,THURSDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-25,0.83,Heavy traffic delayed arrival,SUM-20260702-01,87,,,20
+796,2026-05-13,05:00:00,Caloocan,129,10,07:06:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-12,0.67,Smooth travel,SUM-20260513-01,87,,,15
+1173,2026-07-14,07:26:00,TCP,120,9,09:06:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-25,0.6,Heavy traffic delayed arrival,SUM-20260714-01,87,,,6
+1337,2026-08-10,05:20:00,SM Lipa,34,8,07:50:00,,3,MONDAY,12 Seats - Hyundai Starex,Morning,12,TK-96,0.67,Smooth travel,SUM-20260810-01,87,,,12
+1045,2026-06-23,12:24:00,Robinson,21,8,14:51:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-33,0.53,Routine trip,SUM-20260623-01,87,,,13
+211,2026-02-04,12:26:00,Plaridel,28,8,13:59:00,,2,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-63,0.44,Smooth travel,SUM-20260204-01,87,,,2
+1178,2026-07-14,09:27:00,TCP,48,7,10:46:00,,2,TUESDAY,12 Seats - Hyundai Starex,Morning,12,TK-38,0.58,Smooth travel,SUM-20260714-01,87,,,6
+39,2026-01-07,15:24:00,Rosario,35,7,16:57:00,,4,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-70,0.39,Heavy traffic delayed arrival,SUM-20260107-01,87,,,4
+701,2026-04-27,07:13:00,Muzon,17,6,08:24:00,,4,MONDAY,12 Seats - Hyundai Starex,Morning,12,TK-44,0.5,On schedule,SUM-20260427-01,87,,,8
+672,2026-04-22,10:07:00,Bugtong Payapa,105,5,11:40:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-99,0.33,Smooth travel,SUM-20260422-01,87,,,14
+862,2026-05-23,10:15:00,Plaridel,109,4,11:32:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-83,0.27,Routine trip,SUM-20260523-01,87,,,2
+604,2026-04-10,13:26:00,Taguig,105,4,15:47:00,,2,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-55,0.27,Smooth travel,SUM-20260410-01,87,,,21
+466,2026-03-18,07:21:00,Robinson,122,4,09:29:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-20,0.27,On schedule,SUM-20260318-01,87,,,13
+311,2026-02-20,12:10:00,Plaridel,16,4,14:24:00,,4,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-78,0.27,Smooth travel,SUM-20260220-01,87,,,2
+304,2026-02-19,06:21:00,San Pablo,30,4,08:36:00,,3,THURSDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-54,0.22,Routine trip,SUM-20260219-01,87,,,11
+195,2026-01-31,06:24:00,Taguig,38,4,08:28:00,,3,SATURDAY,12 Seats - Hyundai Starex,Morning,12,TK-97,0.33,Clear weather,SUM-20260131-01,87,,,21
+558,2026-04-02,11:05:00,Sto.Tomas,42,3,13:37:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-33,0.2,Clear weather,SUM-20260402-01,87,,,18
+463,2026-03-18,11:14:00,Bugtong Payapa,108,3,13:12:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-52,0.2,Routine trip,SUM-20260318-01,87,,,14
+302,2026-02-19,09:20:00,Muzon,112,3,10:25:00,,3,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-81,0.2,Heavy traffic delayed arrival,SUM-20260219-01,87,,,8
+1270,2026-07-30,09:09:00,Sto.Tomas,101,2,10:39:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-33,0.13,Smooth travel,SUM-20260730-01,87,,,18
+435,2026-03-12,12:18:00,Caloocan,35,2,13:08:00,,4,THURSDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-62,0.11,Heavy traffic delayed arrival,SUM-20260312-01,87,,,15
+349,2026-02-27,08:21:00,Plaridel,35,2,10:00:00,,3,FRIDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-93,0.11,Routine trip,SUM-20260227-01,87,,,2
+152,2026-01-26,06:03:00,Robinson,114,15,07:16:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-11,1.0,Clear weather,SUM-20260126-01,88,,,13
+1263,2026-07-28,11:22:00,Rosario,35,14,12:38:00,,3,TUESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-88,0.78,Routine trip,SUM-20260728-01,88,,,4
+655,2026-04-18,11:10:00,Batangas,105,14,12:30:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-99,0.93,On schedule,SUM-20260418-01,88,,,20
+495,2026-03-23,09:28:00,San Pablo,127,14,11:17:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-51,0.93,On schedule,SUM-20260323-01,88,,,11
+833,2026-05-19,10:08:00,Sto.Tomas,117,13,12:33:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-34,0.87,Routine trip,SUM-20260519-01,88,,,18
+253,2026-02-11,12:16:00,TCP,120,13,13:22:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-10,0.87,Smooth travel,SUM-20260211-01,88,,,6
+1571,2026-09-16,14:19:00,Los Baños,117,12,15:54:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-22,0.8,Routine trip,SUM-20260916-01,88,,,1
+932,2026-06-04,08:18:00,Rosario,43,12,09:08:00,,2,THURSDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-85,0.67,On schedule,SUM-20260604-01,88,,,4
+766,2026-05-08,10:03:00,Taguig,19,12,11:27:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-08,0.8,Heavy traffic delayed arrival,SUM-20260508-01,88,,,21
+600,2026-04-09,06:00:00,Bugtong Payapa,21,12,07:39:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-07,0.8,Clear weather,SUM-20260409-01,88,,,14
+541,2026-03-31,05:18:00,Los Baños,114,12,06:01:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-55,0.8,Smooth travel,SUM-20260331-01,88,,,1
+265,2026-02-12,11:20:00,Muzon,48,12,13:40:00,,4,THURSDAY,12 Seats - Hyundai Starex,Morning,12,TK-53,1.0,Smooth travel,SUM-20260212-01,88,,,8
+1622,2026-09-24,15:19:00,Bugtong Payapa,107,11,17:21:00,,3,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-02,0.73,On schedule,SUM-20260924-01,88,,,14
+590,2026-04-08,13:09:00,Bugtong Payapa,115,11,15:10:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-06,0.73,On schedule,SUM-20260408-01,88,,,14
+218,2026-02-05,06:30:00,Caloocan,15,11,08:57:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-99,0.73,Smooth travel,SUM-20260205-01,88,,,15
+354,2026-02-27,15:29:00,Bugtong Payapa,15,10,16:42:00,,4,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-75,0.67,On schedule,SUM-20260227-01,88,,,14
+189,2026-01-31,11:02:00,Caloocan,127,10,12:32:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-93,0.67,Heavy traffic delayed arrival,SUM-20260131-01,88,,,15
+186,2026-01-30,09:27:00,Taguig,128,10,11:11:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-48,0.67,Clear weather,SUM-20260130-01,88,,,21
+616,2026-04-11,08:20:00,Caloocan,111,9,09:16:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-37,0.6,Clear weather,SUM-20260411-01,88,,,15
+456,2026-03-17,05:19:00,Sto.Tomas,28,9,07:41:00,,3,TUESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-78,0.5,Smooth travel,SUM-20260317-01,88,,,18
+1403,2026-08-20,15:25:00,Sto.Tomas,110,8,16:20:00,,2,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-39,0.53,Routine trip,SUM-20260820-01,88,,,18
+1349,2026-08-12,08:13:00,Muzon,29,8,10:06:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-24,0.53,On schedule,SUM-20260812-01,88,,,8
+9,2026-01-02,12:27:00,Muzon,112,8,13:23:00,,2,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-03,0.53,On schedule,SUM-20260102-01,88,,,8
+528,2026-03-28,14:01:00,Taguig,17,7,15:55:00,,2,SATURDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-75,0.58,Smooth travel,SUM-20260328-01,88,,,21
+1103,2026-07-02,13:12:00,Rosario,129,6,14:32:00,,4,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-55,0.4,Routine trip,SUM-20260702-01,88,,,4
+184,2026-01-30,15:06:00,Taguig,37,6,16:51:00,,3,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-49,0.4,Routine trip,SUM-20260130-01,88,,,21
+179,2026-01-29,09:01:00,Cabuyao,101,6,10:35:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-33,0.4,On schedule,SUM-20260129-01,88,,,5
+807,2026-05-14,15:28:00,TCP,122,5,16:00:00,,2,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-84,0.33,On schedule,SUM-20260514-01,88,,,6
+210,2026-02-03,12:24:00,Muzon,19,5,13:34:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-65,0.33,Heavy traffic delayed arrival,SUM-20260203-01,88,,,8
+1016,2026-06-18,08:23:00,Muzon,18,4,10:48:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-38,0.27,Heavy traffic delayed arrival,SUM-20260618-01,88,,,8
+277,2026-02-14,10:01:00,Plaridel,42,4,12:36:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-06,0.27,Heavy traffic delayed arrival,SUM-20260214-01,88,,,2
+1284,2026-08-01,11:14:00,Taguig,110,3,12:12:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-21,0.2,On schedule,SUM-20260801-01,88,,,21
+1087,2026-06-30,07:00:00,Sto.Tomas,48,3,09:40:00,,2,TUESDAY,12 Seats - Hyundai Starex,Morning,12,TK-83,0.25,Smooth travel,SUM-20260630-01,88,,,18
+835,2026-05-19,05:00:00,Rosario,126,3,06:44:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-66,0.2,Routine trip,SUM-20260519-01,88,,,4
+61,2026-01-10,12:22:00,Sto.Tomas,20,3,14:35:00,,3,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-80,0.2,Clear weather,SUM-20260110-01,88,,,18
+1557,2026-09-15,15:27:00,TCP,22,15,16:18:00,,2,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-96,1.0,Clear weather,SUM-20260915-01,89,,,6
+295,2026-02-18,15:06:00,San Pablo,128,15,16:39:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-46,1.0,On schedule,SUM-20260218-01,89,,,11
+1633,2026-09-26,05:14:00,Batangas,18,14,07:02:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-57,0.93,Clear weather,SUM-20260926-01,89,,,20
+974,2026-06-11,09:24:00,Robinson,124,14,11:56:00,,3,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-20,0.93,Clear weather,SUM-20260611-01,89,,,13
+568,2026-04-04,08:20:00,Robinson,101,14,09:38:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-89,0.93,Smooth travel,SUM-20260404-01,89,,,13
+524,2026-03-28,08:08:00,Los Baños,20,14,10:20:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-51,0.93,On schedule,SUM-20260328-01,89,,,1
+735,2026-05-02,07:19:00,Batangas,27,13,09:00:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-42,0.87,Clear weather,SUM-20260502-01,89,,,20
+92,2026-01-15,13:29:00,SM Lipa,100,13,15:09:00,,4,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-75,0.87,Routine trip,SUM-20260115-01,89,,,12
+1261,2026-07-28,05:21:00,Tanauan,120,12,06:43:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-33,0.8,Heavy traffic delayed arrival,SUM-20260728-01,89,,,10
+779,2026-05-09,10:07:00,San Pablo,103,12,12:40:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-48,0.8,Clear weather,SUM-20260509-01,89,,,11
+686,2026-04-24,11:01:00,Batangas,111,12,13:08:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-85,0.8,Clear weather,SUM-20260424-01,89,,,20
+1495,2026-09-04,13:04:00,Plaridel,15,11,15:55:00,,3,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-21,0.73,Smooth travel,SUM-20260904-01,89,,,2
+1494,2026-09-04,06:21:00,Robinson,112,10,08:32:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-61,0.67,Routine trip,SUM-20260904-01,89,,,13
+1310,2026-08-05,11:23:00,Plaridel,116,10,13:43:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-06,0.67,Routine trip,SUM-20260805-01,89,,,2
+1650,2026-09-30,07:05:00,Muzon,37,9,09:35:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-42,0.6,On schedule,SUM-20260930-01,89,,,8
+1602,2026-09-22,13:13:00,Taguig,117,9,15:42:00,,4,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-98,0.6,Smooth travel,SUM-20260922-01,89,,,21
+1454,2026-08-29,10:14:00,Los Baños,38,9,12:22:00,,3,SATURDAY,12 Seats - Hyundai Starex,Morning,12,TK-51,0.75,On schedule,SUM-20260829-01,89,,,1
+169,2026-01-28,11:08:00,TCP,128,8,12:37:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-69,0.53,Heavy traffic delayed arrival,SUM-20260128-01,89,,,6
+122,2026-01-21,08:07:00,Cabuyao,120,8,09:20:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-71,0.53,Smooth travel,SUM-20260121-01,89,,,5
+1202,2026-07-17,11:24:00,Taguig,43,7,13:16:00,,3,FRIDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-47,0.39,On schedule,SUM-20260717-01,89,,,21
+1071,2026-06-26,15:14:00,SM Lipa,19,7,16:50:00,,3,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-87,0.47,Routine trip,SUM-20260626-01,89,,,12
+863,2026-05-23,10:08:00,Taguig,34,7,11:49:00,,2,SATURDAY,12 Seats - Hyundai Starex,Morning,12,TK-82,0.58,Heavy traffic delayed arrival,SUM-20260523-01,89,,,21
+754,2026-05-06,10:08:00,Taguig,20,7,12:40:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-95,0.47,Clear weather,SUM-20260506-01,89,,,21
+723,2026-04-30,15:05:00,San Pablo,32,7,16:53:00,,4,THURSDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-65,0.58,Smooth travel,SUM-20260430-01,89,,,11
+669,2026-04-21,11:09:00,TCP,20,7,12:24:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-96,0.47,On schedule,SUM-20260421-01,89,,,6
+499,2026-03-24,12:16:00,Caloocan,118,7,13:22:00,,2,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-27,0.47,Heavy traffic delayed arrival,SUM-20260324-01,89,,,15
+1638,2026-09-28,06:04:00,San Pablo,19,6,08:03:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-39,0.4,Routine trip,SUM-20260928-01,89,,,11
+987,2026-06-13,05:00:00,San Pablo,129,6,07:05:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-39,0.4,On schedule,SUM-20260613-01,89,,,11
+593,2026-04-08,09:27:00,San Pablo,18,6,11:45:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-45,0.4,Routine trip,SUM-20260408-01,89,,,11
+1644,2026-09-29,09:16:00,Robinson,38,5,11:28:00,,4,TUESDAY,12 Seats - Hyundai Starex,Morning,12,TK-37,0.42,On schedule,SUM-20260929-01,89,,,13
+1564,2026-09-16,13:06:00,San Pablo,47,5,15:11:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-39,0.33,Smooth travel,SUM-20260916-01,89,,,11
+1492,2026-09-04,07:30:00,Cabuyao,122,5,08:24:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-14,0.33,Routine trip,SUM-20260904-01,89,,,5
+799,2026-05-13,13:28:00,TCP,129,5,14:56:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-75,0.33,Smooth travel,SUM-20260513-01,89,,,6
+782,2026-05-11,10:30:00,TCP,113,4,12:01:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-48,0.27,Clear weather,SUM-20260511-01,89,,,6
+696,2026-04-25,14:21:00,Bugtong Payapa,113,4,16:36:00,,2,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-87,0.27,Clear weather,SUM-20260425-01,89,,,14
+596,2026-04-09,08:25:00,Cabuyao,103,4,09:53:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-14,0.27,Routine trip,SUM-20260409-01,89,,,5
+399,2026-03-06,08:23:00,TCP,129,4,10:41:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-73,0.27,Routine trip,SUM-20260306-01,89,,,6
+506,2026-03-25,09:09:00,SM Lipa,48,3,11:58:00,,3,WEDNESDAY,12 Seats - Hyundai Starex,Morning,12,TK-27,0.25,Clear weather,SUM-20260325-01,89,,,12
+293,2026-02-17,14:03:00,Tanauan,104,3,15:22:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-85,0.2,Clear weather,SUM-20260217-01,89,,,10
+1172,2026-07-13,05:30:00,Cabuyao,34,2,07:04:00,,2,MONDAY,12 Seats - Hyundai Starex,Morning,12,TK-59,0.17,Clear weather,SUM-20260713-01,89,,,5
+885,2026-05-28,12:16:00,San Pablo,55,2,14:45:00,,3,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-41,0.13,Clear weather,SUM-20260528-01,89,,,11
+784,2026-05-11,15:11:00,SM Lipa,102,2,16:40:00,,3,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-58,0.13,Routine trip,SUM-20260511-01,89,,,12
+576,2026-04-06,14:05:00,Bugtong Payapa,102,2,15:04:00,,4,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-60,0.13,Clear weather,SUM-20260406-01,89,,,14
+325,2026-02-23,05:12:00,Tanauan,112,2,06:00:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-99,0.13,Smooth travel,SUM-20260223-01,89,,,10
+259,2026-02-12,13:18:00,Muzon,33,2,14:07:00,,2,THURSDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-97,0.11,Smooth travel,SUM-20260212-01,89,,,8
+637,2026-04-15,11:11:00,Bugtong Payapa,29,14,12:44:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-34,0.93,Smooth travel,SUM-20260415-01,90,,,14
+1621,2026-09-24,15:23:00,Bugtong Payapa,28,13,16:11:00,,4,THURSDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-39,0.72,Routine trip,SUM-20260924-01,90,,,14
+1533,2026-09-11,07:18:00,Cabuyao,55,13,09:32:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-23,0.87,Smooth travel,SUM-20260911-01,90,,,5
+1210,2026-07-20,08:26:00,Batangas,115,13,10:52:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-54,0.87,Routine trip,SUM-20260720-01,90,,,20
+1067,2026-06-26,15:27:00,Plaridel,112,13,17:16:00,,4,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-02,0.87,Clear weather,SUM-20260626-01,90,,,2
+891,2026-05-28,06:08:00,Plaridel,112,13,07:46:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-40,0.87,Clear weather,SUM-20260528-01,90,,,2
+582,2026-04-07,07:15:00,Cabuyao,40,13,08:27:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-08,0.87,On schedule,SUM-20260407-01,90,,,5
+1646,2026-09-29,08:15:00,Los Baños,122,12,09:14:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-25,0.8,Routine trip,SUM-20260929-01,90,,,1
+1499,2026-09-05,10:29:00,Cabuyao,109,12,12:06:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-03,0.8,Clear weather,SUM-20260905-01,90,,,5
+1343,2026-08-11,05:13:00,Batangas,119,12,07:24:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-18,0.8,Smooth travel,SUM-20260811-01,90,,,20
+1308,2026-08-05,10:10:00,Los Baños,128,12,11:08:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-90,0.8,Routine trip,SUM-20260805-01,90,,,1
+1004,2026-06-16,13:16:00,Los Baños,116,12,15:17:00,,2,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-20,0.8,On schedule,SUM-20260616-01,90,,,1
+732,2026-05-01,09:01:00,Los Baños,127,12,10:01:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-44,0.8,On schedule,SUM-20260501-01,90,,,1
+30,2026-01-05,05:18:00,Batangas,27,12,07:02:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-11,0.8,Routine trip,SUM-20260105-01,90,,,20
+1395,2026-08-19,12:24:00,Rosario,110,11,13:59:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-51,0.73,Smooth travel,SUM-20260819-01,90,,,4
+979,2026-06-12,07:14:00,Cabuyao,114,11,09:47:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-16,0.73,Clear weather,SUM-20260612-01,90,,,5
+371,2026-03-03,11:08:00,SM Lipa,55,11,13:34:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-54,0.73,Clear weather,SUM-20260303-01,90,,,12
+1530,2026-09-10,11:23:00,Rosario,117,10,13:51:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-25,0.67,On schedule,SUM-20260910-01,90,,,4
+1519,2026-09-09,14:24:00,Rosario,107,10,16:20:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-57,0.67,Routine trip,SUM-20260909-01,90,,,4
+682,2026-04-23,05:13:00,Cabuyao,116,10,07:27:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-12,0.67,Heavy traffic delayed arrival,SUM-20260423-01,90,,,5
+1637,2026-09-28,15:30:00,SM Lipa,101,9,16:26:00,,3,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-64,0.6,Routine trip,SUM-20260928-01,90,,,12
+1298,2026-08-03,07:14:00,SM Lipa,109,9,09:08:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-07,0.6,Clear weather,SUM-20260803-01,90,,,12
+614,2026-04-11,15:15:00,Tanauan,28,9,17:01:00,,4,SATURDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-44,0.5,On schedule,SUM-20260411-01,90,,,10
+474,2026-03-19,12:15:00,Bugtong Payapa,32,9,14:10:00,,2,THURSDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-78,0.75,Routine trip,SUM-20260319-01,90,,,14
+613,2026-04-11,13:21:00,Bugtong Payapa,37,8,15:20:00,,3,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-07,0.53,Smooth travel,SUM-20260411-01,90,,,14
+603,2026-04-10,15:05:00,SM Lipa,29,8,17:17:00,,4,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-23,0.53,Clear weather,SUM-20260410-01,90,,,12
+393,2026-03-05,13:25:00,Rosario,30,8,15:16:00,,2,THURSDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-66,0.44,Heavy traffic delayed arrival,SUM-20260305-01,90,,,4
+947,2026-06-08,07:21:00,Robinson,120,7,09:35:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-01,0.47,On schedule,SUM-20260608-01,90,,,13
+504,2026-03-25,09:07:00,Robinson,105,7,11:30:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-68,0.47,Heavy traffic delayed arrival,SUM-20260325-01,90,,,13
+363,2026-03-02,14:23:00,Taguig,118,7,15:22:00,,3,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-75,0.47,On schedule,SUM-20260302-01,90,,,21
+27,2026-01-05,15:03:00,Muzon,29,7,17:57:00,,3,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-52,0.47,Heavy traffic delayed arrival,SUM-20260105-01,90,,,8
+1613,2026-09-23,12:28:00,Sto.Tomas,15,6,13:59:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-81,0.4,On schedule,SUM-20260923-01,90,,,18
+1235,2026-07-23,14:16:00,Plaridel,38,6,16:33:00,,2,THURSDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-28,0.5,Routine trip,SUM-20260723-01,90,,,2
+760,2026-05-07,13:07:00,Cabuyao,47,6,15:34:00,,3,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-18,0.4,Heavy traffic delayed arrival,SUM-20260507-01,90,,,5
+546,2026-04-01,09:27:00,Bugtong Payapa,128,5,10:14:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-42,0.33,Heavy traffic delayed arrival,SUM-20260401-01,90,,,14
+618,2026-04-13,06:18:00,Robinson,46,3,07:21:00,,4,MONDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-20,0.17,Heavy traffic delayed arrival,SUM-20260413-01,90,,,13
+1562,2026-09-15,12:17:00,Muzon,34,2,13:06:00,,3,TUESDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-50,0.17,Clear weather,SUM-20260915-01,90,,,8
+615,2026-04-11,14:11:00,TCP,40,2,15:50:00,,4,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-17,0.13,Smooth travel,SUM-20260411-01,90,,,6
+272,2026-02-13,13:05:00,Rosario,34,2,15:51:00,,2,FRIDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-33,0.17,On schedule,SUM-20260213-01,90,,,4
+71,2026-01-12,11:21:00,Los Baños,46,16,12:10:00,,4,MONDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-28,0.89,Heavy traffic delayed arrival,SUM-20260112-01,91,,,1
+794,2026-05-12,09:14:00,Batangas,40,15,10:54:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-51,1.0,Smooth travel,SUM-20260512-01,91,,,20
+276,2026-02-14,05:08:00,Robinson,116,15,07:04:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-97,1.0,Heavy traffic delayed arrival,SUM-20260214-01,91,,,13
+517,2026-03-27,06:07:00,Bugtong Payapa,41,14,07:54:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-76,0.93,Smooth travel,SUM-20260327-01,91,,,14
+1458,2026-08-29,14:00:00,Bugtong Payapa,104,13,16:37:00,,2,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-96,0.87,Routine trip,SUM-20260829-01,91,,,14
+1297,2026-08-03,07:29:00,San Pablo,44,13,08:53:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-70,0.87,On schedule,SUM-20260803-01,91,,,11
+699,2026-04-27,07:25:00,Robinson,36,13,09:09:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-34,0.87,Routine trip,SUM-20260427-01,91,,,13
+1326,2026-08-08,12:02:00,Batangas,15,12,14:24:00,,4,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-62,0.8,Clear weather,SUM-20260808-01,91,,,20
+739,2026-05-02,10:17:00,Plaridel,18,12,11:21:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-61,0.8,On schedule,SUM-20260502-01,91,,,2
+1606,2026-09-22,10:20:00,Cabuyao,103,11,11:07:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-05,0.73,Smooth travel,SUM-20260922-01,91,,,5
+562,2026-04-03,06:06:00,San Pablo,107,11,07:29:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-14,0.73,On schedule,SUM-20260403-01,91,,,11
+382,2026-03-04,07:03:00,Taguig,120,11,08:50:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-37,0.73,Heavy traffic delayed arrival,SUM-20260304-01,91,,,21
+377,2026-03-03,07:22:00,Taguig,101,11,08:51:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-93,0.73,On schedule,SUM-20260303-01,91,,,21
+55,2026-01-09,07:01:00,Los Baños,34,11,09:39:00,,2,FRIDAY,12 Seats - Hyundai Starex,Morning,12,TK-33,0.92,Heavy traffic delayed arrival,SUM-20260109-01,91,,,1
+810,2026-05-14,08:24:00,Bugtong Payapa,38,10,09:12:00,,4,THURSDAY,12 Seats - Hyundai Starex,Morning,12,TK-47,0.83,Routine trip,SUM-20260514-01,91,,,14
+1447,2026-08-28,07:12:00,Cabuyao,48,9,08:22:00,,4,FRIDAY,12 Seats - Hyundai Starex,Morning,12,TK-79,0.75,Clear weather,SUM-20260828-01,91,,,5
+639,2026-04-16,07:09:00,Caloocan,15,9,08:33:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-60,0.6,Clear weather,SUM-20260416-01,91,,,15
+879,2026-05-27,07:13:00,SM Lipa,128,8,09:29:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-70,0.53,Smooth travel,SUM-20260527-01,91,,,12
+788,2026-05-12,10:16:00,Tanauan,128,8,11:31:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-90,0.53,Clear weather,SUM-20260512-01,91,,,10
+161,2026-01-27,12:03:00,Caloocan,16,8,14:48:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-64,0.53,On schedule,SUM-20260127-01,91,,,15
+1624,2026-09-25,06:26:00,Cabuyao,103,6,07:17:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-78,0.4,Routine trip,SUM-20260925-01,91,,,5
+1534,2026-09-11,05:18:00,San Pablo,115,6,06:19:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-35,0.4,Heavy traffic delayed arrival,SUM-20260911-01,91,,,11
+993,2026-06-15,08:15:00,Taguig,124,6,09:19:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-14,0.4,Smooth travel,SUM-20260615-01,91,,,21
+745,2026-05-04,11:02:00,Robinson,30,6,13:55:00,,4,MONDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-75,0.33,Clear weather,SUM-20260504-01,91,,,13
+638,2026-04-15,14:29:00,San Pablo,114,6,15:27:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-39,0.4,Routine trip,SUM-20260415-01,91,,,11
+289,2026-02-17,08:10:00,Plaridel,15,6,09:42:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-03,0.4,Heavy traffic delayed arrival,SUM-20260217-01,91,,,2
+1610,2026-09-23,05:00:00,Tanauan,117,5,06:13:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-34,0.33,Smooth travel,SUM-20260923-01,91,,,10
+1396,2026-08-19,05:21:00,Muzon,36,3,06:43:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-50,0.2,Routine trip,SUM-20260819-01,91,,,8
+851,2026-05-22,09:13:00,San Pablo,44,3,11:53:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-44,0.2,Routine trip,SUM-20260522-01,91,,,11
+1005,2026-06-16,11:00:00,San Pablo,31,2,12:12:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-14,0.13,Smooth travel,SUM-20260616-01,91,,,11
+721,2026-04-30,11:03:00,Robinson,126,2,13:50:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-94,0.13,Heavy traffic delayed arrival,SUM-20260430-01,91,,,13
+1129,2026-07-07,11:20:00,Muzon,30,18,12:16:00,,4,TUESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-89,1.0,Smooth travel,SUM-20260707-01,92,,,8
+611,2026-04-11,15:16:00,Tanauan,33,16,16:37:00,,2,SATURDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-20,0.89,Clear weather,SUM-20260411-01,92,,,10
+1434,2026-08-26,11:09:00,Sto.Tomas,122,15,12:51:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-41,1.0,Smooth travel,SUM-20260826-01,92,,,18
+1044,2026-06-23,15:12:00,Los Baños,118,15,16:33:00,,4,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-56,1.0,On schedule,SUM-20260623-01,92,,,1
+914,2026-06-02,05:14:00,Robinson,20,15,06:58:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-71,1.0,Routine trip,SUM-20260602-01,92,,,13
+702,2026-04-27,10:18:00,Caloocan,120,15,12:10:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-82,1.0,Smooth travel,SUM-20260427-01,92,,,15
+643,2026-04-16,05:09:00,SM Lipa,111,15,06:58:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-78,1.0,On schedule,SUM-20260416-01,92,,,12
+188,2026-01-31,06:18:00,Batangas,55,15,07:10:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-44,1.0,On schedule,SUM-20260131-01,92,,,20
+1327,2026-08-08,06:15:00,Bugtong Payapa,47,14,07:48:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-53,0.93,Routine trip,SUM-20260808-01,92,,,14
+324,2026-02-23,09:26:00,Caloocan,123,14,10:43:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-45,0.93,Clear weather,SUM-20260223-01,92,,,15
+217,2026-02-05,10:17:00,San Pablo,108,14,11:49:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-46,0.93,Heavy traffic delayed arrival,SUM-20260205-01,92,,,11
+1271,2026-07-30,15:06:00,Taguig,112,13,17:13:00,,4,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-54,0.87,Clear weather,SUM-20260730-01,92,,,21
+1209,2026-07-18,09:19:00,Los Baños,55,13,10:49:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-71,0.87,Routine trip,SUM-20260718-01,92,,,1
+1058,2026-06-24,09:17:00,Cabuyao,119,13,11:19:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-78,0.87,On schedule,SUM-20260624-01,92,,,5
+1017,2026-06-18,13:13:00,Los Baños,121,13,15:44:00,,2,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-73,0.87,On schedule,SUM-20260618-01,92,,,1
+813,2026-05-15,10:23:00,Rosario,114,13,11:33:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-50,0.87,Heavy traffic delayed arrival,SUM-20260515-01,92,,,4
+395,2026-03-06,05:09:00,Plaridel,31,13,07:35:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-25,0.87,On schedule,SUM-20260306-01,92,,,2
+374,2026-03-03,08:02:00,Rosario,129,13,09:27:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-49,0.87,Routine trip,SUM-20260303-01,92,,,4
+230,2026-02-06,09:10:00,SM Lipa,126,13,11:00:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-30,0.87,Routine trip,SUM-20260206-01,92,,,12
+44,2026-01-07,08:26:00,TCP,101,13,10:22:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-17,0.87,Heavy traffic delayed arrival,SUM-20260107-01,92,,,6
+591,2026-04-08,15:12:00,Batangas,106,12,16:23:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-23,0.8,Smooth travel,SUM-20260408-01,92,,,20
+84,2026-01-14,15:17:00,Batangas,125,12,16:10:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-35,0.8,Smooth travel,SUM-20260114-01,92,,,20
+1211,2026-07-20,14:28:00,Caloocan,107,11,16:55:00,,3,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-99,0.73,On schedule,SUM-20260720-01,92,,,15
+991,2026-06-15,06:25:00,Plaridel,101,11,07:57:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-72,0.73,Routine trip,SUM-20260615-01,92,,,2
+712,2026-04-28,14:12:00,Rosario,20,11,15:04:00,,2,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-31,0.73,On schedule,SUM-20260428-01,92,,,4
+1504,2026-09-05,10:09:00,Plaridel,17,10,11:39:00,,2,SATURDAY,12 Seats - Hyundai Starex,Morning,12,TK-32,0.83,Smooth travel,SUM-20260905-01,92,,,2
+200,2026-02-02,08:21:00,Sto.Tomas,28,10,10:22:00,,4,MONDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-05,0.56,Clear weather,SUM-20260202-01,92,,,18
+1505,2026-09-05,08:08:00,Bugtong Payapa,113,9,09:58:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-79,0.6,Routine trip,SUM-20260905-01,92,,,14
+328,2026-02-23,06:25:00,Robinson,101,9,08:27:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-55,0.6,Smooth travel,SUM-20260223-01,92,,,13
+1076,2026-06-27,05:09:00,Rosario,127,8,07:21:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-49,0.53,Smooth travel,SUM-20260627-01,92,,,4
+516,2026-03-27,05:23:00,Taguig,30,8,06:00:00,,3,FRIDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-67,0.44,Smooth travel,SUM-20260327-01,92,,,21
+1346,2026-08-11,14:13:00,TCP,22,7,16:37:00,,4,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-72,0.47,Smooth travel,SUM-20260811-01,92,,,6
+780,2026-05-09,06:28:00,Sto.Tomas,33,7,08:29:00,,4,SATURDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-28,0.39,Routine trip,SUM-20260509-01,92,,,18
+333,2026-02-24,14:15:00,SM Lipa,21,7,15:52:00,,2,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-98,0.47,Clear weather,SUM-20260224-01,92,,,12
+307,2026-02-20,12:22:00,Rosario,37,7,13:42:00,,3,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-90,0.47,Clear weather,SUM-20260220-01,92,,,4
+258,2026-02-12,11:17:00,Muzon,126,7,12:10:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-72,0.47,Routine trip,SUM-20260212-01,92,,,8
+1323,2026-08-07,06:10:00,Robinson,39,6,07:29:00,,2,FRIDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-20,0.33,On schedule,SUM-20260807-01,92,,,13
+1231,2026-07-23,09:22:00,Bugtong Payapa,111,6,11:27:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-11,0.4,Smooth travel,SUM-20260723-01,92,,,14
+1001,2026-06-16,09:25:00,Sto.Tomas,111,6,11:31:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-50,0.4,Clear weather,SUM-20260616-01,92,,,18
+292,2026-02-17,07:11:00,Robinson,120,6,09:08:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-50,0.4,Clear weather,SUM-20260217-01,92,,,13
+168,2026-01-28,09:07:00,TCP,118,6,10:54:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-42,0.4,Routine trip,SUM-20260128-01,92,,,6
+1627,2026-09-25,09:27:00,San Pablo,112,5,10:12:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-08,0.33,Smooth travel,SUM-20260925-01,92,,,11
+1254,2026-07-27,06:10:00,Sto.Tomas,110,5,07:42:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-99,0.33,Heavy traffic delayed arrival,SUM-20260727-01,92,,,18
+839,2026-05-20,13:00:00,Rosario,47,5,15:11:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-37,0.33,Smooth travel,SUM-20260520-01,92,,,4
+824,2026-05-16,12:10:00,Sto.Tomas,17,5,13:31:00,,2,SATURDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-70,0.42,On schedule,SUM-20260516-01,92,,,18
+625,2026-04-14,05:13:00,Cabuyao,21,5,06:50:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-58,0.33,On schedule,SUM-20260414-01,92,,,5
+578,2026-04-06,05:01:00,Robinson,120,5,06:59:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-81,0.33,Heavy traffic delayed arrival,SUM-20260406-01,92,,,13
+535,2026-03-30,14:15:00,TCP,112,5,15:50:00,,3,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-80,0.33,Clear weather,SUM-20260330-01,92,,,6
+481,2026-03-20,07:23:00,TCP,114,5,08:18:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-05,0.33,Routine trip,SUM-20260320-01,92,,,6
+234,2026-02-07,14:20:00,Tanauan,115,5,16:36:00,,2,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-46,0.33,Clear weather,SUM-20260207-01,92,,,10
+216,2026-02-04,12:25:00,Cabuyao,39,5,13:44:00,,2,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-31,0.28,Heavy traffic delayed arrival,SUM-20260204-01,92,,,5
+1559,2026-09-15,06:13:00,Caloocan,101,4,07:12:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-85,0.27,Clear weather,SUM-20260915-01,92,,,15
+1541,2026-09-12,15:25:00,Bugtong Payapa,124,3,16:24:00,,3,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-90,0.2,Clear weather,SUM-20260912-01,92,,,14
+545,2026-03-31,08:07:00,Tanauan,55,3,09:46:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-27,0.2,On schedule,SUM-20260331-01,92,,,10
+1331,2026-08-08,08:05:00,San Pablo,125,2,10:51:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-63,0.13,Smooth travel,SUM-20260808-01,92,,,11
+1116,2026-07-04,13:22:00,Bugtong Payapa,48,2,15:00:00,,3,SATURDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-98,0.17,Heavy traffic delayed arrival,SUM-20260704-01,92,,,14
+942,2026-06-06,14:00:00,Rosario,103,2,15:47:00,,4,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-71,0.13,Heavy traffic delayed arrival,SUM-20260606-01,92,,,4
+478,2026-03-20,13:25:00,Robinson,126,2,14:05:00,,4,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-07,0.13,On schedule,SUM-20260320-01,92,,,13
+226,2026-02-06,15:15:00,Cabuyao,123,2,17:22:00,,4,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-98,0.13,Clear weather,SUM-20260206-01,92,,,5
+1662,2026-09-27,09:00:00,Tanuan,18,18,10:00:00,c1ae8857-78ea-4248-bc8b-eb6c2eb8dfac,3,SUNDAY,Van,Evening,18,TKT-1015,1.0,Minor delays due to roadwork.,SUM-20260925-062740,93,,,23
+469,2026-03-18,11:18:00,Rosario,35,18,13:14:00,,3,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-93,1.0,Routine trip,SUM-20260318-01,93,,,4
+1479,2026-09-02,09:21:00,Los Baños,55,15,11:59:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-24,1.0,Clear weather,SUM-20260902-01,93,,,1
+740,2026-05-02,06:15:00,SM Lipa,112,15,07:09:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-08,1.0,Heavy traffic delayed arrival,SUM-20260502-01,93,,,12
+274,2026-02-14,15:18:00,Los Baños,119,15,17:30:00,,4,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-14,1.0,On schedule,SUM-20260214-01,93,,,1
+193,2026-01-31,14:01:00,Batangas,100,15,15:53:00,,3,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-20,1.0,Smooth travel,SUM-20260131-01,93,,,20
+1524,2026-09-09,15:13:00,Plaridel,35,14,16:19:00,,2,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-78,0.78,Smooth travel,SUM-20260909-01,93,,,2
+1184,2026-07-15,09:29:00,Cabuyao,33,14,10:19:00,,2,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-80,0.78,On schedule,SUM-20260715-01,93,,,5
+738,2026-05-02,10:04:00,Batangas,36,14,12:30:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-47,0.93,Clear weather,SUM-20260502-01,93,,,20
+378,2026-03-03,06:22:00,Batangas,43,14,07:23:00,,3,TUESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-78,0.78,Routine trip,SUM-20260303-01,93,,,20
+1336,2026-08-10,08:10:00,Batangas,115,13,10:39:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-14,0.87,Smooth travel,SUM-20260810-01,93,,,20
+1540,2026-09-11,12:19:00,Batangas,111,12,14:53:00,,2,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-31,0.8,Clear weather,SUM-20260911-01,93,,,20
+915,2026-06-02,15:10:00,Batangas,15,12,17:04:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-76,0.8,Clear weather,SUM-20260602-01,93,,,20
+1551,2026-09-14,07:15:00,Taguig,105,11,08:42:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-43,0.73,Heavy traffic delayed arrival,SUM-20260914-01,93,,,21
+1225,2026-07-22,13:18:00,TCP,107,11,15:50:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-71,0.73,Smooth travel,SUM-20260722-01,93,,,6
+426,2026-03-11,06:04:00,Sto.Tomas,116,11,08:52:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-10,0.73,Clear weather,SUM-20260311-01,93,,,18
+410,2026-03-09,15:07:00,Rosario,105,11,16:14:00,,3,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-42,0.73,Clear weather,SUM-20260309-01,93,,,4
+1287,2026-08-01,05:23:00,Robinson,116,10,06:55:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-71,0.67,On schedule,SUM-20260801-01,93,,,13
+1222,2026-07-21,09:18:00,San Pablo,125,10,11:05:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-63,0.67,Smooth travel,SUM-20260721-01,93,,,11
+1122,2026-07-06,06:01:00,TCP,111,10,08:16:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-60,0.67,Routine trip,SUM-20260706-01,93,,,6
+431,2026-03-12,06:18:00,Sto.Tomas,36,10,07:44:00,,3,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-14,0.67,Routine trip,SUM-20260312-01,93,,,18
+261,2026-02-12,11:08:00,Robinson,17,10,12:29:00,,4,THURSDAY,12 Seats - Hyundai Starex,Morning,12,TK-16,0.83,Clear weather,SUM-20260212-01,93,,,13
+34,2026-01-06,13:27:00,Caloocan,17,10,15:37:00,,2,TUESDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-42,0.83,On schedule,SUM-20260106-01,93,,,15
+1464,2026-08-31,15:22:00,SM Lipa,40,9,16:21:00,,2,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-74,0.6,Heavy traffic delayed arrival,SUM-20260831-01,93,,,12
+1414,2026-08-22,08:25:00,Cabuyao,42,8,10:19:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-31,0.53,Heavy traffic delayed arrival,SUM-20260822-01,93,,,5
+306,2026-02-19,11:18:00,Muzon,108,8,12:55:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-27,0.53,Heavy traffic delayed arrival,SUM-20260219-01,93,,,8
+22,2026-01-03,06:09:00,Cabuyao,33,7,08:02:00,,4,SATURDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-34,0.39,On schedule,SUM-20260103-01,93,,,5
+1291,2026-08-01,09:28:00,Robinson,125,6,10:34:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-92,0.4,Smooth travel,SUM-20260801-01,93,,,13
+1206,2026-07-18,10:29:00,Rosario,113,6,12:18:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-72,0.4,Clear weather,SUM-20260718-01,93,,,4
+705,2026-04-27,07:07:00,Plaridel,17,6,09:03:00,,4,MONDAY,12 Seats - Hyundai Starex,Morning,12,TK-90,0.5,Smooth travel,SUM-20260427-01,93,,,2
+518,2026-03-27,12:18:00,Bugtong Payapa,106,6,14:18:00,,3,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-11,0.4,On schedule,SUM-20260327-01,93,,,14
+1651,2026-09-30,09:18:00,Rosario,116,5,11:26:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-28,0.33,Smooth travel,SUM-20260930-01,93,,,4
+1645,2026-09-29,07:20:00,Muzon,107,5,08:55:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-13,0.33,Routine trip,SUM-20260929-01,93,,,8
+446,2026-03-14,15:24:00,San Pablo,22,5,16:57:00,,4,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-41,0.33,Heavy traffic delayed arrival,SUM-20260314-01,93,,,11
+424,2026-03-11,14:03:00,Sto.Tomas,31,5,15:55:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-14,0.33,Clear weather,SUM-20260311-01,93,,,18
+123,2026-01-21,05:26:00,TCP,17,5,06:20:00,,2,WEDNESDAY,12 Seats - Hyundai Starex,Morning,12,TK-61,0.42,Smooth travel,SUM-20260121-01,93,,,6
+116,2026-01-20,05:12:00,SM Lipa,110,3,07:23:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-99,0.2,Clear weather,SUM-20260120-01,93,,,12
+1218,2026-07-21,06:26:00,Robinson,46,2,07:53:00,,3,TUESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-56,0.11,On schedule,SUM-20260721-01,93,,,13
+971,2026-06-11,13:09:00,Tanauan,40,2,15:10:00,,2,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-25,0.13,Heavy traffic delayed arrival,SUM-20260611-01,93,,,10
+944,2026-06-06,08:16:00,Muzon,48,2,10:03:00,,3,SATURDAY,12 Seats - Hyundai Starex,Morning,12,TK-86,0.17,Clear weather,SUM-20260606-01,93,,,8
+783,2026-05-11,08:14:00,SM Lipa,45,2,10:01:00,,2,MONDAY,12 Seats - Hyundai Starex,Morning,12,TK-59,0.17,Heavy traffic delayed arrival,SUM-20260511-01,93,,,12
+82,2026-01-14,10:06:00,Tanauan,100,2,11:02:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-80,0.13,Heavy traffic delayed arrival,SUM-20260114-01,93,,,10
+1302,2026-08-04,07:12:00,Rosario,22,15,08:47:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-02,1.0,Routine trip,SUM-20260804-01,94,,,4
+1262,2026-07-28,10:25:00,Robinson,120,15,11:18:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-38,1.0,Heavy traffic delayed arrival,SUM-20260728-01,94,,,13
+1097,2026-07-01,10:02:00,Los Baños,129,15,11:07:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-48,1.0,Clear weather,SUM-20260701-01,94,,,1
+1410,2026-08-21,07:26:00,Batangas,107,14,08:57:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-89,0.93,On schedule,SUM-20260821-01,94,,,20
+1281,2026-07-31,07:07:00,Muzon,128,14,08:26:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-08,0.93,On schedule,SUM-20260731-01,94,,,8
+1084,2026-06-29,10:02:00,Caloocan,109,14,11:23:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-26,0.93,Heavy traffic delayed arrival,SUM-20260629-01,94,,,15
+995,2026-06-15,06:26:00,Robinson,47,14,07:31:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-27,0.93,Routine trip,SUM-20260615-01,94,,,13
+881,2026-05-27,09:16:00,Batangas,125,14,10:28:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-33,0.93,On schedule,SUM-20260527-01,94,,,20
+620,2026-04-13,06:05:00,SM Lipa,110,14,08:29:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-40,0.93,Clear weather,SUM-20260413-01,94,,,12
+241,2026-02-09,06:30:00,Caloocan,15,14,07:40:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-41,0.93,Heavy traffic delayed arrival,SUM-20260209-01,94,,,15
+149,2026-01-24,07:27:00,Batangas,28,14,09:18:00,,3,SATURDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-86,0.78,Clear weather,SUM-20260124-01,94,,,20
+617,2026-04-11,11:19:00,TCP,20,13,12:58:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-10,0.87,On schedule,SUM-20260411-01,94,,,6
+392,2026-03-05,06:18:00,Muzon,128,13,08:26:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-70,0.87,Smooth travel,SUM-20260305-01,94,,,8
+1115,2026-07-04,15:14:00,Los Baños,16,12,16:43:00,,2,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-88,0.8,On schedule,SUM-20260704-01,94,,,1
+1100,2026-07-01,06:04:00,Sto.Tomas,34,12,08:59:00,,3,WEDNESDAY,12 Seats - Hyundai Starex,Morning,12,TK-38,1.0,Heavy traffic delayed arrival,SUM-20260701-01,94,,,18
+476,2026-03-19,09:26:00,Los Baños,48,12,11:11:00,,4,THURSDAY,12 Seats - Hyundai Starex,Morning,12,TK-93,1.0,Routine trip,SUM-20260319-01,94,,,1
+352,2026-02-27,07:08:00,Taguig,18,12,09:05:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-72,0.8,On schedule,SUM-20260227-01,94,,,21
+926,2026-06-04,10:08:00,Muzon,42,11,12:17:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-85,0.73,Routine trip,SUM-20260604-01,94,,,8
+894,2026-05-29,08:22:00,Plaridel,30,11,09:34:00,,4,FRIDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-81,0.61,Routine trip,SUM-20260529-01,94,,,2
+843,2026-05-20,07:08:00,Caloocan,117,11,09:11:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-51,0.73,On schedule,SUM-20260520-01,94,,,15
+842,2026-05-20,12:06:00,TCP,108,11,13:43:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-49,0.73,Clear weather,SUM-20260520-01,94,,,6
+1626,2026-09-25,07:30:00,Rosario,47,8,08:57:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-06,0.53,Routine trip,SUM-20260925-01,94,,,4
+1374,2026-08-17,05:25:00,TCP,20,8,07:41:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-34,0.53,Routine trip,SUM-20260817-01,94,,,6
+1189,2026-07-16,05:23:00,Tanauan,106,8,07:00:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-87,0.53,Heavy traffic delayed arrival,SUM-20260716-01,94,,,10
+941,2026-06-06,14:26:00,San Pablo,31,8,15:22:00,,3,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-93,0.53,Routine trip,SUM-20260606-01,94,,,11
+820,2026-05-16,12:17:00,Robinson,124,8,13:58:00,,2,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-22,0.53,On schedule,SUM-20260516-01,94,,,13
+777,2026-05-09,11:14:00,Sto.Tomas,15,8,13:16:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-27,0.53,Clear weather,SUM-20260509-01,94,,,18
+744,2026-05-04,11:17:00,Robinson,31,8,12:52:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-28,0.53,Smooth travel,SUM-20260504-01,94,,,13
+93,2026-01-15,15:01:00,Bugtong Payapa,127,8,16:43:00,,4,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-37,0.53,Heavy traffic delayed arrival,SUM-20260115-01,94,,,14
+1350,2026-08-12,08:24:00,Plaridel,113,7,10:16:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-13,0.47,Clear weather,SUM-20260812-01,94,,,2
+1124,2026-07-06,11:23:00,Muzon,29,7,13:21:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-65,0.47,On schedule,SUM-20260706-01,94,,,8
+1070,2026-06-26,15:22:00,Rosario,46,7,16:47:00,,2,FRIDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-30,0.39,Clear weather,SUM-20260626-01,94,,,4
+900,2026-05-30,13:30:00,Plaridel,125,7,15:01:00,,4,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-13,0.47,Heavy traffic delayed arrival,SUM-20260530-01,94,,,2
+661,2026-04-20,07:01:00,Tanauan,33,7,09:32:00,,2,MONDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-55,0.39,On schedule,SUM-20260420-01,94,,,10
+1483,2026-09-02,15:00:00,Caloocan,53,6,16:44:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-76,0.4,Heavy traffic delayed arrival,SUM-20260902-01,94,,,15
+552,2026-04-01,11:06:00,Rosario,47,5,13:07:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-45,0.33,Smooth travel,SUM-20260401-01,94,,,4
+1046,2026-06-23,12:08:00,SM Lipa,33,4,14:58:00,,3,TUESDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-29,0.22,Heavy traffic delayed arrival,SUM-20260623-01,94,,,12
+958,2026-06-09,14:02:00,Sto.Tomas,105,4,15:38:00,,2,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-35,0.27,Smooth travel,SUM-20260609-01,94,,,18
+1144,2026-07-09,09:14:00,Bugtong Payapa,19,3,11:30:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-84,0.2,Clear weather,SUM-20260709-01,94,,,14
+1134,2026-07-07,13:24:00,Taguig,116,3,14:20:00,,2,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-17,0.2,Heavy traffic delayed arrival,SUM-20260707-01,94,,,21
+646,2026-04-17,11:22:00,Tanauan,27,2,13:43:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-97,0.13,Smooth travel,SUM-20260417-01,94,,,10
+1485,2026-09-03,09:30:00,Los Baños,47,15,11:14:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-15,1.0,On schedule,SUM-20260903-01,95,,,1
+47,2026-01-08,06:15:00,Taguig,106,15,07:33:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-65,1.0,Routine trip,SUM-20260108-01,95,,,21
+1140,2026-07-08,06:16:00,Los Baños,117,14,08:27:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-34,0.93,Routine trip,SUM-20260708-01,95,,,1
+965,2026-06-10,15:19:00,Tanauan,43,14,16:09:00,,2,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-40,0.78,Clear weather,SUM-20260610-01,95,,,10
+538,2026-03-31,07:12:00,Los Baños,105,14,09:00:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-75,0.93,Smooth travel,SUM-20260331-01,95,,,1
+257,2026-02-11,09:13:00,Batangas,118,14,11:50:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-62,0.93,Heavy traffic delayed arrival,SUM-20260211-01,95,,,20
+12,2026-01-02,09:00:00,Batangas,128,14,11:22:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-62,0.93,Clear weather,SUM-20260102-01,95,,,20
+652,2026-04-18,11:30:00,Batangas,118,13,12:13:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-60,0.87,Routine trip,SUM-20260418-01,95,,,20
+1574,2026-09-17,14:23:00,Los Baños,22,12,15:07:00,,4,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-32,0.8,Heavy traffic delayed arrival,SUM-20260917-01,95,,,1
+1482,2026-09-02,05:01:00,Batangas,36,12,07:04:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-32,0.8,On schedule,SUM-20260902-01,95,,,20
+640,2026-04-16,09:13:00,SM Lipa,35,12,11:09:00,,4,THURSDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-85,0.67,Routine trip,SUM-20260416-01,95,,,12
+54,2026-01-09,14:08:00,Caloocan,127,12,16:52:00,,3,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-45,0.8,Clear weather,SUM-20260109-01,95,,,15
+556,2026-04-02,14:12:00,Taguig,121,11,16:14:00,,4,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-18,0.73,Routine trip,SUM-20260402-01,95,,,21
+444,2026-03-14,06:03:00,Caloocan,32,11,07:45:00,,3,SATURDAY,12 Seats - Hyundai Starex,Morning,12,TK-94,0.92,On schedule,SUM-20260314-01,95,,,15
+275,2026-02-14,12:16:00,Sto.Tomas,19,11,14:39:00,,3,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-34,0.73,On schedule,SUM-20260214-01,95,,,18
+1344,2026-08-11,13:06:00,Rosario,104,10,15:37:00,,4,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-29,0.67,Smooth travel,SUM-20260811-01,95,,,4
+633,2026-04-15,11:02:00,San Pablo,36,10,13:49:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-77,0.67,On schedule,SUM-20260415-01,95,,,11
+63,2026-01-10,12:10:00,Tanauan,47,10,13:58:00,,3,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-66,0.67,Heavy traffic delayed arrival,SUM-20260110-01,95,,,10
+1588,2026-09-19,10:25:00,Muzon,121,9,11:33:00,,3,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-79,0.6,Heavy traffic delayed arrival,SUM-20260919-01,95,,,8
+1515,2026-09-08,13:26:00,Taguig,47,9,14:45:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-37,0.6,Routine trip,SUM-20260908-01,95,,,21
+917,2026-06-02,07:04:00,Sto.Tomas,42,9,09:58:00,,2,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-01,0.6,Heavy traffic delayed arrival,SUM-20260602-01,95,,,18
+13,2026-01-02,09:05:00,Sto.Tomas,18,9,10:16:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-19,0.6,Routine trip,SUM-20260102-01,95,,,18
+1445,2026-08-27,07:25:00,Sto.Tomas,38,8,09:28:00,,4,THURSDAY,12 Seats - Hyundai Starex,Morning,12,TK-68,0.67,Heavy traffic delayed arrival,SUM-20260827-01,95,,,18
+1238,2026-07-24,06:05:00,Caloocan,55,8,08:59:00,,2,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-99,0.53,On schedule,SUM-20260724-01,95,,,15
+313,2026-02-20,07:27:00,Robinson,106,8,09:49:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-06,0.53,Heavy traffic delayed arrival,SUM-20260220-01,95,,,13
+1415,2026-08-22,13:09:00,Plaridel,113,7,14:50:00,,3,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-03,0.47,Clear weather,SUM-20260822-01,95,,,2
+880,2026-05-27,08:16:00,Caloocan,28,7,10:02:00,,2,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-81,0.39,Heavy traffic delayed arrival,SUM-20260527-01,95,,,15
+43,2026-01-07,11:21:00,Robinson,100,7,12:56:00,,2,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-83,0.47,Smooth travel,SUM-20260107-01,95,,,13
+1591,2026-09-19,06:30:00,San Pablo,128,6,07:54:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-34,0.4,On schedule,SUM-20260919-01,95,,,11
+1307,2026-08-05,10:25:00,Taguig,107,6,12:09:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-76,0.4,On schedule,SUM-20260805-01,95,,,21
+254,2026-02-11,07:08:00,SM Lipa,120,6,09:18:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-04,0.4,Routine trip,SUM-20260211-01,95,,,12
+49,2026-01-08,13:19:00,Plaridel,119,6,15:29:00,,4,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-80,0.4,Heavy traffic delayed arrival,SUM-20260108-01,95,,,2
+1150,2026-07-09,12:12:00,Bugtong Payapa,20,4,13:35:00,,2,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-62,0.27,Heavy traffic delayed arrival,SUM-20260709-01,95,,,14
+975,2026-06-11,10:25:00,Bugtong Payapa,101,4,11:40:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-39,0.27,Routine trip,SUM-20260611-01,95,,,14
+925,2026-06-03,15:05:00,Bugtong Payapa,119,4,16:44:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-41,0.27,Clear weather,SUM-20260603-01,95,,,14
+473,2026-03-19,05:15:00,Bugtong Payapa,36,4,06:35:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-11,0.27,Routine trip,SUM-20260319-01,95,,,14
+1520,2026-09-09,06:19:00,Taguig,114,3,07:31:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-28,0.2,Heavy traffic delayed arrival,SUM-20260909-01,95,,,21
+1507,2026-09-07,15:17:00,Muzon,42,3,17:41:00,,4,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-47,0.2,Routine trip,SUM-20260907-01,95,,,8
+1242,2026-07-24,12:24:00,SM Lipa,112,3,13:38:00,,2,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-66,0.2,Routine trip,SUM-20260724-01,95,,,12
+1113,2026-07-03,09:17:00,Sto.Tomas,27,3,11:52:00,,3,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-58,0.2,Routine trip,SUM-20260703-01,95,,,18
+387,2026-03-05,15:22:00,Cabuyao,123,3,17:55:00,,4,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-31,0.2,On schedule,SUM-20260305-01,95,,,5
+334,2026-02-24,14:02:00,Robinson,115,3,15:33:00,,2,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-88,0.2,Heavy traffic delayed arrival,SUM-20260224-01,95,,,13
+1258,2026-07-28,11:07:00,Plaridel,118,2,13:44:00,,4,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-53,0.13,On schedule,SUM-20260728-01,95,,,2
+1120,2026-07-04,15:26:00,Cabuyao,21,2,17:15:00,,2,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-03,0.13,Clear weather,SUM-20260704-01,95,,,5
+889,2026-05-28,14:12:00,Cabuyao,47,2,15:07:00,,3,THURSDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-29,0.13,Clear weather,SUM-20260528-01,95,,,5
+957,2026-06-09,09:21:00,Taguig,39,16,10:49:00,,3,TUESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-29,0.89,Clear weather,SUM-20260609-01,96,,,21
+856,2026-05-22,09:21:00,Caloocan,119,15,10:54:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-18,1.0,Routine trip,SUM-20260522-01,96,,,15
+1266,2026-07-29,06:10:00,Batangas,109,14,08:02:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-67,0.93,Heavy traffic delayed arrival,SUM-20260729-01,96,,,20
+1148,2026-07-09,05:24:00,Bugtong Payapa,127,14,06:04:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-55,0.93,On schedule,SUM-20260709-01,96,,,14
+866,2026-05-25,08:15:00,Batangas,47,14,09:08:00,,3,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-04,0.93,Routine trip,SUM-20260525-01,96,,,20
+1516,2026-09-08,13:27:00,Batangas,129,13,15:44:00,,2,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-42,0.87,On schedule,SUM-20260908-01,96,,,20
+980,2026-06-12,15:24:00,Caloocan,21,13,16:43:00,,2,FRIDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-15,0.87,Clear weather,SUM-20260612-01,96,,,15
+956,2026-06-09,12:01:00,Bugtong Payapa,121,13,14:54:00,,4,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-17,0.87,Routine trip,SUM-20260609-01,96,,,14
+873,2026-05-26,13:30:00,Plaridel,19,13,15:24:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-23,0.87,Smooth travel,SUM-20260526-01,96,,,2
+694,2026-04-25,15:22:00,Los Baños,128,13,17:40:00,,4,SATURDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-90,0.87,Smooth travel,SUM-20260425-01,96,,,1
+608,2026-04-10,06:00:00,Los Baños,31,13,07:15:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-93,0.87,Heavy traffic delayed arrival,SUM-20260410-01,96,,,1
+170,2026-01-28,10:13:00,Los Baños,117,13,11:41:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-71,0.87,Heavy traffic delayed arrival,SUM-20260128-01,96,,,1
+126,2026-01-21,10:18:00,Los Baños,103,13,11:12:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-67,0.87,Smooth travel,SUM-20260121-01,96,,,1
+825,2026-05-16,10:06:00,Taguig,22,12,12:25:00,,2,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-82,0.8,Smooth travel,SUM-20260516-01,96,,,21
+239,2026-02-09,05:24:00,Sto.Tomas,122,12,06:48:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-69,0.8,Smooth travel,SUM-20260209-01,96,,,18
+860,2026-05-23,13:07:00,Cabuyao,32,11,14:57:00,,2,SATURDAY,12 Seats - Hyundai Starex,Afternoon,12,TK-35,0.92,Routine trip,SUM-20260523-01,96,,,5
+1338,2026-08-10,10:21:00,SM Lipa,121,10,11:48:00,,4,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-74,0.67,Routine trip,SUM-20260810-01,96,,,12
+1062,2026-06-25,08:00:00,Muzon,102,10,09:12:00,,3,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-32,0.67,Smooth travel,SUM-20260625-01,96,,,8
+850,2026-05-21,06:15:00,Caloocan,104,10,07:32:00,,3,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-17,0.67,Clear weather,SUM-20260521-01,96,,,15
+561,2026-04-02,05:02:00,Robinson,53,10,06:35:00,,2,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-87,0.67,Routine trip,SUM-20260402-01,96,,,13
+119,2026-01-20,13:17:00,Taguig,15,10,15:44:00,,2,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-64,0.67,Smooth travel,SUM-20260120-01,96,,,21
+1386,2026-08-18,08:11:00,Robinson,41,9,10:27:00,,3,TUESDAY,15 Seats - Nissan Urvan,Morning,15,TK-93,0.6,Routine trip,SUM-20260818-01,96,,,13
+806,2026-05-14,10:12:00,SM Lipa,55,8,12:48:00,,4,THURSDAY,15 Seats - Nissan Urvan,Morning,15,TK-50,0.53,On schedule,SUM-20260514-01,96,,,12
+183,2026-01-30,11:17:00,Rosario,30,8,12:58:00,,4,FRIDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-60,0.44,Heavy traffic delayed arrival,SUM-20260130-01,96,,,4
+1455,2026-08-29,14:03:00,Cabuyao,43,7,15:02:00,,2,SATURDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-88,0.39,Smooth travel,SUM-20260829-01,96,,,5
+66,2026-01-10,09:05:00,Sto.Tomas,38,7,11:14:00,,4,SATURDAY,12 Seats - Hyundai Starex,Morning,12,TK-51,0.58,Smooth travel,SUM-20260110-01,96,,,18
+1293,2026-08-03,09:20:00,Sto.Tomas,106,6,11:50:00,,2,MONDAY,15 Seats - Nissan Urvan,Morning,15,TK-58,0.4,Clear weather,SUM-20260803-01,96,,,18
+594,2026-04-08,11:18:00,Robinson,22,6,12:14:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-46,0.4,Smooth travel,SUM-20260408-01,96,,,13
+1497,2026-09-04,07:16:00,Tanauan,38,5,09:19:00,,4,FRIDAY,12 Seats - Hyundai Starex,Morning,12,TK-53,0.42,Clear weather,SUM-20260904-01,96,,,10
+951,2026-06-08,14:26:00,Muzon,19,5,15:01:00,,4,MONDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-91,0.33,On schedule,SUM-20260608-01,96,,,8
+976,2026-06-12,09:06:00,Bugtong Payapa,124,4,10:25:00,,4,FRIDAY,15 Seats - Nissan Urvan,Morning,15,TK-87,0.27,On schedule,SUM-20260612-01,96,,,14
+884,2026-05-27,08:13:00,Caloocan,46,4,09:47:00,,4,WEDNESDAY,18 Seats - Toyota Hiace Commuter,Morning,18,TK-11,0.22,Routine trip,SUM-20260527-01,96,,,15
+291,2026-02-17,13:30:00,Cabuyao,123,4,14:00:00,,3,TUESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-99,0.27,Smooth travel,SUM-20260217-01,96,,,5
+1142,2026-07-08,14:10:00,Muzon,104,3,16:13:00,,3,WEDNESDAY,15 Seats - Nissan Urvan,Afternoon,15,TK-37,0.2,Clear weather,SUM-20260708-01,96,,,8
+1139,2026-07-08,07:14:00,Caloocan,47,2,09:08:00,,4,WEDNESDAY,15 Seats - Nissan Urvan,Morning,15,TK-87,0.13,Clear weather,SUM-20260708-01,96,,,15
+1002,2026-06-16,15:06:00,TCP,43,2,16:58:00,,4,TUESDAY,18 Seats - Toyota Hiace Commuter,Afternoon,18,TK-68,0.11,Smooth travel,SUM-20260616-01,96,,,6
+858,2026-05-23,05:01:00,Robinson,113,2,07:07:00,,4,SATURDAY,15 Seats - Nissan Urvan,Morning,15,TK-40,0.13,Clear weather,SUM-20260523-01,96,,,13

@@ -71,14 +71,25 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
   int _ratedDriverCount = 0;
   List<Map<String, dynamic>> _topDrivers = [];
   List<int> _monthlyMaintenanceTotals = List<int>.filled(12, 0);
+  List<int> _monthlyRepairTotals = List<int>.filled(12, 0);
 
   int? _selectedDriverYear;
   int? _selectedDriverMonth;
   List<int> _availableDriverYears = [];
 
   final List<String> _monthNames = const [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December',
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
   ];
 
   @override
@@ -151,7 +162,11 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
             _metrics = [
               DashboardMetric(
                 title: 'Total Trips',
-                value: (metricsMap['totalTrips'] ?? metricsMap['ongoingTrips'] ?? 0).toString(),
+                value:
+                    (metricsMap['totalTrips'] ??
+                            metricsMap['ongoingTrips'] ??
+                            0)
+                        .toString(),
                 subTitle: 'Complete amount of trips',
                 icon: Icons.route,
                 baseColor: const Color(0xFF3B82F6),
@@ -165,7 +180,11 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
               ),
               DashboardMetric(
                 title: 'Active Drivers',
-                value: (metricsMap['activeDrivers'] ?? metricsMap['totalDrivers'] ?? 0).toString(),
+                value:
+                    (metricsMap['activeDrivers'] ??
+                            metricsMap['totalDrivers'] ??
+                            0)
+                        .toString(),
                 subTitle: 'Number of active drivers',
                 icon: Icons.people_alt,
                 baseColor: const Color(0xFF06B6D4),
@@ -178,11 +197,18 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                 baseColor: const Color(0xFF10B981),
               ),
               DashboardMetric(
-                title: 'Maintenance Alerts',
+                title: 'Due Maintenance',
                 value: (metricsMap['maintenanceAlerts'] ?? 0).toString(),
-                subTitle: 'Vehicles requiring maintenance',
+                subTitle: 'Open maintenance records',
                 icon: Icons.build_circle,
                 baseColor: const Color(0xFFEF4444),
+              ),
+              DashboardMetric(
+                title: 'Due Repairs',
+                value: (metricsMap['repairAlerts'] ?? 0).toString(),
+                subTitle: 'Open repair records',
+                icon: Icons.car_repair,
+                baseColor: const Color(0xFFF97316),
               ),
             ];
             _alerts = alertsList
@@ -401,9 +427,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
               Text(
                 'Dashboard',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
+                  fontWeight: FontWeight.w800,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
@@ -423,9 +449,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
             builder: (context, constraints) {
               final compact = constraints.maxWidth < 700;
               final spacing = compact ? 12.0 : 16.0;
-              final columns = constraints.maxWidth > 1200
-                  ? 5
-                  : constraints.maxWidth > 900
+              final columns = constraints.maxWidth > 1400
+                  ? 6
+                  : constraints.maxWidth > 1000
                   ? 3
                   : constraints.maxWidth > 640
                   ? 2
@@ -737,13 +763,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
     }
 
     if (compact) {
-      return Column(
-        children: [
-          panel(),
-          const SizedBox(height: 16),
-          panel(),
-        ],
-      );
+      return Column(children: [panel(), const SizedBox(height: 16), panel()]);
     }
 
     return SizedBox(
@@ -822,7 +842,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                           metric.subTitle,
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            color: isDark
+                                ? Colors.grey.shade400
+                                : Colors.grey.shade600,
                             fontSize: 12,
                           ),
                         ),
@@ -934,7 +956,12 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
 
   Future<List<dynamic>> _fetchDetailsForMetric(String title) async {
     try {
-      if (title == 'Maintenance Alerts') return _alertsAsDetails();
+      if (title == 'Due Maintenance') {
+        return _alertsAsDetails(recordType: 'maintenance');
+      }
+      if (title == 'Due Repairs') {
+        return _alertsAsDetails(recordType: 'repair');
+      }
       if (title == 'Client Monthly Dispatches') return _companyTripsAsDetails();
       final endpoint = title == 'Active Drivers'
           ? '/test-db'
@@ -1009,9 +1036,15 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
     }
   }
 
-  List<dynamic> _alertsAsDetails() => _alerts
+  List<dynamic> _alertsAsDetails({String? recordType}) => _alerts
+      .where((alert) => recordType == null || alert.recordType == recordType)
       .map(
-        (alert) => {'label': alert.vehicleId, 'description': alert.description},
+        (alert) => {
+          'label': alert.vehicleId,
+          'description': alert.description,
+          'record_type': alert.recordType,
+          'status': 'Unresolved',
+        },
       )
       .toList();
   List<dynamic> _companyTripsAsDetails() => _companyTrips
@@ -1375,7 +1408,10 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
     );
     final double maxMaintVal = _monthlyMaintenanceTotals.isEmpty
         ? 5.0
-        : _monthlyMaintenanceTotals.reduce(max).toDouble();
+        : max(
+            _monthlyMaintenanceTotals.reduce(max),
+            _monthlyRepairTotals.reduce(max),
+          ).toDouble();
     final double computedMaintMaxY = maxMaintVal <= 5
         ? 5.0
         : (maxMaintVal * 1.25).ceilToDouble();
@@ -1394,7 +1430,7 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
             children: [
               Expanded(
                 child: Text(
-                  'Monthly Vehicle Maintenance',
+                  'Monthly Maintenance & Repairs',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontSize: _sectionTitleSize,
                     fontWeight: FontWeight.bold,
@@ -1425,6 +1461,15 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
             ],
           ),
           SizedBox(height: compact ? 10 : 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildChartLegend(const Color(0xFFEF4444), 'Maintenance'),
+              const SizedBox(width: 18),
+              _buildChartLegend(const Color(0xFFF97316), 'Repairs'),
+            ],
+          ),
+          const SizedBox(height: 8),
           SizedBox(
             height: 220,
             child: _isMaintenanceLoading
@@ -1500,7 +1545,13 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                                 toY: _monthlyMaintenanceTotals[index]
                                     .toDouble(),
                                 color: const Color(0xFFEF4444),
-                                width: 10,
+                                width: 7,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              BarChartRodData(
+                                toY: _monthlyRepairTotals[index].toDouble(),
+                                color: const Color(0xFFF97316),
+                                width: 7,
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ],
@@ -1754,21 +1805,49 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
       final decoded = json.decode(response.body);
       final records = decoded is Map ? decoded['data'] : decoded;
       if (records is List) {
-        final totals = List<int>.filled(12, 0);
+        final maintenanceTotals = List<int>.filled(12, 0);
+        final repairTotals = List<int>.filled(12, 0);
         for (final record in records) {
           if (record is! Map) continue;
           final date = DateTime.tryParse(
             (record['incident_date'] ?? record['repair_date'] ?? '').toString(),
           );
           if (date != null && date.year == _selectedMaintenanceYear) {
-            totals[date.month - 1]++;
+            final recordType = (record['maintenance_type'] ?? 'maintenance')
+                .toString()
+                .toLowerCase();
+            if (recordType == 'repair') {
+              repairTotals[date.month - 1]++;
+            } else {
+              maintenanceTotals[date.month - 1]++;
+            }
           }
         }
-        if (mounted) setState(() => _monthlyMaintenanceTotals = totals);
+        if (mounted) {
+          setState(() {
+            _monthlyMaintenanceTotals = maintenanceTotals;
+            _monthlyRepairTotals = repairTotals;
+          });
+        }
       }
     } finally {
       if (mounted) setState(() => _isMaintenanceLoading = false);
     }
+  }
+
+  Widget _buildChartLegend(Color color, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 5),
+        Text(label, style: const TextStyle(fontSize: 11)),
+      ],
+    );
   }
 
   Widget _buildClientTripsCard({bool compact = false}) {
@@ -2321,7 +2400,9 @@ class _DetailsDialogState extends State<_DetailsDialog> {
         return Icons.person_outline;
       case 'Total Passengers':
         return Icons.groups_outlined;
-      case 'Maintenance Alerts':
+      case 'Due Maintenance':
+        return Icons.build_circle;
+      case 'Due Repairs':
         return Icons.car_repair;
       default:
         return Icons.directions_bus;

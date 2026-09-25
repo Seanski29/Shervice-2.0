@@ -26,8 +26,10 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
   String _selectedClassification = 'All Classifications';
   int _currentPage = 0;
   static const int _itemsPerPage = 10;
-  int _selectedMonth = DateTime.now().month;
-  int _selectedYear = DateTime.now().year;
+  // Show the complete driver history initially. Users can narrow this to a
+  // month/year from the filters when needed.
+  int _selectedMonth = 0;
+  int _selectedYear = 0;
 
   List<dynamic> _leaderboard = [];
   bool _isFetching = true;
@@ -36,10 +38,10 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
   final List<String> _classificationOptions = [
     'All Classifications',
     'Elite Performer',
+    'Consistent Performer',
     'Safety Risk',
     'Tardiness Risk',
     'Needs Review',
-    'Pending Sweep',
   ];
 
   @override
@@ -58,9 +60,11 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
     try {
       final Map<String, String> queryParameters = {};
       if (_selectedYear == 0) {
-        queryParameters['period'] = 'all';
+        queryParameters['period'] = _selectedMonth == 0 ? 'all' : 'month';
         queryParameters['year'] = 'all';
-        queryParameters['month'] = 'all';
+        queryParameters['month'] = _selectedMonth == 0
+            ? 'all'
+            : _selectedMonth.toString();
       } else if (_selectedMonth == 0) {
         queryParameters['period'] = 'year';
         queryParameters['year'] = _selectedYear.toString();
@@ -178,8 +182,8 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                     drv['full_name'] ?? drv['name'] ?? 'Driver $driverUuid',
                 'rating': avgTotal,
                 'review_count': count,
-                'ml_classification':
-                    drv['ml_classification'] ?? 'Pending Sweep',
+                    'ml_classification':
+                    drv['ml_classification'] ?? 'Needs Review',
                 'employment_status': drv['employment_status'] ?? 'Active',
               });
             }
@@ -223,7 +227,7 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
           .toString()
           .toLowerCase()
           .contains(_searchQuery.toLowerCase());
-      final String classification = d['ml_classification'] ?? 'Pending Sweep';
+      final String classification = d['ml_classification'] ?? 'Needs Review';
       final matchesClassification =
           _selectedClassification == 'All Classifications' ||
           classification == _selectedClassification;
@@ -457,7 +461,6 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                 if (value != null) {
                   setState(() {
                     _selectedYear = value;
-                    if (value == 0) _selectedMonth = 0;
                     _currentPage = 0;
                   });
                   _fetchLeaderboard();
@@ -611,6 +614,10 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                         (driver['review_count'] as num?)?.toInt() ??
                         (driver['eval_count'] as num?)?.toInt() ??
                         0;
+                    final int tripCount =
+                        (driver['trip_count'] as num?)?.toInt() ??
+                        (driver['total_trips'] as num?)?.toInt() ??
+                        0;
                     final String status =
                         driver['employment_status'] ?? 'Active';
 
@@ -621,7 +628,7 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                         : const Color(0xFFF59E0B);
 
                     final String classification =
-                        driver['ml_classification'] ?? 'Pending Sweep';
+                        driver['ml_classification'] ?? 'Needs Review';
                     Color badgeColor = const Color(0xFF64748B);
 
                     if (classification == 'Consistent Performer' ||
@@ -755,6 +762,13 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                                                   color: Colors.grey.shade500,
                                                 ),
                                               ),
+                                            Text(
+                                              ' • $tripCount trips',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: Colors.grey.shade500,
+                                              ),
+                                            ),
                                           ],
                                         ),
                                         Row(

@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from .notifs import trigger_notification
+from .notifs import trigger_notification, _authenticated_account
 
 # Create the Blueprint for vehicle routes
 vehicles_bp = Blueprint('vehicles', __name__)
@@ -47,21 +47,26 @@ def handle_vehicles():
         query = supabase.table('vehicle').select('*').order('plate_number').execute()
         vehicles = query.data or []
         logs = supabase.table('maintenance_log').select(
-            'vehicle_id, incident_date, repair_date, is_resolved'
+            'vehicle_id, incident_date, repair_date, is_resolved, maintenance_type'
         ).order('repair_date', desc=True).execute().data or []
         
         target_dates = {}
+        target_types = {}
         for log in logs:
-            if log.get('is_resolved') is False and log.get('vehicle_id') not in target_dates:
-                target_dates[log.get('vehicle_id')] = log.get('incident_date') or log.get('repair_date')
+            vehicle_id = log.get('vehicle_id')
+            if log.get('is_resolved') is False and vehicle_id not in target_dates:
+                target_dates[vehicle_id] = log.get('incident_date') or log.get('repair_date')
+                target_types[vehicle_id] = str(log.get('maintenance_type') or 'maintenance').lower()
+            elif log.get('is_resolved') is False and target_types.get(vehicle_id) != 'repair' and str(log.get('maintenance_type') or '').lower() == 'repair':
+                target_types[vehicle_id] = 'repair'
+                target_dates[vehicle_id] = log.get('incident_date') or log.get('repair_date')
                 
         for vehicle in vehicles:
-            vehicle['needs_attention'] = (
-                not vehicle.get('is_available', True) or
-                'maintenance' in str(vehicle.get('health_status', '')).lower() or
-                'repair' in str(vehicle.get('health_status', '')).lower()
-            )
+            # Due Maintenance is a staff-recorded, unresolved maintenance
+            # issue. ML forecasts must not change this operational status.
+            vehicle['needs_attention'] = vehicle.get('vehicle_id') in target_dates
             vehicle['maintenance_target_date'] = target_dates.get(vehicle.get('vehicle_id'))
+            vehicle['maintenance_due_type'] = target_types.get(vehicle.get('vehicle_id'))
             
         return jsonify({"success": True, "data": vehicles}), 200
     except Exception as e:
@@ -143,7 +148,7 @@ def update_vehicle(vehicle_id):
 def get_maintenance_logs():
     try:
         query = supabase.table('maintenance_log').select(
-            'maintenance_id, repair_date, description, vehicle_id, user_id, category, incident_date, incident_time, repair_time, is_resolved, vehicle(plate_number), user_account(full_name)'
+            'maintenance_id, repair_date, description, vehicle_id, user_id, category, maintenance_type, incident_date, incident_time, repair_time, is_resolved, vehicle(plate_number), user_account(full_name)'
         ).order('repair_date', desc=True).execute()
         
         return jsonify({"success": True, "data": query.data}), 200
@@ -156,19 +161,32 @@ def get_maintenance_logs():
 @vehicles_bp.route('/api/vehicles/maintenance', methods=['POST'])
 def add_maintenance_log():
     try:
+        identity = _authenticated_account()
+        if not identity:
+            return jsonify({'success': False, 'message': 'Authentication required.'}), 401
+        if identity['role'] != 'staff':
+            return jsonify({'success': False, 'message': 'Administrators can view maintenance logs but cannot add them.'}), 403
         data = request.get_json() or {}
-        target_vehicle_id = int(data.get('vehicle_id'))
+        try:
+            target_vehicle_id = int(data.get('vehicle_id'))
+        except (TypeError, ValueError):
+            return jsonify({'success': False, 'message': 'A valid vehicle is required.'}), 400
         
         # Grab the toggle value
         is_resolved = data.get('is_resolved', True)
+
+        maintenance_type = str(data.get('maintenance_type', 'repair')).strip().lower()
+        if maintenance_type not in ('maintenance', 'repair'):
+            return jsonify({'success': False, 'message': 'Maintenance type must be maintenance or repair.'}), 400
 
         # Prepare the new log entry
         new_log = {
             "repair_date": data.get('repair_date'), 
             "description": data.get('description', ''), 
             "vehicle_id": target_vehicle_id, 
-            "user_id": data.get('user_id'),
+            "user_id": identity['user_id'],
             "category": data.get('category', 'General'),
+            "maintenance_type": maintenance_type,
             "incident_date": data.get('incident_date'),
             "incident_time": data.get('incident_time'),
             "repair_time": data.get('repair_time'),
@@ -177,6 +195,12 @@ def add_maintenance_log():
 
         if not new_log["description"] or not new_log["vehicle_id"] or not new_log.get("user_id"):
             return jsonify({"success": False, "message": "Missing required fields."}), 400
+
+        vehicle_exists = supabase.table('vehicle').select('vehicle_id').eq(
+            'vehicle_id', target_vehicle_id
+        ).limit(1).execute()
+        if not vehicle_exists.data:
+            return jsonify({'success': False, 'message': 'Vehicle is not registered.'}), 404
 
         # ✅ Insert the updated fresh maintenance record to the history
         supabase.table('maintenance_log').insert(new_log).execute()
@@ -203,6 +227,7 @@ def add_maintenance_log():
         status_text = "Repaired / Resolved" if is_resolved else "Ongoing / Needs Attention"
         detailed_message = (
             f"Vehicle {plate_number} has a new maintenance record.\n\n"
+            f"Type: {new_log['maintenance_type'].title()}\n"
             f"Category: {new_log['category']}\n"
             f"Status: {status_text}\n"
             f"Notes: {new_log['description']}"
@@ -228,6 +253,11 @@ def add_maintenance_log():
 def update_maintenance_log():
     """Updates an 'Ongoing' maintenance log to 'Repaired'"""
     try:
+        identity = _authenticated_account()
+        if not identity:
+            return jsonify({'success': False, 'message': 'Authentication required.'}), 401
+        if identity['role'] != 'staff':
+            return jsonify({'success': False, 'message': 'Administrators cannot modify maintenance logs.'}), 403
         data = request.get_json() or {}
         maintenance_id = data.get('maintenance_id')
         vehicle_id = data.get('vehicle_id')

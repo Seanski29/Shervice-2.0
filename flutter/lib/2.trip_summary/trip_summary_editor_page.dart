@@ -519,12 +519,10 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
       final capacity = int.tryParse(row.capacity.text.trim()) ?? 0;
       if (capacity > 0 && passengers > capacity) {
         validationErrors[row] = 'Exceeds capacity.';
-      } else if (row.vehicle.text.trim().isNotEmpty &&
-          (row.vehicleId == null || row.vehicleId!.trim().isEmpty)) {
-        validationErrors[row] = 'Select vehicle.';
-      } else if (row.driver.text.trim().isNotEmpty &&
-          (row.driverId == null || row.driverId!.trim().isEmpty)) {
-        validationErrors[row] = 'Select driver.';
+      } else if (row.vehicleId == null || row.vehicleId!.trim().isEmpty) {
+        validationErrors[row] = 'Select a registered vehicle.';
+      } else if (row.driverId == null || row.driverId!.trim().isEmpty) {
+        validationErrors[row] = 'Select a registered driver.';
       }
     }
     if (validationErrors.isNotEmpty) {
@@ -1200,14 +1198,13 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
   ) {
     List<Map<String, dynamic>> matchingVehicles(String value) {
       final query = value.trim();
-      if (query.isEmpty) return _vehicles.take(8).toList();
+      if (query.isEmpty) return _vehicles;
       return _vehicles
           .where((vehicle) {
             final label = _vehicleOptionLabel(vehicle);
             final id = vehicle['vehicle_id']?.toString() ?? '';
             return _matchesOptionLabel('$label $id', query);
           })
-          .take(8)
           .toList();
     }
 
@@ -1282,14 +1279,13 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
   ) {
     List<Map<String, dynamic>> matchingDrivers(String value) {
       final query = value.trim();
-      if (query.isEmpty) return _drivers.take(8).toList();
+      if (query.isEmpty) return _drivers;
       return _drivers
           .where((driver) {
             final label = _driverOptionLabel(driver);
             final id = driver['driver_id']?.toString() ?? '';
             return _matchesOptionLabel('$label $id', query);
           })
-          .take(8)
           .toList();
     }
 

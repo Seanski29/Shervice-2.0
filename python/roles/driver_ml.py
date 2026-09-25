@@ -2,7 +2,7 @@ import os
 import joblib
 import pandas as pd
 import numpy as np
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
@@ -17,6 +17,25 @@ model = None
 scaler = None
 is_trained = False
 
+
+def _fetch_all(table_name, columns, batch_size=1000):
+    """Fetch every row instead of relying on Supabase's default page size."""
+    rows = []
+    offset = 0
+    while True:
+        batch = (
+            supabase.table(table_name)
+            .select(columns)
+            .range(offset, offset + batch_size - 1)
+            .execute()
+            .data
+            or []
+        )
+        rows.extend(batch)
+        if len(batch) < batch_size:
+            return rows
+        offset += batch_size
+
 def fetch_and_prepare_data():
     """
     Fetches raw data and aggregates 8 features per driver, parsing attendance notes.
@@ -24,12 +43,13 @@ def fetch_and_prepare_data():
     global supabase
     
     # 1. Fetch Drivers
-    drivers_res = supabase.table('driver_profile').select('driver_id').execute()
-    drivers_df = pd.DataFrame(drivers_res.data)
+    drivers_df = pd.DataFrame(_fetch_all('driver_profile', 'driver_id'))
     
     # 2. Fetch Evaluations
-    evals_res = supabase.table('evaluation').select('driver_id, safety_score, punctuality_score, professionalism_score').execute()
-    evals_df = pd.DataFrame(evals_res.data)
+    evals_df = pd.DataFrame(_fetch_all(
+        'evaluation',
+        'driver_id, safety_score, punctuality_score, professionalism_score',
+    ))
     
     if not evals_df.empty:
         evals_agg = evals_df.groupby('driver_id').agg({
@@ -41,8 +61,7 @@ def fetch_and_prepare_data():
         evals_agg = pd.DataFrame(columns=['driver_id', 'safety_score', 'punctuality_score', 'professionalism_score'])
 
     # 3. Fetch Trip Counts
-    trips_res = supabase.table('trip_schedule').select('driver_id, trip_id').execute()
-    trips_df = pd.DataFrame(trips_res.data)
+    trips_df = pd.DataFrame(_fetch_all('trip_schedule', 'driver_id, trip_id'))
     
     if not trips_df.empty:
         trips_agg = trips_df.groupby('driver_id').size().reset_index(name='trips_amount')
@@ -50,8 +69,10 @@ def fetch_and_prepare_data():
         trips_agg = pd.DataFrame(columns=['driver_id', 'trips_amount'])
 
     # 4. Fetch Attendance & Extract Present/Absent/Half-Day
-    attendance_res = supabase.table('attendance_record').select('driver_id, total_minutes_late, note').execute()
-    att_df = pd.DataFrame(attendance_res.data)
+    att_df = pd.DataFrame(_fetch_all(
+        'attendance_record',
+        'driver_id, total_minutes_late, note',
+    ))
     
     if not att_df.empty:
         # Standardize notes for text matching
@@ -110,8 +131,21 @@ def generate_ground_truth_labels(row):
     # 3. High performer conditions (Now requires high professionalism AND actual attendance data)
     elif safety >= 4.5 and punctuality >= 4.5 and professionalism >= 4.0 and late_mins <= 15 and absences == 0 and present > 0:
         return 'Elite Performer'
+
+    # 4. Consistent drivers: reliable attendance and performance, but not
+    # enough safety score to qualify for the Elite tier.
+    elif (
+        safety >= 4.0
+        and punctuality >= 4.0
+        and professionalism >= 4.0
+        and late_mins <= 30
+        and absences == 0
+        and present > 0
+        and row['trips_amount'] > 0
+    ):
+        return 'Consistent Performer'
         
-    # 4. Default middle-ground
+    # 5. Default middle-ground
     else:
         return 'Needs Review'
 def train_driver_classification_model():
@@ -148,19 +182,28 @@ def train_driver_classification_model():
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
-    # 80/20 Train-Test split
-    X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+    # Keep a holdout only for reporting. The serving model is fitted on all
+    # available drivers so every current driver receives a classification.
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_scaled, y, test_size=0.2, random_state=42
+    )
 
     # Initialize and Train KNN
-    model = KNeighborsClassifier(n_neighbors=3, weights='distance')
-    model.fit(X_train, y_train)
+    evaluation_model = KNeighborsClassifier(n_neighbors=3, weights='distance')
+    evaluation_model.fit(X_train, y_train)
     
-    y_pred = model.predict(X_test)
+    y_pred = evaluation_model.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
     
     print(f"\n--- Model Training Complete ---")
     print(f"KNN Accuracy Score: {accuracy * 100:.2f}%")
     print("\nClassification Report:\n", classification_report(y_test, y_pred, zero_division=0))
+
+    # Refit the serving model on the complete driver dataset. This prevents
+    # the 20% holdout from receiving a classification based on incomplete
+    # neighborhood information.
+    model = KNeighborsClassifier(n_neighbors=3, weights='distance')
+    model.fit(X_scaled, y)
 
     # Predict entire fleet
     df['ml_classification'] = model.predict(X_scaled)
@@ -191,13 +234,16 @@ def classify_driver(driver_id):
     """
     global is_trained, supabase
     try:
-        if not is_trained:
+        # Rebuild on an explicit refresh so newly added trip summaries are
+        # included in the trips_amount feature instead of using stale model
+        # classifications from an earlier data snapshot.
+        if not is_trained or request.args.get('refresh') == '1':
             train_driver_classification_model()
             
         res = supabase.table('driver_profile').select('ml_classification').eq('driver_id', driver_id).execute()
         
         if res.data and len(res.data) > 0:
-            classification = res.data[0].get('ml_classification') or 'Pending Sweep'
+            classification = res.data[0].get('ml_classification') or 'Needs Review'
             return jsonify({"success": True, "classification": classification}), 200
             
         return jsonify({"success": False, "classification": "Unknown Driver"}), 404
