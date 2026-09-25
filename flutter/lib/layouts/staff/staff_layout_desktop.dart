@@ -2,19 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../../login/login.dart';
 import '../../staff/staff_dashboard.dart';
+import '../../staff/staff_drivers.dart';
+import '../../staff/staff_payroll.dart';
+import '../../staff/staff_reports_manager.dart';
+import '../../staff/staff_routes.dart';
+import '../../staff/staff_settings.dart';
+import '../../staff/staff_trips.dart';
+import '../../staff/staff_vehicle.dart';
 import '../../session_manager.dart';
-import '../enterprise/deferred_screen.dart';
 import '../enterprise/enterprise_shell.dart';
 import '../notification_bell.dart';
 import '../../interface/staff_profile_button.dart';
-import '../../staff/staff_drivers.dart' deferred as staff_drivers;
-import '../../staff/staff_payroll.dart' deferred as staff_payroll;
-import '../../staff/staff_reports_manager.dart' deferred as staff_reports;
-import '../../staff/staff_routes.dart' deferred as staff_routes;
-import '../../staff/staff_settings.dart' deferred as staff_settings;
-import '../../staff/staff_trips.dart' deferred as staff_trips;
-import '../../staff/staff_vehicle.dart' deferred as staff_vehicle;
-import '../../10.analytics/shared_analytics_hub.dart' deferred as analytics_hub;
+import '../../10.analytics/shared_analytics_hub.dart';
 
 class StaffLayoutDesktop extends StatelessWidget {
   const StaffLayoutDesktop({
@@ -48,83 +47,59 @@ class StaffLayoutDesktop extends StatelessWidget {
           label: 'Trip Summary',
           icon: Icons.assignment_outlined,
           section: 'Operations',
-          screen: DeferredScreen(
-            loader: staff_trips.loadLibrary,
-            builder: () => staff_trips.StaffTrips(staffId: staffId),
-          ),
+          screen: StaffTrips(staffId: staffId),
           keywords: const ['trips', 'daily log'],
         ),
         EnterpriseNavigationItem(
           label: 'Vehicles',
           icon: Icons.directions_bus_outlined,
           section: 'Operations',
-          screen: DeferredScreen(
-            loader: staff_vehicle.loadLibrary,
-            builder: () => staff_vehicle.StaffVehicle(staffId: staffId),
-          ),
+          screen: StaffVehicle(staffId: staffId),
           keywords: const ['fleet', 'maintenance'],
         ),
-        EnterpriseNavigationItem(
+        const EnterpriseNavigationItem(
           label: 'Drivers',
           icon: Icons.badge_outlined,
           section: 'Workforce',
-          screen: DeferredScreen(
-            loader: staff_drivers.loadLibrary,
-            builder: _buildStaffDrivers,
-          ),
+          screen: StaffDrivers(),
           keywords: ['operators', 'profiles'],
         ),
-        EnterpriseNavigationItem(
+        const EnterpriseNavigationItem(
           label: 'Routes',
           icon: Icons.route_outlined,
           section: 'Operations',
-          screen: DeferredScreen(
-            loader: staff_routes.loadLibrary,
-            builder: _buildStaffRoutes,
-          ),
+          screen: StaffRoutes(),
           keywords: ['destinations', 'optimization'],
         ),
-        EnterpriseNavigationItem(
+        const EnterpriseNavigationItem(
           label: 'Attendance',
           icon: Icons.fact_check_outlined,
           section: 'Workforce',
-          screen: DeferredScreen(
-            loader: staff_reports.loadLibrary,
-            builder: _buildStaffReports,
-          ),
+          screen: StaffReportsManager(),
           keywords: ['timecard', 'hours'],
         ),
-        EnterpriseNavigationItem(
+        const EnterpriseNavigationItem(
           label: 'Payroll',
           icon: Icons.payments_outlined,
           section: 'Workforce',
-          screen: DeferredScreen(
-            loader: staff_payroll.loadLibrary,
-            builder: _buildStaffPayroll,
-          ),
+          screen: StaffPayroll(),
           keywords: ['compensation', 'payslip'],
         ),
-        EnterpriseNavigationItem(
+        const EnterpriseNavigationItem(
           label: 'Analytics',
           icon: Icons.query_stats_outlined,
           section: 'Intelligence',
-          screen: DeferredScreen(
-            loader: analytics_hub.loadLibrary,
-            builder: _buildAnalyticsHub,
-          ),
+          screen: SharedAnalyticsHub(),
           keywords: ['performance', 'reports', 'insights'],
         ),
         EnterpriseNavigationItem(
           label: 'Settings',
           icon: Icons.settings_outlined,
           section: 'Hidden',
-          screen: DeferredScreen(
-            loader: staff_settings.loadLibrary,
-            builder: () => staff_settings.StaffSettings(
-              staffId: staffId,
-              staffName: staffName,
-              companyName: companyName,
-            ),
+          screen: StaffSettings(
+            staffId: staffId,
+            staffName: staffName,
+            companyName: companyName,
           ),
           keywords: const ['preferences', 'theme', 'account'],
         ),
@@ -154,9 +129,3 @@ class StaffLayoutDesktop extends StatelessWidget {
     );
   }
 }
-
-Widget _buildStaffDrivers() => staff_drivers.StaffDrivers();
-Widget _buildStaffRoutes() => staff_routes.StaffRoutes();
-Widget _buildStaffReports() => staff_reports.StaffReportsManager();
-Widget _buildStaffPayroll() => staff_payroll.StaffPayroll();
-Widget _buildAnalyticsHub() => analytics_hub.SharedAnalyticsHub();

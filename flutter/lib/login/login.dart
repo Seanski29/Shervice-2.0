@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../constant.dart';
-import '../layouts/admin/admin_layout.dart' deferred as admin_layout;
-import '../layouts/staff/staff_layout.dart' deferred as staff_layout;
+import '../layouts/admin/admin_layout.dart';
+import '../layouts/staff/staff_layout.dart';
 import '../session_manager.dart';
 import '../layouts/enterprise/enterprise_theme.dart';
 import '../interface/theme_manager.dart';
@@ -123,25 +123,17 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       await ThemeManager.loadSavedTheme(userId: userId);
       if (!mounted) return;
-      final Widget workspace;
-      if (role == 'admin') {
-        await admin_layout.loadLibrary();
-        workspace = admin_layout.AdminLayout(
-          adminId: userId,
-          adminName: displayName,
-        );
-      } else {
-        await staff_layout.loadLibrary();
-        workspace = staff_layout.StaffLayout(
-          staffId: userId,
-          staffName: displayName,
-          companyName: company,
-        );
-      }
-      if (!mounted) return;
       EnterpriseToasts.success(context, 'Signed in successfully.');
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => workspace),
+        MaterialPageRoute(
+          builder: (_) => role == 'admin'
+              ? AdminLayout(adminId: userId, adminName: displayName)
+              : StaffLayout(
+                  staffId: userId,
+                  staffName: displayName,
+                  companyName: company,
+                ),
+        ),
       );
     } on _AuthenticationException catch (error) {
       if (!mounted) return;

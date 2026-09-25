@@ -5,7 +5,7 @@ ENV PATH="/flutter/bin:${PATH}"
 WORKDIR /app
 COPY . .
 RUN flutter pub get
-RUN flutter build web --release --tree-shake-icons --pwa-strategy=offline-first
+RUN flutter build web --release --tree-shake-icons --pwa-strategy=none
 
 FROM nginx:alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf

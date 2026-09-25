@@ -11,8 +11,8 @@ import 'interface/theme_manager.dart';
 import 'layouts/enterprise/enterprise_theme.dart';
 
 import 'login/login.dart';
-import 'layouts/admin/admin_layout.dart' deferred as admin_layout;
-import 'layouts/staff/staff_layout.dart' deferred as staff_layout;
+import 'layouts/admin/admin_layout.dart';
+import 'layouts/staff/staff_layout.dart';
 
 // Global navigator key for cross-app navigation
 final GlobalKey<NavigatorState> globalNavigatorKey =
@@ -100,17 +100,11 @@ class _SherviceAppState extends State<SherviceApp> {
         final company = widget.userData['companyName'] ?? 'GT LANTIN';
 
         if (role == 'admin') {
-          return _DeferredWorkspaceScreen(
-            role: role,
-            userId: userId,
-            userName: userName,
-            companyName: company,
-          );
+          return AdminLayout(adminId: userId, adminName: userName);
         } else if (role == 'staff') {
-          return _DeferredWorkspaceScreen(
-            role: role,
-            userId: userId,
-            userName: userName,
+          return StaffLayout(
+            staffId: userId,
+            staffName: userName,
             companyName: company,
           );
         }
@@ -118,16 +112,13 @@ class _SherviceAppState extends State<SherviceApp> {
 
       // Fallback for URL testing (if needed)
       if (testRole == 'admin') {
-        return const _DeferredWorkspaceScreen(
-          role: 'admin',
-          userId: '00000000-0000-0000-0000-000000000000',
-          userName: 'Admin',
+        return const AdminLayout(
+          adminId: '00000000-0000-0000-0000-000000000000',
         );
       } else if (testRole == 'staff') {
-        return const _DeferredWorkspaceScreen(
-          role: 'staff',
-          userId: '00000000-0000-0000-0000-000000000000',
-          userName: 'System Staff',
+        return const StaffLayout(
+          staffId: '00000000-0000-0000-0000-000000000000',
+          staffName: 'System Staff',
           companyName: 'GT LANTIN',
         );
       }
@@ -147,81 +138,6 @@ class _SherviceAppState extends State<SherviceApp> {
           darkTheme: EnterpriseTheme.dark(),
           themeMode: currentMode,
           home: getInitialScreen(),
-        );
-      },
-    );
-  }
-}
-
-class _DeferredWorkspaceScreen extends StatefulWidget {
-  const _DeferredWorkspaceScreen({
-    required this.role,
-    required this.userId,
-    required this.userName,
-    this.companyName = 'GT LANTIN',
-  });
-
-  final String role;
-  final String userId;
-  final String userName;
-  final String companyName;
-
-  @override
-  State<_DeferredWorkspaceScreen> createState() =>
-      _DeferredWorkspaceScreenState();
-}
-
-class _DeferredWorkspaceScreenState extends State<_DeferredWorkspaceScreen> {
-  late final Future<Widget> _screen = _loadScreen();
-
-  Future<Widget> _loadScreen() async {
-    if (widget.role == 'admin') {
-      await admin_layout.loadLibrary();
-      return admin_layout.AdminLayout(
-        adminId: widget.userId,
-        adminName: widget.userName,
-      );
-    }
-
-    await staff_layout.loadLibrary();
-    return staff_layout.StaffLayout(
-      staffId: widget.userId,
-      staffName: widget.userName,
-      companyName: widget.companyName,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<Widget>(
-      future: _screen,
-      builder: (context, snapshot) {
-        if (snapshot.hasData) return snapshot.data!;
-        if (snapshot.hasError) {
-          return Scaffold(
-            body: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: SelectableText(
-                  'Workspace failed to load:\n${snapshot.error}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.red,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          );
-        }
-        return const Scaffold(
-          body: Center(
-            child: SizedBox(
-              width: 32,
-              height: 32,
-              child: CircularProgressIndicator(strokeWidth: 3),
-            ),
-          ),
         );
       },
     );
