@@ -220,17 +220,20 @@ class _StaffTripsState extends State<StaffTrips> {
   }
 
   List<String> get _monthOptions => [
-        'All Months',
-        ...List.generate(12, (index) => _monthNames[index]),
-      ];
+    'All Months',
+    ...List.generate(12, (index) => _monthNames[index]),
+  ];
 
   List<String> get _yearOptions {
-    final years = _trips
-        .map((trip) => _parseDate(trip['schedule_date'] ?? trip['date'])?.year)
-        .whereType<int>()
-        .toSet()
-        .toList()
-      ..sort((a, b) => b.compareTo(a));
+    final years =
+        _trips
+            .map(
+              (trip) => _parseDate(trip['schedule_date'] ?? trip['date'])?.year,
+            )
+            .whereType<int>()
+            .toSet()
+            .toList()
+          ..sort((a, b) => b.compareTo(a));
     return ['All Years', ...years.map((year) => year.toString())];
   }
 
@@ -343,7 +346,8 @@ class _StaffTripsState extends State<StaffTrips> {
   String _timeText(dynamic value) {
     final text = (value ?? '').toString();
     if (text.isEmpty) return '--:--';
-    if (text.toUpperCase().contains('AM') || text.toUpperCase().contains('PM')) {
+    if (text.toUpperCase().contains('AM') ||
+        text.toUpperCase().contains('PM')) {
       return text;
     }
     return text.length >= 5 ? text.substring(0, 5) : text;
@@ -768,16 +772,15 @@ class _StaffTripsState extends State<StaffTrips> {
     ]);
     sheet.appendRow([xlsx.TextCellValue('')]);
     sheet.appendRow(
-      _summaryExportHeaders
-          .map((value) => xlsx.TextCellValue(value))
-          .toList(),
+      _summaryExportHeaders.map((value) => xlsx.TextCellValue(value)).toList(),
     );
 
     for (var i = 0; i < rows.length; i++) {
       sheet.appendRow(
-        _summaryExportValues(rows[i], i)
-            .map((value) => xlsx.TextCellValue(value))
-            .toList(),
+        _summaryExportValues(
+          rows[i],
+          i,
+        ).map((value) => xlsx.TextCellValue(value)).toList(),
       );
     }
 
@@ -814,10 +817,7 @@ class _StaffTripsState extends State<StaffTrips> {
       final isBulk = summaries.length > 1;
       final csvData = summaries
           .map(
-            (summary) => _generateSummaryCsv(
-              summary,
-              includeSummaryId: isBulk,
-            ),
+            (summary) => _generateSummaryCsv(summary, includeSummaryId: isBulk),
           )
           .join('\n');
       final safeSummaryId = isBulk
@@ -1212,13 +1212,14 @@ class _StaffTripsState extends State<StaffTrips> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isNarrow = MediaQuery.of(context).size.width < 1200;
+    final compact = MediaQuery.of(context).size.width < 768;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: RefreshIndicator(
         onRefresh: _fetchTripSummary,
         child: ListView(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(compact ? 16 : 24),
           children: [
             // 1. TOP ROW: Title on Left, Reload/Actions on Right
             Row(
@@ -1261,7 +1262,7 @@ class _StaffTripsState extends State<StaffTrips> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: compact ? 12 : 24),
 
             // 2. CARDS BEFORE FILTERS
             if (_isLoading)
@@ -1279,19 +1280,20 @@ class _StaffTripsState extends State<StaffTrips> {
             else
               _buildSummaryCards(isDark),
 
-            const SizedBox(height: 32),
+            SizedBox(height: compact ? 10 : 32),
 
             // 3. FILTERS
-            Align(
-              alignment: Alignment.centerLeft,
-              child: _buildFilters(isDark, isNarrow),
-            ),
-
-            const SizedBox(height: 24),
+            if (!compact) ...[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: _buildFilters(isDark, isNarrow),
+              ),
+              SizedBox(height: compact ? 8 : 24),
+            ],
 
             // 4. MAIN WORKSPACE TABS & TABLE
             _buildTripTabs(isDark),
-            const SizedBox(height: 12),
+            SizedBox(height: compact ? 8 : 12),
             _activeTab == 0
                 ? _buildSummaryTable(isDark)
                 : _buildEditableSummarySheet(isDark),
@@ -1308,7 +1310,9 @@ class _StaffTripsState extends State<StaffTrips> {
     } else if (_selectedDateRange != null) {
       selectedLabel = _compactDateRange(_selectedDateRange!);
     } else if (_selectedMonth != null || _selectedYear != null) {
-      final month = _selectedMonth == null ? 'All Months' : _monthNames[_selectedMonth! - 1];
+      final month = _selectedMonth == null
+          ? 'All Months'
+          : _monthNames[_selectedMonth! - 1];
       final year = _selectedYear?.toString() ?? 'All Years';
       selectedLabel = '$month $year';
     }
@@ -1350,15 +1354,16 @@ class _StaffTripsState extends State<StaffTrips> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 900;
+        final spacing = isNarrow ? 8.0 : 16.0;
         final cardWidth = isNarrow
-            ? constraints.maxWidth
+            ? (constraints.maxWidth - spacing) / 2
             : (constraints.maxWidth - 64) / 5;
         final cardWidgets = cards.map((card) {
           final Color baseColor = card.$4;
           return Container(
             width: cardWidth,
-            constraints: const BoxConstraints(minHeight: 112),
-            padding: const EdgeInsets.all(16),
+            constraints: BoxConstraints(minHeight: isNarrow ? 72 : 112),
+            padding: EdgeInsets.all(isNarrow ? 8 : 16),
             decoration: BoxDecoration(
               color: baseColor.withValues(alpha: 0.08),
               border: Border.all(color: baseColor.withValues(alpha: 0.3)),
@@ -1371,8 +1376,10 @@ class _StaffTripsState extends State<StaffTrips> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(card.$3, color: baseColor, size: 20),
-                    const SizedBox(width: 8),
+                    if (!isNarrow) ...[
+                      Icon(card.$3, color: baseColor, size: 20),
+                      const SizedBox(width: 8),
+                    ],
                     Expanded(
                       child: Text(
                         card.$1,
@@ -1381,14 +1388,14 @@ class _StaffTripsState extends State<StaffTrips> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: baseColor,
-                          fontSize: 14,
+                          fontSize: isNarrow ? 10 : 14,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: isNarrow ? 3 : 12),
                 Text(
                   card.$2,
                   textAlign: TextAlign.center,
@@ -1397,7 +1404,7 @@ class _StaffTripsState extends State<StaffTrips> {
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w900,
-                    fontSize: 28,
+                    fontSize: isNarrow ? 18 : 28,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -1406,15 +1413,17 @@ class _StaffTripsState extends State<StaffTrips> {
           );
         }).toList();
         if (isNarrow) {
-          return Column(
-            children: cardWidgets
-                .map(
-                  (card) => Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: card,
-                  ),
-                )
-                .toList(),
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            alignment: WrapAlignment.center,
+            children: [
+              for (var index = 0; index < cardWidgets.length; index++)
+                SizedBox(
+                  width: index == 4 ? cardWidth : cardWidth,
+                  child: cardWidgets[index],
+                ),
+            ],
           );
         }
         return Row(
@@ -1431,122 +1440,165 @@ class _StaffTripsState extends State<StaffTrips> {
 
   Widget _buildFilters(bool isDark, bool isNarrow) {
     const controlWidth = 155.0;
+    if (isNarrow) {
+      return IconButton.outlined(
+        onPressed: () => _openTripFilterSheet(isDark),
+        tooltip: 'Filters',
+        icon: const Icon(Icons.tune, size: 18),
+      );
+    }
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          SizedBox(
-            width: controlWidth,
-            height: 42,
-            child: TextField(
-              onChanged: (value) => setState(() {
-                _searchQuery = value;
-                _resetPagination();
-              }),
-              style: TextStyle(
-                color: isDark ? Colors.white : Colors.black87,
-                fontSize: 13,
-              ),
-              decoration: _inputDecoration(
-                isDark,
-                'Search trips...',
-                Icons.search,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: controlWidth,
-            height: 42,
-            child: OutlinedButton.icon(
-              onPressed: () => _openCalendarModal(isDark),
-              icon: const Icon(Icons.calendar_month, size: 16),
-              label: const Text('Calendar'),
-            ),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: controlWidth,
-            height: 42,
-            child: OutlinedButton.icon(
-              onPressed: _pickDateRange,
-              icon: const Icon(Icons.date_range_outlined, size: 16),
-              label: Text(
-                _selectedDateRange == null ? 'Date range' : 'Range selected',
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          _dropdown(
-            isDark: isDark,
-            width: controlWidth,
-            value: _selectedMonth == null
-                ? 'All Months'
-                : _monthNames[_selectedMonth! - 1],
-            values: _monthOptions,
-            onChanged: (value) => setState(() {
-              _selectedMonth = value == null || value == 'All Months'
-                  ? null
-                  : _monthNames.indexOf(value) + 1;
-              _selectedDate = null;
-              _resetPagination();
-            }),
-          ),
-          const SizedBox(width: 12),
-          _dropdown(
-            isDark: isDark,
-            width: controlWidth,
-            value: _selectedYear?.toString() ?? 'All Years',
-            values: _yearOptions,
-            onChanged: (value) => setState(() {
-              _selectedYear = value == null || value == 'All Years'
-                  ? null
-                  : int.tryParse(value);
-              _selectedDate = null;
-              _resetPagination();
-            }),
-          ),
-          const SizedBox(width: 12),
-          _dropdown(
-            isDark: isDark,
-            width: controlWidth,
-            value: _currentSort,
-            values: ['Date (Newest)', 'Date (Oldest)'],
-            onChanged: (value) => setState(() {
-              _currentSort = value ?? 'Date (Newest)';
-              _resetPagination();
-            }),
-          ),
-          const SizedBox(width: 12),
-          _dropdown(
-            isDark: isDark,
-            width: controlWidth,
-            value: _driverOptions.contains(_selectedDriver)
-                ? _selectedDriver
-                : 'All Drivers',
-            values: _driverOptions,
-            onChanged: (value) => setState(() {
-              _selectedDriver = value ?? 'All Drivers';
-              _resetPagination();
-            }),
-          ),
-          const SizedBox(width: 12),
-          _dropdown(
-            isDark: isDark,
-            width: controlWidth,
-            value: _vehicleOptions.contains(_selectedVehicle)
-                ? _selectedVehicle
-                : 'All Vehicles',
-            values: _vehicleOptions,
-            onChanged: (value) => setState(() {
-              _selectedVehicle = value ?? 'All Vehicles';
-              _resetPagination();
-            }),
-          ),
-        ],
-      ),
+      child: Row(children: _tripFilterControls(isDark, controlWidth, true)),
     );
+  }
+
+  Future<void> _openTripFilterSheet(bool isDark) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        final bottomInset = MediaQuery.viewInsetsOf(sheetContext).bottom;
+        final width = MediaQuery.sizeOf(sheetContext).width - 32;
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + bottomInset),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Trip filters',
+                    style: Theme.of(sheetContext).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 12),
+                  ..._tripFilterControls(isDark, width, false),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  List<Widget> _tripFilterControls(
+    bool isDark,
+    double controlWidth,
+    bool horizontal,
+  ) {
+    Widget gap() =>
+        SizedBox(width: horizontal ? 12 : 0, height: horizontal ? 0 : 12);
+    return [
+      SizedBox(
+        width: controlWidth,
+        height: 42,
+        child: TextField(
+          onChanged: (value) => setState(() {
+            _searchQuery = value;
+            _resetPagination();
+          }),
+          style: TextStyle(
+            color: isDark ? Colors.white : Colors.black87,
+            fontSize: 13,
+          ),
+          decoration: _inputDecoration(isDark, 'Search trips...', Icons.search),
+        ),
+      ),
+      gap(),
+      SizedBox(
+        width: controlWidth,
+        height: 42,
+        child: OutlinedButton.icon(
+          onPressed: () => _openCalendarModal(isDark),
+          icon: const Icon(Icons.calendar_month, size: 16),
+          label: const Text('Calendar'),
+        ),
+      ),
+      gap(),
+      SizedBox(
+        width: controlWidth,
+        height: 42,
+        child: OutlinedButton.icon(
+          onPressed: _pickDateRange,
+          icon: const Icon(Icons.date_range_outlined, size: 16),
+          label: Text(
+            _selectedDateRange == null ? 'Date range' : 'Range selected',
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+      gap(),
+      _dropdown(
+        isDark: isDark,
+        width: controlWidth,
+        value: _selectedMonth == null
+            ? 'All Months'
+            : _monthNames[_selectedMonth! - 1],
+        values: _monthOptions,
+        onChanged: (value) => setState(() {
+          _selectedMonth = value == null || value == 'All Months'
+              ? null
+              : _monthNames.indexOf(value) + 1;
+          _selectedDate = null;
+          _resetPagination();
+        }),
+      ),
+      gap(),
+      _dropdown(
+        isDark: isDark,
+        width: controlWidth,
+        value: _selectedYear?.toString() ?? 'All Years',
+        values: _yearOptions,
+        onChanged: (value) => setState(() {
+          _selectedYear = value == null || value == 'All Years'
+              ? null
+              : int.tryParse(value);
+          _selectedDate = null;
+          _resetPagination();
+        }),
+      ),
+      gap(),
+      _dropdown(
+        isDark: isDark,
+        width: controlWidth,
+        value: _currentSort,
+        values: ['Date (Newest)', 'Date (Oldest)'],
+        onChanged: (value) => setState(() {
+          _currentSort = value ?? 'Date (Newest)';
+          _resetPagination();
+        }),
+      ),
+      gap(),
+      _dropdown(
+        isDark: isDark,
+        width: controlWidth,
+        value: _driverOptions.contains(_selectedDriver)
+            ? _selectedDriver
+            : 'All Drivers',
+        values: _driverOptions,
+        onChanged: (value) => setState(() {
+          _selectedDriver = value ?? 'All Drivers';
+          _resetPagination();
+        }),
+      ),
+      gap(),
+      _dropdown(
+        isDark: isDark,
+        width: controlWidth,
+        value: _vehicleOptions.contains(_selectedVehicle)
+            ? _selectedVehicle
+            : 'All Vehicles',
+        values: _vehicleOptions,
+        onChanged: (value) => setState(() {
+          _selectedVehicle = value ?? 'All Vehicles';
+          _resetPagination();
+        }),
+      ),
+    ];
   }
 
   String _compactDateRange(DateTimeRange range) {
@@ -1741,6 +1793,7 @@ class _StaffTripsState extends State<StaffTrips> {
             ),
           ],
           filterFields: const [],
+          onMobileFilterPressed: () => _openTripFilterSheet(isDark),
           showDateRange: false,
           allowSelectAll: false,
           singleSelect: true,
@@ -1842,10 +1895,7 @@ class _SummarySheetPage extends StatelessWidget {
   final String summaryId;
   final List<Map<String, dynamic>> rows;
 
-  const _SummarySheetPage({
-    required this.summaryId,
-    required this.rows,
-  });
+  const _SummarySheetPage({required this.summaryId, required this.rows});
 
   @override
   Widget build(BuildContext context) {

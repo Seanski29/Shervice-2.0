@@ -742,10 +742,7 @@ class _PayrollState extends State<Payroll> {
   }
 
   Future<void> _exportPayrollSelection(List<_PayrollRow> rows) async {
-    await _downloadPayrollCsv(
-      rows,
-      fileName: 'shervice-payroll-selection.csv',
-    );
+    await _downloadPayrollCsv(rows, fileName: 'shervice-payroll-selection.csv');
   }
 
   Future<void> _exportPayrollSelectionXlsx(List<_PayrollRow> rows) async {
@@ -766,146 +763,155 @@ class _PayrollState extends State<Payroll> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 1. TOP ROW: Title on Left, Refresh on Right
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 768;
+          return Padding(
+            padding: EdgeInsets.all(compact ? 16 : 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // 1. TOP ROW: Title on Left, Refresh on Right
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Payroll',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Payroll',
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                      ],
                     ),
-                    const SizedBox(height: 4),
+                    OutlinedButton.icon(
+                      onPressed: _isLoading ? null : _loadPayrollData,
+                      icon: const Icon(Icons.refresh, size: 17),
+                      label: const Text('Refresh'),
+                    ),
                   ],
                 ),
-                OutlinedButton.icon(
-                  onPressed: _isLoading ? null : _loadPayrollData,
-                  icon: const Icon(Icons.refresh, size: 17),
-                  label: const Text('Refresh'),
+                SizedBox(height: compact ? 8 : 16),
+
+                // 2. RATES PANEL (Sleeker, compact container)
+                _buildRatesPanel(isDark),
+                SizedBox(height: compact ? 8 : 16),
+
+                // 3. FILTERS (Anchored Top-Left)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: _buildFilters(isDark),
+                ),
+                SizedBox(height: compact ? 8 : 16),
+
+                // 4. MAIN WORKSPACE TABLE (Expanded to fill space)
+                Expanded(
+                  child: _isLoading
+                      ? const EnterpriseTableSkeleton(columns: 9)
+                      : _error != null
+                      ? EnterpriseEmptyState(
+                          icon: Icons.error_outline,
+                          title: 'Error Loading Payroll',
+                          message: _error!,
+                          actionLabel: 'Retry',
+                          onAction: _loadPayrollData,
+                        )
+                      : EnterpriseDataGrid<_PayrollRow>(
+                          rows: rows,
+                          rowKey: (row) => row.driverId,
+                          height: double.infinity,
+                          showDateRange: false,
+                          filterFields:
+                              const [], // Cleared to prevent middle rendering
+                          columns: [
+                            EnterpriseGridColumn(
+                              label: 'Driver',
+                              width: 250,
+                              value: (row) =>
+                                  '${row.driverName}  #${row.driverId}',
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Present',
+                              width: 110,
+                              value: (row) => '${row.presentDays}',
+                              compare: (first, second) => first.presentDays
+                                  .compareTo(second.presentDays),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Half day',
+                              width: 110,
+                              value: (row) => '${row.halfDays}',
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Absent',
+                              width: 110,
+                              value: (row) => '${row.absentDays}',
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Trips',
+                              width: 110,
+                              value: (row) => '${row.tripCount}',
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Regular pay',
+                              width: 160,
+                              value: (row) => _moneyLabel(row.regularPay),
+                              compare: (first, second) =>
+                                  first.regularPay.compareTo(second.regularPay),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Deductions',
+                              width: 160,
+                              value: (row) =>
+                                  '-${_moneyLabel(row.totalDeductions)}',
+                              compare: (first, second) => first.totalDeductions
+                                  .compareTo(second.totalDeductions),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Overtime',
+                              width: 150,
+                              value: (row) => _moneyLabel(row.overtimePay),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Route pay',
+                              width: 150,
+                              value: (row) => _moneyLabel(row.tripPay),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Total pay',
+                              width: 170,
+                              value: (row) => _moneyLabel(row.netPay),
+                              compare: (first, second) =>
+                                  first.netPay.compareTo(second.netPay),
+                              cellBuilder: (context, row) => Text(
+                                _moneyLabel(row.netPay),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                          emptyTitle: 'Prepare this payroll period',
+                          emptyMessage:
+                              'Attendance and trip records are required before driver payroll can be calculated.',
+                          emptyActionLabel: 'Refresh payroll data',
+                          onEmptyAction: _loadPayrollData,
+                          onExportSelection: _exportPayrollSelection,
+                          exportSelectionLabel: 'Export CSV',
+                          onSecondaryExportSelection:
+                              _exportPayrollSelectionXlsx,
+                          secondaryExportSelectionLabel: 'Export XLSX',
+                        ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-
-            // 2. RATES PANEL (Sleeker, compact container)
-            _buildRatesPanel(isDark),
-            const SizedBox(height: 16),
-
-            // 3. FILTERS (Anchored Top-Left)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: _buildFilters(isDark),
-            ),
-            const SizedBox(height: 16),
-
-            // 4. MAIN WORKSPACE TABLE (Expanded to fill space)
-            Expanded(
-              child: _isLoading
-                  ? const EnterpriseTableSkeleton(columns: 9)
-                  : _error != null
-                  ? EnterpriseEmptyState(
-                      icon: Icons.error_outline,
-                      title: 'Error Loading Payroll',
-                      message: _error!,
-                      actionLabel: 'Retry',
-                      onAction: _loadPayrollData,
-                    )
-                  : EnterpriseDataGrid<_PayrollRow>(
-                      rows: rows,
-                      rowKey: (row) => row.driverId,
-                      height: double.infinity,
-                      showDateRange: false,
-                      filterFields:
-                          const [], // Cleared to prevent middle rendering
-                      columns: [
-                        EnterpriseGridColumn(
-                          label: 'Driver',
-                          width: 250,
-                          value: (row) => '${row.driverName}  #${row.driverId}',
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Present',
-                          width: 110,
-                          value: (row) => '${row.presentDays}',
-                          compare: (first, second) =>
-                              first.presentDays.compareTo(second.presentDays),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Half day',
-                          width: 110,
-                          value: (row) => '${row.halfDays}',
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Absent',
-                          width: 110,
-                          value: (row) => '${row.absentDays}',
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Trips',
-                          width: 110,
-                          value: (row) => '${row.tripCount}',
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Regular pay',
-                          width: 160,
-                          value: (row) => _moneyLabel(row.regularPay),
-                          compare: (first, second) =>
-                              first.regularPay.compareTo(second.regularPay),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Deductions',
-                          width: 160,
-                          value: (row) =>
-                              '-${_moneyLabel(row.totalDeductions)}',
-                          compare: (first, second) => first.totalDeductions
-                              .compareTo(second.totalDeductions),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Overtime',
-                          width: 150,
-                          value: (row) => _moneyLabel(row.overtimePay),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Route pay',
-                          width: 150,
-                          value: (row) => _moneyLabel(row.tripPay),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Total pay',
-                          width: 170,
-                          value: (row) => _moneyLabel(row.netPay),
-                          compare: (first, second) =>
-                              first.netPay.compareTo(second.netPay),
-                          cellBuilder: (context, row) => Text(
-                            _moneyLabel(row.netPay),
-                            style: const TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                        ),
-                      ],
-                      emptyTitle: 'Prepare this payroll period',
-                      emptyMessage:
-                          'Attendance and trip records are required before driver payroll can be calculated.',
-                      emptyActionLabel: 'Refresh payroll data',
-                      onEmptyAction: _loadPayrollData,
-                      onExportSelection: _exportPayrollSelection,
-                      exportSelectionLabel: 'Export CSV',
-                      onSecondaryExportSelection: _exportPayrollSelectionXlsx,
-                      secondaryExportSelectionLabel: 'Export XLSX',
-                    ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

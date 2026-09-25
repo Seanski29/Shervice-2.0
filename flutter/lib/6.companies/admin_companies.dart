@@ -55,7 +55,9 @@ class _AdminCompaniesState extends State<AdminCompanies> {
   }
 
   bool _isInternalCompany(Map<String, dynamic> company) =>
-      (company['company_name'] ?? '').toString().toUpperCase().contains('INTERNAL');
+      (company['company_name'] ?? '').toString().toUpperCase().contains(
+        'INTERNAL',
+      );
 
   Future<void> _addCompanyDialog() async {
     final nameController = TextEditingController();
@@ -368,9 +370,7 @@ class _AdminCompaniesState extends State<AdminCompanies> {
         onPressed: () => _confirmDeleteCompany(company),
         icon: const Icon(Icons.delete_outline, size: 16),
         label: const Text('Delete'),
-        style: FilledButton.styleFrom(
-          backgroundColor: EnterpriseColors.danger,
-        ),
+        style: FilledButton.styleFrom(backgroundColor: EnterpriseColors.danger),
       ),
     ];
   }
@@ -438,160 +438,202 @@ class _AdminCompaniesState extends State<AdminCompanies> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 1. TOP ROW: Title on Left, Actions on Right
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 768;
+          return Padding(
+            padding: EdgeInsets.all(compact ? 16 : 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Companies',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+                // 1. TOP ROW: Title on Left, Actions on Right
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     SizedBox(
-                      width: 280,
-                      height: 42,
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (value) => setState(() => _searchQuery = value),
-                        style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 13),
-                        decoration: InputDecoration(
-                          hintText: 'Search company name',
-                          hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
-                          prefixIcon: const Icon(Icons.search, size: 18, color: Color(0xFF64748B)),
-                          filled: true,
-                          fillColor: Theme.of(context).cardColor,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(4),
-                            borderSide: BorderSide(color: Theme.of(context).dividerColor),
+                      width: compact ? double.infinity : null,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Companies',
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                ),
                           ),
-                        ),
+                          const SizedBox(height: 4),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    FilledButton.icon(
-                      onPressed: _addCompanyDialog,
-                      icon: const Icon(Icons.add_business_outlined, size: 17),
-                      label: const Text('Add company'),
-                      style: FilledButton.styleFrom(
-                       
-                        minimumSize: const Size(0, 42),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    OutlinedButton.icon(
-                      onPressed: _isLoading ? null : _fetchCompanies,
-                      icon: const Icon(Icons.refresh, size: 17),
-                      label: const Text('Refresh'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 42),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-
-            // 4. MAIN WORKSPACE TABLE
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Top-Left Anchored Table Counter
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: EnterpriseDataGrid<Map<String, dynamic>>(
-                      loading: _isLoading,
-                      rows: companies,
-                      rowKey: (company) => company['company_id'] ?? company.hashCode,
-                      height: double.infinity,
-                      showDateRange: false, // Disables Date Range control
-                      columns: [
-                        EnterpriseGridColumn(
-                          label: 'Company ID',
-                          width: 130,
-                          value: (company) => (company['company_id'] ?? '').toString(),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Company',
-                          width: 280,
-                          value: (company) =>
-                              (company['company_name'] ?? 'Unnamed company').toString(),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Address',
-                          width: 420,
-                          value: (company) =>
-                              (company['address'] ?? 'Not provided').toString(),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Assigned users',
-                          width: 160,
-                          value: (company) => '${company['user_count'] ?? 0}',
-                          compare: (first, second) =>
-                              ((first['user_count'] ?? 0) as num).compareTo(
-                                (second['user_count'] ?? 0) as num,
-                              ),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Type',
-                          width: 190,
-                          value: (company) => _isInternalCompany(company)
-                              ? 'Primary company'
-                              : 'Partner client',
-                          cellBuilder: (context, company) => Text(
-                            _isInternalCompany(company)
-                                ? 'Primary company'
-                                : 'Partner client',
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: compact ? constraints.maxWidth - 32 : 280,
+                          height: 42,
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: (value) =>
+                                setState(() => _searchQuery = value),
                             style: TextStyle(
-                              color: _isInternalCompany(company)
-                                  ? const Color(0xFF10B981)
-                                  : const Color(0xFF3B82F6),
-                              fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.white : Colors.black87,
+                              fontSize: 13,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Search company name',
+                              hintStyle: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 13,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.search,
+                                size: 18,
+                                color: Color(0xFF64748B),
+                              ),
+                              filled: true,
+                              fillColor: Theme.of(context).cardColor,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: BorderSide(
+                                  color: Theme.of(context).dividerColor,
+                                ),
+                              ),
                             ),
                           ),
                         ),
+                        FilledButton.icon(
+                          onPressed: _addCompanyDialog,
+                          icon: const Icon(
+                            Icons.add_business_outlined,
+                            size: 17,
+                          ),
+                          label: const Text('Add company'),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 42),
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: _isLoading ? null : _fetchCompanies,
+                          icon: const Icon(Icons.refresh, size: 17),
+                          label: const Text('Refresh'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 42),
+                          ),
+                        ),
                       ],
-                      filterFields: const [], // Cleared to prevent duplicate search inputs
-                      emptyTitle: _companies.isEmpty
-                          ? 'Add the first partner company'
-                          : 'Nothing matches the current search',
-                      emptyMessage: _companies.isEmpty
-                          ? 'Company records connect users, destinations, trips, and client reporting.'
-                          : 'No company records match the current search query.',
-                      emptyActionLabel: _companies.isEmpty ? 'Add first company' : null,
-                      onEmptyAction: _companies.isEmpty ? _addCompanyDialog : null,
-                      canDelete: (company) =>
-                          !_isInternalCompany(company) &&
-                          ((company['user_count'] ?? 0) as num) == 0,
-                      onBulkDelete: _deleteCompanies,
-                      selectionActionsBuilder: _selectedCompanyActions,
-                      onExportSelection: _exportCompanies,
                     ),
+                  ],
+                ),
+
+                // 4. MAIN WORKSPACE TABLE
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Top-Left Anchored Table Counter
+                      SizedBox(height: compact ? 0 : 12),
+                      Expanded(
+                        child: EnterpriseDataGrid<Map<String, dynamic>>(
+                          loading: _isLoading,
+                          rows: companies,
+                          rowKey: (company) =>
+                              company['company_id'] ?? company.hashCode,
+                          height: double.infinity,
+                          showDateRange: false, // Disables Date Range control
+                          columns: [
+                            EnterpriseGridColumn(
+                              label: 'Company ID',
+                              width: 130,
+                              value: (company) =>
+                                  (company['company_id'] ?? '').toString(),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Company',
+                              width: 280,
+                              value: (company) =>
+                                  (company['company_name'] ?? 'Unnamed company')
+                                      .toString(),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Address',
+                              width: 420,
+                              value: (company) =>
+                                  (company['address'] ?? 'Not provided')
+                                      .toString(),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Assigned users',
+                              width: 160,
+                              value: (company) =>
+                                  '${company['user_count'] ?? 0}',
+                              compare: (first, second) =>
+                                  ((first['user_count'] ?? 0) as num).compareTo(
+                                    (second['user_count'] ?? 0) as num,
+                                  ),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Type',
+                              width: 190,
+                              value: (company) => _isInternalCompany(company)
+                                  ? 'Primary company'
+                                  : 'Partner client',
+                              cellBuilder: (context, company) => Text(
+                                _isInternalCompany(company)
+                                    ? 'Primary company'
+                                    : 'Partner client',
+                                style: TextStyle(
+                                  color: _isInternalCompany(company)
+                                      ? const Color(0xFF10B981)
+                                      : const Color(0xFF3B82F6),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
+                          filterFields:
+                              const [], // Cleared to prevent duplicate search inputs
+                          emptyTitle: _companies.isEmpty
+                              ? 'Add the first partner company'
+                              : 'Nothing matches the current search',
+                          emptyMessage: _companies.isEmpty
+                              ? 'Company records connect users, destinations, trips, and client reporting.'
+                              : 'No company records match the current search query.',
+                          emptyActionLabel: _companies.isEmpty
+                              ? 'Add first company'
+                              : null,
+                          onEmptyAction: _companies.isEmpty
+                              ? _addCompanyDialog
+                              : null,
+                          canDelete: (company) =>
+                              !_isInternalCompany(company) &&
+                              ((company['user_count'] ?? 0) as num) == 0,
+                          onBulkDelete: _deleteCompanies,
+                          selectionActionsBuilder: _selectedCompanyActions,
+                          onExportSelection: _exportCompanies,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

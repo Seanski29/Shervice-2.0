@@ -146,10 +146,44 @@ class _SherviceAppState extends State<SherviceApp> {
           theme: EnterpriseTheme.light(),
           darkTheme: EnterpriseTheme.dark(),
           themeMode: currentMode,
+          builder: (context, child) {
+            final mediaQuery = MediaQuery.of(context);
+            final clampedScale = mediaQuery.textScaler
+                .scale(1)
+                .clamp(0.85, 1.05)
+                .toDouble();
+            return MediaQuery(
+              data: mediaQuery.copyWith(
+                textScaler: TextScaler.linear(clampedScale),
+              ),
+              child: ScrollConfiguration(
+                behavior: const _SherviceScrollBehavior(),
+                child: child ?? const SizedBox.shrink(),
+              ),
+            );
+          },
           home: getInitialScreen(),
         );
       },
     );
+  }
+}
+
+class _SherviceScrollBehavior extends MaterialScrollBehavior {
+  const _SherviceScrollBehavior();
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    return const ClampingScrollPhysics();
+  }
+
+  @override
+  Widget buildScrollbar(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
   }
 }
 

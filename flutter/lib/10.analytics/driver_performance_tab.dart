@@ -182,8 +182,7 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                     drv['full_name'] ?? drv['name'] ?? 'Driver $driverUuid',
                 'rating': avgTotal,
                 'review_count': count,
-                    'ml_classification':
-                    drv['ml_classification'] ?? 'Needs Review',
+                'ml_classification': drv['ml_classification'] ?? 'Needs Review',
                 'employment_status': drv['employment_status'] ?? 'Active',
               });
             }
@@ -698,147 +697,224 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
                         },
                         child: Padding(
                           padding: const EdgeInsets.all(12),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? Colors.blue.withValues(alpha: 0.15)
-                                      : Colors.blue.shade50,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(
-                                  Icons.person,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
+                          child: isMobile
+                              ? Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      driver['full_name'] ?? 'Unknown',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 15,
-                                        color: textColor,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Wrap(
-                                      spacing: 12,
-                                      runSpacing: 4,
+                                    Row(
                                       children: [
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              evaluationCount == 0
-                                                  ? Icons.star_border
-                                                  : Icons.star,
-                                              size: 14,
-                                              color: Colors.amber.shade600,
+                                        Container(
+                                          padding: const EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: isDark
+                                                ? Colors.blue.withValues(
+                                                    alpha: 0.15,
+                                                  )
+                                                : Colors.blue.shade50,
+                                            borderRadius: BorderRadius.circular(
+                                              8,
                                             ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              evaluationCount == 0
-                                                  ? 'New'
-                                                  : rating.toStringAsFixed(1),
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
-                                                color: textColor,
-                                              ),
-                                            ),
-                                            if (evaluationCount > 0)
-                                              Text(
-                                                ' • $evaluationCount evaluations',
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  color: Colors.grey.shade500,
-                                                ),
-                                              ),
-                                            Text(
-                                              ' • $tripCount trips',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                color: Colors.grey.shade500,
-                                              ),
-                                            ),
-                                          ],
+                                          ),
+                                          child: const Icon(
+                                            Icons.person,
+                                            color: Colors.blue,
+                                          ),
                                         ),
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.badge,
-                                              size: 14,
-                                              color: Colors.grey.shade500,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              'ID: $driverId',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey.shade500,
-                                              ),
-                                            ),
-                                          ],
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: _DriverAnalyticsIdentity(
+                                            name:
+                                                driver['full_name'] ??
+                                                'Unknown',
+                                            rating: evaluationCount == 0
+                                                ? 'New'
+                                                : rating.toStringAsFixed(1),
+                                            evaluationCount: evaluationCount,
+                                            tripCount: tripCount,
+                                            driverId: driverId,
+                                            textColor: textColor,
+                                          ),
+                                        ),
+                                        const Icon(
+                                          Icons.chevron_right,
+                                          color: Colors.grey,
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: [
+                                        _DriverAnalyticsChip(
+                                          icon: Icons.analytics_outlined,
+                                          label: classification,
+                                          color: badgeColor,
+                                        ),
+                                        _DriverAnalyticsChip(
+                                          label: status,
+                                          color: statusColor,
+                                          filled: true,
                                         ),
                                       ],
                                     ),
                                   ],
-                                ),
-                              ),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.analytics_outlined,
-                                    color: badgeColor,
-                                    size: 14,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    classification,
-                                    style: TextStyle(
-                                      color: badgeColor,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
+                                )
+                              : Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: isDark
+                                            ? Colors.blue.withValues(
+                                                alpha: 0.15,
+                                              )
+                                            : Colors.blue.shade50,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                        Icons.person,
+                                        color: Colors.blue,
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(width: 12),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            driver['full_name'] ?? 'Unknown',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 15,
+                                              color: textColor,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Wrap(
+                                            spacing: 12,
+                                            runSpacing: 4,
+                                            children: [
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    evaluationCount == 0
+                                                        ? Icons.star_border
+                                                        : Icons.star,
+                                                    size: 14,
+                                                    color:
+                                                        Colors.amber.shade600,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    evaluationCount == 0
+                                                        ? 'New'
+                                                        : rating
+                                                              .toStringAsFixed(
+                                                                1,
+                                                              ),
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: textColor,
+                                                    ),
+                                                  ),
+                                                  if (evaluationCount > 0)
+                                                    Text(
+                                                      ' • $evaluationCount evaluations',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: Colors
+                                                            .grey
+                                                            .shade500,
+                                                      ),
+                                                    ),
+                                                  Text(
+                                                    ' • $tripCount trips',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      color:
+                                                          Colors.grey.shade500,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.badge,
+                                                    size: 14,
+                                                    color: Colors.grey.shade500,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    'ID: $driverId',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color:
+                                                          Colors.grey.shade500,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.analytics_outlined,
+                                          color: badgeColor,
+                                          size: 14,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          classification,
+                                          style: TextStyle(
+                                            color: badgeColor,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: statusColor.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        status,
+                                        style: TextStyle(
+                                          color: statusColor,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Icon(
+                                      Icons.chevron_right,
+                                      color: Colors.grey,
+                                    ),
+                                  ],
                                 ),
-                                decoration: BoxDecoration(
-                                  color: statusColor.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  status,
-                                  style: TextStyle(
-                                    color: statusColor,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Icon(
-                                Icons.chevron_right,
-                                color: Colors.grey,
-                              ),
-                            ],
-                          ),
                         ),
                       ),
                     );
@@ -899,6 +975,132 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
             ),
           ),
       ],
+    );
+  }
+}
+
+class _DriverAnalyticsIdentity extends StatelessWidget {
+  const _DriverAnalyticsIdentity({
+    required this.name,
+    required this.rating,
+    required this.evaluationCount,
+    required this.tripCount,
+    required this.driverId,
+    required this.textColor,
+  });
+
+  final String name;
+  final String rating;
+  final int evaluationCount;
+  final int tripCount;
+  final String driverId;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          name,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+            color: textColor,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 4),
+        Wrap(
+          spacing: 8,
+          runSpacing: 3,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  evaluationCount == 0 ? Icons.star_border : Icons.star,
+                  size: 14,
+                  color: Colors.amber.shade600,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  rating,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                  ),
+                ),
+              ],
+            ),
+            Text(
+              '$evaluationCount evals',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            ),
+            Text(
+              '$tripCount trips',
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.badge, size: 14, color: Colors.grey.shade500),
+                const SizedBox(width: 4),
+                Text(
+                  'ID: $driverId',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _DriverAnalyticsChip extends StatelessWidget {
+  const _DriverAnalyticsChip({
+    required this.label,
+    required this.color,
+    this.icon,
+    this.filled = false,
+  });
+
+  final String label;
+  final Color color;
+  final IconData? icon;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: filled ? color.withValues(alpha: 0.1) : null,
+        border: filled ? null : Border.all(color: color.withValues(alpha: 0.3)),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, color: color, size: 14),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
