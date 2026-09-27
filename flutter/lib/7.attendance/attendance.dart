@@ -2144,25 +2144,17 @@ class _AttendanceState extends State<Attendance> {
                         ? EnterpriseTableSkeleton(
                             columns: _columns.isEmpty ? 6 : _columns.length + 1,
                           )
-                        : activeData.isEmpty
-                        ? EnterpriseEmptyState(
-                            icon: Icons.fact_check_outlined,
-                            title: _rows.isEmpty
+                        : EnterpriseDataGrid<Map<String, String>>(
+                            emptyTitle: _rows.isEmpty
                                 ? 'Import the first attendance file'
                                 : 'Nothing matches the current search or filters',
-                            message: _rows.isEmpty
+                            emptyMessage: _rows.isEmpty
                                 ? 'Import a biometric workbook to establish the attendance register for payroll and workforce reporting.'
                                 : 'No attendance records match the current date range and search query.',
-                            actionLabel: _rows.isEmpty
+                            emptyActionLabel: _rows.isEmpty
                                 ? 'Import attendance file'
                                 : null,
-                            onAction: _rows.isEmpty ? _pickExcelFile : null,
-                          )
-                        : EnterpriseDataGrid<Map<String, String>>(
-                            emptyTitle:
-                                'No attendance records match the current search or filters',
-                            emptyMessage:
-                                'Try adjusting the date range or search query to find records.',
+                            onEmptyAction: _rows.isEmpty ? _pickExcelFile : null,
                             rows: activeData,
                             rowKey: (row) =>
                                 '${row['employee_id'] ?? row['employee'] ?? ''}-${row['date'] ?? ''}',
