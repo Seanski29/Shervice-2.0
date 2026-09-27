@@ -577,16 +577,6 @@ class _AdminCompaniesState extends State<AdminCompanies> {
                                       .toString(),
                             ),
                             EnterpriseGridColumn(
-                              label: 'Assigned users',
-                              width: 160,
-                              value: (company) =>
-                                  '${company['user_count'] ?? 0}',
-                              compare: (first, second) =>
-                                  ((first['user_count'] ?? 0) as num).compareTo(
-                                    (second['user_count'] ?? 0) as num,
-                                  ),
-                            ),
-                            EnterpriseGridColumn(
                               label: 'Type',
                               width: 190,
                               value: (company) => _isInternalCompany(company)
