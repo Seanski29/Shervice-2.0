@@ -22,6 +22,18 @@ from openpyxl import Workbook
 admin_bp = Blueprint('admin', __name__)
 supabase = None
 
+
+def _fetch_all_rows(query, batch_size: int = 1000) -> List[Dict[str, Any]]:
+    """Fetch a Supabase query in pages instead of truncating at 1,000/10,000."""
+    rows: List[Dict[str, Any]] = []
+    offset = 0
+    while True:
+        batch = query.range(offset, offset + batch_size - 1).execute().data or []
+        rows.extend(batch)
+        if len(batch) < batch_size:
+            return rows
+        offset += batch_size
+
 def get_admin_client():
     admin_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     if not admin_key:
@@ -269,13 +281,16 @@ def diagnostic_database_check():
         driver_query = supabase.table('driver_profile').select(
             'driver_id, full_name, birthday, phone_no, date_hired, '
             'employment_status, is_backup, ml_classification'
-        ).limit(10000).execute()
-        raw_data = driver_query.data or []
+        )
+        raw_data = _fetch_all_rows(driver_query)
 
-        evals_query = supabase.table('evaluation').select('driver_id, safety_score, punctuality_score, professionalism_score').limit(10000).execute()
+        evals_query = supabase.table('evaluation').select(
+            'driver_id, safety_score, punctuality_score, professionalism_score'
+        )
+        eval_rows = _fetch_all_rows(evals_query)
         
         driver_scores = {}
-        for ev in evals_query.data or []:
+        for ev in eval_rows:
             driver_id = ev.get('driver_id')
             if driver_id:
                 s = float(ev.get('safety_score') or 0)
@@ -326,9 +341,7 @@ def get_admin_schedules():
         if year_param and year_param.isdigit():
             query = query.gte('schedule_date', f'{year_param}-01-01').lt('schedule_date', f'{int(year_param)+1}-01-01')
 
-        # Limit safely increased to 10000 for heavy payloads
-        trips_res = query.order('schedule_date', desc=False).limit(10000).execute()
-        raw_trips = trips_res.data or []
+        raw_trips = _fetch_all_rows(query.order('schedule_date', desc=False))
 
         clients_res = supabase.table('client_company').select('company_id, company_name').execute()
         company_map = {
@@ -337,11 +350,13 @@ def get_admin_schedules():
             if c.get('company_id') is not None
         }
 
-        # Safe limit for evaluations
-        evals_res = supabase.table('evaluation').select('trip_id, safety_score, punctuality_score, professionalism_score').limit(10000).execute()
+        evaluation_query = supabase.table('evaluation').select(
+            'trip_id, safety_score, punctuality_score, professionalism_score'
+        )
+        eval_rows = _fetch_all_rows(evaluation_query)
         
         trip_evals = {}
-        for ev in (evals_res.data or []):
+        for ev in eval_rows:
             t_id = ev.get('trip_id')
             if t_id is not None:
                 s = float(ev.get('safety_score') or 0.0)
@@ -413,7 +428,7 @@ def upload_legacy_xls_attendance():
 @admin_bp.route('/api/staff/timecards', methods=['GET'])
 def get_attendance_records():
     try:
-        result = (
+        attendance_query = (
             supabase.table("attendance_record")
             .select(
                 "attendance_id, driver_id, employee_id, employee_name, work_date, "
@@ -424,13 +439,12 @@ def get_attendance_records():
             )
             .order("work_date", desc=True)
             .order("created_at", desc=True)
-            .limit(10000)
-            .execute()
         )
+        attendance_rows = _fetch_all_rows(attendance_query)
         return jsonify({
             "success": True,
-            "data": result.data or [],
-            "attendance": result.data or [],
+            "data": attendance_rows,
+            "attendance": attendance_rows,
         }), 200
     except Exception as exc:
         return jsonify({"success": False, "error": f"Unable to load attendance records: {exc}"}), 500
