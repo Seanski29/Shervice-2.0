@@ -92,6 +92,11 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
     'December',
   ];
 
+  String get _currentMonthLabel {
+    final now = DateTime.now();
+    return '${_monthNames[now.month - 1]} ${now.year}';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -167,14 +172,14 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                             metricsMap['ongoingTrips'] ??
                             0)
                         .toString(),
-                subTitle: 'Complete amount of trips',
+                subTitle: '$_currentMonthLabel trips',
                 icon: Icons.route,
                 baseColor: const Color(0xFF3B82F6),
               ),
               DashboardMetric(
                 title: 'Total Passengers',
                 value: (metricsMap['totalPassengers'] ?? 0).toString(),
-                subTitle: 'Total number of passengers',
+                subTitle: '$_currentMonthLabel passengers',
                 icon: Icons.groups_outlined,
                 baseColor: const Color(0xFF8B5CF6),
               ),

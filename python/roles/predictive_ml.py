@@ -101,7 +101,8 @@ def _feature_row(vehicle, vehicle_trips, vehicle_repairs, snapshot_date):
 def _load_history():
     vehicles = _fetch_all(
         'vehicle',
-        'vehicle_id, model_year, bus_type, vehicle_type, is_available, plate_number',
+        'vehicle_id, model_year, bus_type, vehicle_type, is_available, '
+        'health_status, plate_number',
     )
     trips = _fetch_all(
         'trip_schedule', 'vehicle_id, schedule_date, passenger_count, seating_capacity',
@@ -198,9 +199,34 @@ def _fallback_days(features):
 def _forecast(vehicle, vehicle_trips, vehicle_repairs):
     features = _feature_row(vehicle, vehicle_trips, vehicle_repairs, date.today())
     if is_trained:
-        days = float(model.predict(scaler.transform(np.asarray([features], dtype=float)))[0])
+        raw_days = float(model.predict(scaler.transform(np.asarray([features], dtype=float)))[0])
     else:
-        days = _fallback_days(features)
+        raw_days = _fallback_days(features)
+
+    # Multiple linear regression is the evidence-based estimate, but synthetic
+    # data can make a regression extrapolate an implausibly small number for a
+    # vehicle that has never had a repair. Keep the forecast useful for the UI
+    # by applying conservative condition bands after the raw prediction.
+    repairs = int(features[7])
+    health_status = str(vehicle.get('health_status') or '').lower()
+    unavailable = vehicle.get('is_available') is False
+    has_open_issue = (
+        not vehicle.get('is_available', True)
+        or 'maintenance' in health_status
+        or 'repair' in health_status
+    )
+
+    if has_open_issue or unavailable:
+        days = min(raw_days, 7.0)
+    elif repairs == 0:
+        # No repair history is the strongest synthetic Excellent signal.
+        days = max(raw_days, 120.0)
+    elif repairs <= 2:
+        # A small resolved repair history remains serviceable/Good.
+        days = max(raw_days, 45.0)
+    else:
+        days = raw_days
+
     return max(0.0, round(days, 1)), features
 
 

@@ -74,6 +74,11 @@ class _StaffTripsState extends State<StaffTrips> {
   @override
   void initState() {
     super.initState();
+    // Start with the current month instead of loading/displaying all history.
+    final now = DateTime.now();
+    _selectedMonth = now.month;
+    _selectedYear = now.year;
+    _focusedMonth = DateTime(now.year, now.month);
     _fetchTripSummary();
   }
 

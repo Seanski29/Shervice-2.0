@@ -67,7 +67,7 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
       final results = await Future.wait([
         _fetchAnalyticsEndpoint(Uri.parse('$cleanBaseUrl/test-db')),
         _fetchAnalyticsEndpoint(
-          Uri.parse('$cleanBaseUrl/schedules/staff-summary/all'),
+          Uri.parse('$cleanBaseUrl/schedules/staff-summary/all?compact=1'),
         ),
         _fetchAnalyticsEndpoint(
           Uri.parse('$cleanBaseUrl/vehicles/maintenance'),

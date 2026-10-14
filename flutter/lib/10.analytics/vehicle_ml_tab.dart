@@ -76,6 +76,8 @@ class _VehicleMlTabState extends State<VehicleMlTab> {
         dynamicStatus = v['maintenance_due_type'] == 'repair'
             ? 'Due Repair'
             : 'Due Maintenance';
+      } else if (daysRemaining <= 7.0) {
+        dynamicStatus = 'Critical';
       } else if (daysRemaining <= 30.0) {
         dynamicStatus = 'Fair';
       } else if (daysRemaining <= 90.0) {
@@ -115,9 +117,10 @@ class _VehicleMlTabState extends State<VehicleMlTab> {
     if (vehicle['needs_attention'] == true) {
       return 0;
     }
-    if (daysRemaining <= 30.0) return 1;
-    if (daysRemaining <= 90.0) return 2;
-    return 3;
+    if (daysRemaining <= 7.0) return 1;
+    if (daysRemaining <= 30.0) return 2;
+    if (daysRemaining <= 90.0) return 3;
+    return 4;
   }
 
   @override
@@ -227,6 +230,7 @@ class _VehicleMlTabState extends State<VehicleMlTab> {
                                 'Condition: Excellent',
                                 'Condition: Good',
                                 'Condition: Fair',
+                                'Condition: Critical',
                                 'Condition: Due Maintenance',
                                 'Condition: Due Repair',
                               ]
@@ -310,6 +314,9 @@ class _VehicleMlTabState extends State<VehicleMlTab> {
                         statusLabel = 'Due Maintenance';
                         statusColor = const Color(0xFFEF4444);
                       }
+                    } else if (daysRemaining <= 7.0) {
+                      statusLabel = 'Critical';
+                      statusColor = const Color(0xFFEF4444);
                     } else if (daysRemaining <= 30.0) {
                       statusLabel = 'Fair';
                       statusColor = const Color(0xFFF97316);
@@ -987,17 +994,19 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, size: 20, color: color),
               const SizedBox(width: 10),
-              Expanded(
+              Flexible(
                 child: Text(
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -1012,13 +1021,14 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
           const SizedBox(height: 12),
           Flexible(
             child: Align(
-              alignment: Alignment.centerLeft,
+              alignment: Alignment.center,
               child: FittedBox(
                 fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
+                alignment: Alignment.center,
                 child: Text(
                   value,
                   maxLines: 1,
+                  textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w900,

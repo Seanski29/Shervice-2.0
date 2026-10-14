@@ -54,22 +54,27 @@ declare
   driver_count integer;
   vehicle_count integer;
   company_count integer;
+  client_company_count integer;
   route_count integer;
   staff_count integer;
 begin
   select count(*) into driver_count from public.driver_profile;
   select count(*) into vehicle_count from public.vehicle;
   select count(*) into company_count from public.client_company;
+  select count(*) into client_company_count
+  from public.client_company
+  where company_name not ilike '%GT LANTIN%';
   select count(*) into route_count from public.destination;
   select count(*) into staff_count
   from public.user_account
   where lower(role) = 'staff' and staff_id is not null;
 
   if driver_count = 0 or vehicle_count = 0 or company_count = 0
+     or client_company_count = 0
      or route_count = 0 or staff_count < 3 then
     raise exception
-      'Aborted: requires drivers %, vehicles %, companies %, routes %, and at least 3 staff (found %).',
-      driver_count, vehicle_count, company_count, route_count, staff_count;
+      'Aborted: requires drivers %, vehicles %, non-GT-Lantin client companies %, routes %, and at least 3 staff (found %).',
+      driver_count, vehicle_count, client_company_count, route_count, staff_count;
   end if;
 end $$;
 
@@ -139,6 +144,7 @@ with months as (
   select array_agg(company_id order by company_id) as ids,
          count(*)::int as item_count
   from public.client_company
+  where company_name not ilike '%GT LANTIN%'
 ), routes as (
   select array_agg(route_id order by route_id) as ids,
          array_agg(route_name order by route_id) as names,
@@ -186,7 +192,13 @@ select
   time '03:00' + ((c.trip_no % 12) * interval '1 hour'),
   time '07:00' + ((c.trip_no % 12) * interval '1 hour'),
   round((20 + (c.trip_no % 21))::numeric / 40, 2),
-  'Synthetic 2026 operations rebuild.',
+  case (c.trip_no % 5)
+    when 0 then 'Trip successful.'
+    when 1 then 'Trip completed on schedule.'
+    when 2 then 'Trip completed with no reported issues.'
+    when 3 then 'Minor traffic delay; trip completed successfully.'
+    else 'Passenger service completed successfully.'
+  end,
   r.ids[((c.trip_no - 1) % r.item_count) + 1],
   r.names[((c.trip_no - 1) % r.item_count) + 1]
 from trip_calendar c
@@ -206,7 +218,15 @@ with driver_workdays as (
     w.driver_id,
     p.full_name as employee_name,
     w.work_date,
-    ((w.driver_id + extract(day from w.work_date)::int) % 16)::int as late_minutes,
+    case
+      when mod(w.driver_id, 10) in (5, 6)
+        then mod(w.driver_id + extract(day from w.work_date)::int, 4)
+      when mod(w.driver_id, 10) in (2, 3, 4, 9)
+        then 3 + mod(w.driver_id + extract(day from w.work_date)::int, 4)
+      when mod(w.driver_id, 10) in (7, 8)
+        then 8 + mod(w.driver_id + extract(day from w.work_date)::int, 8)
+      else 2 + mod(w.driver_id + extract(day from w.work_date)::int, 4)
+    end::int as late_minutes,
     ((w.driver_id * 3 + extract(day from w.work_date)::int) % 12) = 0
       as has_overtime
   from driver_workdays w
@@ -314,6 +334,21 @@ select
   p.driver_id, p.trip_id, p.vehicle_id, 'passenger'
 from passenger_rows p;
 
+-- Normalize temporary rebuild IDs to the application's SUM date format.
+with rebuild_dates as (
+  select schedule_date::date as work_date,
+         row_number() over (order by schedule_date::date)::int as date_no
+  from public.trip_schedule
+  where ticket_no like 'REBUILD-%'
+  group by schedule_date::date
+)
+update public.trip_schedule t
+set summary_id = 'SUM-' || to_char(d.work_date, 'YYYYMMDD') || '-'
+                 || lpad(d.date_no::text, 6, '0')
+from rebuild_dates d
+where t.ticket_no like 'REBUILD-%'
+  and t.schedule_date::date = d.work_date;
+
 commit;
 
 -- Verification.
@@ -322,7 +357,7 @@ select date_trunc('month', schedule_date::date)::date as month,
        count(distinct driver_id) as drivers_used,
        count(distinct vehicle_id) as vehicles_used
 from public.trip_schedule
-where summary_id like 'REBUILD-%'
+where ticket_no like 'REBUILD-%'
 group by 1
 order by 1;
 

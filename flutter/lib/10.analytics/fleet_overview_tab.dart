@@ -709,7 +709,7 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            "Forecasted Maintenance Cycle Distribution",
+            "Current-Month Fleet Maintenance Forecast",
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 13,
@@ -753,20 +753,20 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
             runSpacing: 12,
             children: [
               _legendItem(
-                'Optimal (>90d)',
+                'Excellent (>90d)',
                 optimal,
                 const Color(0xFF10B981),
                 isDark,
               ),
-              _legendItem('Fair (<90d)', fair, const Color(0xFFF59E0B), isDark),
+              _legendItem('Good (31-90d)', fair, const Color(0xFFF59E0B), isDark),
               _legendItem(
-                'High Risk (<30d)',
+                'Fair (8-30d)',
                 risk,
                 const Color(0xFFF97316),
                 isDark,
               ),
               _legendItem(
-                'Critical (<7d)',
+                'Critical (<=7d)',
                 maint,
                 const Color(0xFFEF4444),
                 isDark,
@@ -797,12 +797,12 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
     }
 
     return _buildPieChartCard(
-      'Forecasted Maintenance Cycle Distribution',
+      'Current-Month Fleet Maintenance Forecast',
       [
-        MapEntry('Optimal (>90d)', optimal),
-        MapEntry('Fair (<90d)', fair),
-        MapEntry('High Risk (<30d)', risk),
-        MapEntry('Critical (<7d)', maint),
+        MapEntry('Excellent (>90d)', optimal),
+        MapEntry('Good (31-90d)', fair),
+        MapEntry('Fair (8-30d)', risk),
+        MapEntry('Critical (<=7d)', maint),
       ],
       const [
         Color(0xFF10B981),
