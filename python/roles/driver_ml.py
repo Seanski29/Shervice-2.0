@@ -1,4 +1,5 @@
 import os
+import threading
 import joblib
 import pandas as pd
 import numpy as np
@@ -16,6 +17,7 @@ supabase = None
 model = None
 scaler = None
 is_trained = False
+_training_lock = threading.Lock()
 
 
 def _fetch_all(table_name, columns, batch_size=1000):
@@ -175,7 +177,16 @@ def generate_ground_truth_labels(row):
     # 5. Default middle-ground
     else:
         return 'Needs Review'
-def train_driver_classification_model():
+def train_driver_classification_model(force: bool = False):
+    """Train once at a time so concurrent driver requests cannot stampede Supabase."""
+    global is_trained
+    with _training_lock:
+        if is_trained and not force:
+            return True
+        return _train_driver_classification_model()
+
+
+def _train_driver_classification_model():
     """
     Trains the KNN Model and updates Supabase.
     """
@@ -205,19 +216,22 @@ def train_driver_classification_model():
     X = df[feature_cols]
     y = df['target_label']
 
-    # Scale the features
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-
-    # Keep a holdout only for reporting. The serving model is fitted on all
-    # available drivers so every current driver receives a classification.
+    # Keep a holdout only for reporting. Fit the evaluation scaler on the
+    # training partition only so test-set statistics cannot leak into the
+    # reported score.
+    label_counts = y.value_counts()
+    stratify_labels = y if label_counts.min() >= 2 else None
     X_train, X_test, y_train, y_test = train_test_split(
-        X_scaled, y, test_size=0.2, random_state=42
+        X, y, test_size=0.2, random_state=42, stratify=stratify_labels
     )
+
+    evaluation_scaler = StandardScaler()
+    X_train_scaled = evaluation_scaler.fit_transform(X_train)
+    X_test_scaled = evaluation_scaler.transform(X_test)
 
     # Initialize and Train KNN
     evaluation_model = KNeighborsClassifier(n_neighbors=3, weights='distance')
-    evaluation_model.fit(X_train, y_train)
+    evaluation_model.fit(X_train_scaled, y_train)
     
     y_pred = evaluation_model.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
@@ -226,9 +240,10 @@ def train_driver_classification_model():
     print(f"KNN Accuracy Score: {accuracy * 100:.2f}%")
     print("\nClassification Report:\n", classification_report(y_test, y_pred, zero_division=0))
 
-    # Refit the serving model on the complete driver dataset. This prevents
-    # the 20% holdout from receiving a classification based on incomplete
-    # neighborhood information.
+    # Refit the serving scaler/model on the complete driver dataset. This is
+    # separate from evaluation and lets every current driver receive a label.
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
     model = KNeighborsClassifier(n_neighbors=3, weights='distance')
     model.fit(X_scaled, y)
 
@@ -265,7 +280,7 @@ def classify_driver(driver_id):
         # included in the trips_amount feature instead of using stale model
         # classifications from an earlier data snapshot.
         if not is_trained or request.args.get('refresh') == '1':
-            train_driver_classification_model()
+            train_driver_classification_model(force=request.args.get('refresh') == '1')
             
         res = supabase.table('driver_profile').select('ml_classification').eq('driver_id', driver_id).execute()
         

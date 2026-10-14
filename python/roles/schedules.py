@@ -581,6 +581,47 @@ def get_all_trips():
 @schedules_bp.route('/api/schedules/staff-summary/<string:staff_uuid>', methods=['GET'])
 def get_staff_trip_summary(staff_uuid):
     try:
+        # Analytics does not need the complete trip editor payload. Returning
+        # only chart/detail fields cuts the initial analytics response down
+        # substantially while keeping the full response for staff screens.
+        if request.args.get('compact') == '1':
+            compact_rows = _fetch_all_rows(
+                supabase.table('trip_schedule').select(
+                    'trip_id, summary_id, schedule_date, passenger_count, '
+                    'driver_id, company_id, route_name'
+                ).order('schedule_date', desc=False)
+            )
+            compact_drivers = supabase.table('driver_profile').select(
+                'driver_id, full_name'
+            ).execute().data or []
+            compact_companies = supabase.table('client_company').select(
+                'company_id, company_name'
+            ).execute().data or []
+            driver_names = {
+                row['driver_id']: row.get('full_name', 'Unassigned')
+                for row in compact_drivers
+                if row.get('driver_id') is not None
+            }
+            company_names = {
+                row['company_id']: row.get('company_name', 'Unknown Client')
+                for row in compact_companies
+                if row.get('company_id') is not None
+            }
+            for trip in compact_rows:
+                company_name = company_names.get(
+                    trip.get('company_id'), 'Unknown Client'
+                )
+                trip['driver_name'] = driver_names.get(
+                    trip.get('driver_id'), 'Unassigned'
+                )
+                trip['company_name'] = company_name
+                trip['client_company'] = {'company_name': company_name}
+            return jsonify({
+                "success": True,
+                "data": compact_rows,
+                "trip_count": len(compact_rows),
+            }), 200
+
         query = supabase.table('trip_schedule').select('*')
         trips = _fetch_all_rows(query.order('schedule_date', desc=False))
 
