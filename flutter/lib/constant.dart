@@ -1,5 +1,5 @@
 // Flip this only when switching between your PC backend and Railway.
-const bool useHostedBackend = false;
+const bool useHostedBackend = true;
 
 const String _localBackendRoot = 'http://localhost:5000';
 const String _hostedBackendRoot =
