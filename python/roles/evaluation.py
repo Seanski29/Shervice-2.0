@@ -109,6 +109,37 @@ def _rate_limited_public_submit():
     return False
 
 
+def _all_drivers():
+    return supabase.table('driver_profile').select(
+        'driver_id, full_name'
+    ).order('full_name').execute().data or []
+
+
+def _passenger_payload(data):
+    driver_id = _driver_id(data.get('driver_id'))
+    ratings = {
+        'safety_score': _rating(data.get('safety_score')),
+        'punctuality_score': _rating(data.get('punctuality_score')),
+        'professionalism_score': _rating(data.get('professionalism_score')),
+    }
+    if not driver_id or any(value is None for value in ratings.values()):
+        return None, 'Select a driver and provide all 1–5 ratings.'
+    driver = supabase.table('driver_profile').select('driver_id').eq(
+        'driver_id', driver_id
+    ).limit(1).execute().data or []
+    if not driver:
+        return None, 'Selected driver was not found.'
+    now = datetime.now(timezone.utc)
+    return {
+        **ratings,
+        'submit_date': now.strftime('%Y-%m-%d'),
+        'submit_time': now.strftime('%H:%M:%S'),
+        'comments': str(data.get('comments') or '')[:2000],
+        'driver_id': driver_id,
+        'source': 'passenger',
+    }, None
+
+
 @evaluate_bp.route('/api/evaluate/driver/<int:driver_id>', methods=['GET'])
 def get_driver_evaluations(driver_id):
     try:
@@ -183,19 +214,24 @@ def create_passenger_survey():
         return jsonify({'success': False, 'message': 'Unable to create passenger survey link.'}), 500
 
 
+@evaluate_bp.route('/api/evaluate/passenger-survey', methods=['GET'])
+def get_permanent_passenger_survey():
+    try:
+        return jsonify({'success': True, 'drivers': _all_drivers(), 'permanent': True}), 200
+    except Exception:
+        return jsonify({'success': False, 'message': 'Unable to load this survey.'}), 500
+
+
 @evaluate_bp.route('/api/evaluate/passenger-survey/<token>', methods=['GET'])
 def get_passenger_survey(token):
     try:
         survey = _load_survey(token)
         if survey is None:
             return jsonify({'success': False, 'message': 'This survey link is invalid or expired.'}), 404
-        drivers = supabase.table('driver_profile').select(
-            'driver_id, full_name'
-        ).order('full_name').execute().data or []
         return jsonify({
             'success': True,
             'survey_id': survey.get('survey_id'),
-            'drivers': drivers,
+            'drivers': _all_drivers(),
             'expires_at': survey.get('expires_at'),
         }), 200
     except Exception:
@@ -210,33 +246,37 @@ def submit_passenger_evaluation(token):
         survey = _load_survey(token)
         if survey is None:
             return jsonify({'success': False, 'message': 'This survey link is invalid or expired.'}), 404
-        data = _json_body()
-        driver_id = _driver_id(data.get('driver_id'))
-        ratings = {
-            'safety_score': _rating(data.get('safety_score')),
-            'punctuality_score': _rating(data.get('punctuality_score')),
-            'professionalism_score': _rating(data.get('professionalism_score')),
-        }
-        if not driver_id or any(value is None for value in ratings.values()):
-            return jsonify({'success': False, 'message': 'Select a driver and provide all 1–5 ratings.'}), 400
-        driver = supabase.table('driver_profile').select('driver_id').eq(
-            'driver_id', driver_id
-        ).limit(1).execute().data or []
-        if not driver:
-            return jsonify({'success': False, 'message': 'Selected driver was not found.'}), 400
-        now = datetime.now(timezone.utc)
+        payload, error = _passenger_payload(_json_body())
+        if error:
+            return jsonify({'success': False, 'message': error}), 400
         supabase.table('evaluation').insert({
-            **ratings,
-            'submit_date': now.strftime('%Y-%m-%d'),
-            'submit_time': now.strftime('%H:%M:%S'),
-            'comments': str(data.get('comments') or '')[:2000],
-            'driver_id': driver_id,
+            **payload,
             'source': 'passenger',
             'survey_id': survey.get('survey_id'),
         }).execute()
         return jsonify({'success': True, 'message': 'Thank you for your anonymous feedback.'}), 201
     except Exception:
         return jsonify({'success': False, 'message': 'Unable to submit your evaluation.'}), 500
+
+
+@evaluate_bp.route('/api/evaluate/passenger-submit', methods=['POST'])
+def submit_permanent_passenger_evaluation():
+    if _rate_limited_public_submit():
+        return jsonify({'success': False, 'message': 'Too many submissions. Please try again later.'}), 429
+    try:
+        payload, error = _passenger_payload(_json_body())
+        if error:
+            return jsonify({'success': False, 'message': error}), 400
+        supabase.table('evaluation').insert(payload).execute()
+        return jsonify({'success': True, 'message': 'Thank you for your anonymous feedback.'}), 201
+    except Exception:
+        current_app.logger.exception('Permanent passenger evaluation submission failed')
+        return jsonify({'success': False, 'message': 'Unable to submit your evaluation.'}), 500
+
+
+@evaluate_bp.route('/passenger-evaluation', methods=['GET'])
+def permanent_passenger_evaluation_page():
+    return render_template('passenger_evaluation.html', token=None)
 
 
 @evaluate_bp.route('/passenger-evaluation/<token>', methods=['GET'])
