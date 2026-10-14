@@ -6,7 +6,7 @@ from collections import defaultdict, deque
 from datetime import datetime, timezone, timedelta
 from functools import wraps
 
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, current_app, jsonify, render_template, request
 
 evaluate_bp = Blueprint('evaluate', __name__)
 supabase = None
@@ -168,7 +168,7 @@ def create_passenger_survey():
             'token_hash': _token_hash(token),
             'created_by': str(request.evaluation_user.id),
             'expires_at': expires_at.isoformat(),
-        }).execute().data or []
+        }).select('survey_id, expires_at').execute().data or []
         if not created:
             raise RuntimeError('Survey was not created.')
         survey = created[0]
@@ -179,6 +179,7 @@ def create_passenger_survey():
             'expires_at': survey.get('expires_at'),
         }), 201
     except Exception:
+        current_app.logger.exception('Passenger survey link creation failed')
         return jsonify({'success': False, 'message': 'Unable to create passenger survey link.'}), 500
 
 
