@@ -5,6 +5,7 @@ import time
 from collections import defaultdict, deque
 from datetime import datetime, timezone, timedelta
 from functools import wraps
+from uuid import uuid4
 
 from flask import Blueprint, current_app, jsonify, render_template, request
 
@@ -162,21 +163,20 @@ def create_passenger_survey():
     except (TypeError, ValueError):
         days = 7
     token = secrets.token_urlsafe(32)
+    survey_id = str(uuid4())
     expires_at = datetime.now(timezone.utc).replace(microsecond=0) + timedelta(days=days)
     try:
-        created = supabase.table('passenger_evaluation_survey').insert({
+        supabase.table('passenger_evaluation_survey').insert({
+            'survey_id': survey_id,
             'token_hash': _token_hash(token),
             'created_by': str(request.evaluation_user.id),
             'expires_at': expires_at.isoformat(),
-        }).select('survey_id, expires_at').execute().data or []
-        if not created:
-            raise RuntimeError('Survey was not created.')
-        survey = created[0]
+        }).execute()
         return jsonify({
             'success': True,
-            'survey_id': survey.get('survey_id'),
+            'survey_id': survey_id,
             'url': _public_survey_url(token),
-            'expires_at': survey.get('expires_at'),
+            'expires_at': expires_at.isoformat(),
         }), 201
     except Exception:
         current_app.logger.exception('Passenger survey link creation failed')
