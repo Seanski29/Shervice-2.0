@@ -97,6 +97,10 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
         ),
       );
 
+      final attendanceUri = Uri.parse(attendanceUrl).replace(
+        queryParameters: {'driver_id': widget.driverId},
+      );
+
       final responses = await Future.wait([
         http.get(
           Uri.parse('${widget.backendUrl}/evaluate/driver/${widget.driverId}'),
@@ -104,7 +108,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
         http.get(
           Uri.parse('${widget.backendUrl}/schedules/driver/${widget.driverId}'),
         ),
-        http.get(Uri.parse(attendanceUrl)),
+        http.get(attendanceUri),
       ]);
       final evalRes = responses[0];
       final tripsRes = responses[1];

@@ -183,8 +183,8 @@ select
   'REBUILD-' || to_char(c.work_date, 'YYYYMMDD') || '-' || lpad(c.trip_no::text, 4, '0'),
   d.ids[((c.trip_no - 1) % d.item_count) + 1],
   20 + (c.trip_no % 21),
-  to_char(time '03:00' + ((c.trip_no % 12) * interval '1 hour'), 'HH24:MI'),
-  to_char(time '07:00' + ((c.trip_no % 12) * interval '1 hour'), 'HH24:MI'),
+  time '03:00' + ((c.trip_no % 12) * interval '1 hour'),
+  time '07:00' + ((c.trip_no % 12) * interval '1 hour'),
   round((20 + (c.trip_no % 21))::numeric / 40, 2),
   'Synthetic 2026 operations rebuild.',
   r.ids[((c.trip_no - 1) % r.item_count) + 1],
@@ -206,7 +206,9 @@ with driver_workdays as (
     w.driver_id,
     p.full_name as employee_name,
     w.work_date,
-    ((w.driver_id + extract(day from w.work_date)::int) % 16)::int as late_minutes
+    ((w.driver_id + extract(day from w.work_date)::int) % 16)::int as late_minutes,
+    ((w.driver_id * 3 + extract(day from w.work_date)::int) % 12) = 0
+      as has_overtime
   from driver_workdays w
   join public.driver_profile p on p.driver_id = w.driver_id
 )
@@ -225,12 +227,20 @@ select
   a.work_date,
   to_char(a.work_date, 'MM/DD/YYYY'),
   to_char(time '03:00' + a.late_minutes * interval '1 minute', 'HH24:MI'),
-  '19:00', '08:00', '08:00',
+  case when a.has_overtime then '21:00' else '19:00' end,
+  case when a.has_overtime then '10:00' else '08:00' end,
+  case when a.has_overtime then '10:00' else '08:00' end,
   to_char(time '03:00' + a.late_minutes * interval '1 minute', 'HH24:MI'),
   '07:00', '15:00', '19:00',
-  null, null,
+  case when a.has_overtime then '19:00' else null end,
+  case when a.has_overtime then '21:00' else null end,
   a.late_minutes,
-  case when a.late_minutes = 0 then 'Present' else 'Present - Late' end,
+  case
+    when a.has_overtime and a.late_minutes > 0 then 'Present - Late - Overtime'
+    when a.has_overtime then 'Present - Overtime'
+    when a.late_minutes > 0 then 'Present - Late'
+    else 'Present'
+  end,
   '2026 Operations Rebuild Attendance.xls',
   jsonb_build_object('generated', true, 'work_date', a.work_date)
 from attendance_values a;

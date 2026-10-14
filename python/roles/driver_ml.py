@@ -139,9 +139,16 @@ def generate_ground_truth_labels(row):
     late_mins = row['total_minutes_late']
     absences = row['absent_count']
     present = row['present_count']
+    attendance_days = max(
+        present + row['half_day_count'] + absences,
+        1,
+    )
+    average_late_minutes = late_mins / attendance_days
     
     # 1. Critical fail conditions
-    if absences >= 3 or late_mins > 60 or punctuality < 3.0:
+    # Use an average per attendance day. A lifetime total would classify
+    # nearly every driver as late after several months of normal attendance.
+    if absences >= 3 or average_late_minutes > 10 or punctuality < 3.0:
         return 'Tardiness Risk'
         
     # 2. Safety fail conditions
@@ -149,7 +156,7 @@ def generate_ground_truth_labels(row):
         return 'Safety Risk'
         
     # 3. High performer conditions (Now requires high professionalism AND actual attendance data)
-    elif safety >= 4.5 and punctuality >= 4.5 and professionalism >= 4.0 and late_mins <= 15 and absences == 0 and present > 0:
+    elif safety >= 4.5 and punctuality >= 4.5 and professionalism >= 4.0 and average_late_minutes <= 3 and absences == 0 and present > 0:
         return 'Elite Performer'
 
     # 4. Consistent drivers: reliable attendance and performance, but not
@@ -158,7 +165,7 @@ def generate_ground_truth_labels(row):
         safety >= 4.0
         and punctuality >= 4.0
         and professionalism >= 4.0
-        and late_mins <= 30
+        and average_late_minutes <= 6
         and absences == 0
         and present > 0
         and row['trips_amount'] > 0
