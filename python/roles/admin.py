@@ -34,6 +34,16 @@ def _fetch_all_rows(query, batch_size: int = 1000) -> List[Dict[str, Any]]:
             return rows
         offset += batch_size
 
+
+def _positive_query_int(name: str, default: int, maximum: int = 1000) -> int:
+    """Read a bounded positive integer query parameter."""
+    raw_value = request.args.get(name)
+    try:
+        value = int(raw_value) if raw_value is not None else default
+    except (TypeError, ValueError):
+        return default
+    return max(1, min(value, maximum))
+
 def get_admin_client():
     admin_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
     if not admin_key:
@@ -440,6 +450,46 @@ def get_attendance_records():
             .order("work_date", desc=True)
             .order("created_at", desc=True)
         )
+
+        # Keep filtering in Postgres. The driver profile page previously
+        # downloaded every attendance row and filtered it in Flutter.
+        driver_param = request.args.get("driver_id")
+        if driver_param:
+            try:
+                attendance_query = attendance_query.eq("driver_id", int(driver_param))
+            except (TypeError, ValueError):
+                return jsonify({"success": False, "error": "driver_id must be numeric."}), 400
+
+        from_date = request.args.get("from_date")
+        to_date = request.args.get("to_date")
+        if from_date:
+            attendance_query = attendance_query.gte("work_date", from_date)
+        if to_date:
+            attendance_query = attendance_query.lte("work_date", to_date)
+
+        # Optional API pagination. Existing clients that do not send `page`
+        # retain the full response for compatibility.
+        page = request.args.get("page")
+        if page is not None:
+            page_number = _positive_query_int("page", 1)
+            page_size = _positive_query_int("page_size", 10)
+            start = (page_number - 1) * page_size
+            attendance_rows = (
+                attendance_query
+                .range(start, start + page_size - 1)
+                .execute()
+                .data
+                or []
+            )
+            return jsonify({
+                "success": True,
+                "data": attendance_rows,
+                "attendance": attendance_rows,
+                "page": page_number,
+                "page_size": page_size,
+                "has_more": len(attendance_rows) == page_size,
+            }), 200
+
         attendance_rows = _fetch_all_rows(attendance_query)
         return jsonify({
             "success": True,
