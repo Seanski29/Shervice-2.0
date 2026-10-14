@@ -1962,7 +1962,6 @@ class _SummarySheetPage extends StatelessWidget {
                               : const Color(0xFFF8FAFC),
                         ),
                         columns: const [
-                          DataColumn(label: Text('No.')),
                           DataColumn(label: Text('Date')),
                           DataColumn(label: Text('Day')),
                           DataColumn(label: Text('Type')),
@@ -1982,7 +1981,6 @@ class _SummarySheetPage extends StatelessWidget {
                           final trip = rows[index];
                           return DataRow(
                             cells: [
-                              DataCell(Text('${index + 1}')),
                               DataCell(
                                 _plainCell(
                                   (trip['schedule_date'] ?? trip['date'] ?? '')

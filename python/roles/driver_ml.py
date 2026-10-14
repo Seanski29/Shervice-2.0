@@ -48,15 +48,33 @@ def fetch_and_prepare_data():
     # 2. Fetch Evaluations
     evals_df = pd.DataFrame(_fetch_all(
         'evaluation',
-        'driver_id, safety_score, punctuality_score, professionalism_score',
+        'driver_id, safety_score, punctuality_score, professionalism_score, source',
     ))
     
     if not evals_df.empty:
-        evals_agg = evals_df.groupby('driver_id').agg({
+        evals_df['source'] = evals_df['source'].fillna('staff').where(
+            evals_df['source'].isin(['staff', 'passenger']), 'staff'
+        )
+        source_means = evals_df.groupby(['driver_id', 'source']).agg({
             'safety_score': 'mean',
             'punctuality_score': 'mean',
-            'professionalism_score': 'mean'
+            'professionalism_score': 'mean',
         }).reset_index()
+        source_means = source_means.pivot(index='driver_id', columns='source')
+        source_means.columns = [f'{metric}_{source}' for metric, source in source_means.columns]
+        source_means = source_means.reset_index()
+
+        # Staff observations receive more weight for operational classification,
+        # while passenger feedback still contributes substantially. If only one
+        # source exists, use that source rather than inventing a second score.
+        for metric in ('safety_score', 'punctuality_score', 'professionalism_score'):
+            staff = source_means.get(f'{metric}_staff', pd.Series(index=source_means.index, dtype=float))
+            passenger = source_means.get(f'{metric}_passenger', pd.Series(index=source_means.index, dtype=float))
+            source_means[metric] = np.where(
+                staff.notna() & passenger.notna(), staff * 0.60 + passenger * 0.40,
+                staff.fillna(passenger),
+            )
+        evals_agg = source_means[['driver_id', 'safety_score', 'punctuality_score', 'professionalism_score']]
     else:
         evals_agg = pd.DataFrame(columns=['driver_id', 'safety_score', 'punctuality_score', 'professionalism_score'])
 
@@ -100,9 +118,11 @@ def fetch_and_prepare_data():
 
     # Fill missing data safely
     df.fillna({
-        'safety_score': 5.0,
-        'punctuality_score': 5.0,
-        'professionalism_score': 5.0,
+        # Missing feedback is neutral, not perfect. A driver with no reviews
+        # must not receive an artificial 5.0 rating.
+        'safety_score': 3.0,
+        'punctuality_score': 3.0,
+        'professionalism_score': 3.0,
         'trips_amount': 0,
         'total_minutes_late': 0,
         'present_count': 0,

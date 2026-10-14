@@ -165,7 +165,10 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
   @override
   Widget build(BuildContext context) {
     if (widget.loading) {
-      return EnterpriseTableSkeleton(columns: widget.columns.length + 1);
+      return EnterpriseTableSkeleton(
+        columns: widget.columns.length +
+            ((widget.selectable || widget.onDelete != null) ? 1 : 0),
+      );
     }
 
     final theme = Theme.of(context);
@@ -176,8 +179,9 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
               .where((row) => _selectedKeys.contains(widget.rowKey(row)))
               .toList()
         : <T>[];
+    final hasLeadingColumn = widget.selectable || widget.onDelete != null;
     final totalWidth =
-        78.0 +
+        (hasLeadingColumn ? 48.0 : 0.0) +
         widget.columns.fold<double>(
           0,
           (sum, column) => sum + _columnWidth(column),
@@ -742,6 +746,7 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
     double totalWidth,
     double extraColumnWidth,
   ) {
+    final hasLeadingColumn = widget.selectable || widget.onDelete != null;
     final canSelectAll = widget.selectable && widget.allowSelectAll;
     final allSelected =
         canSelectAll && _selectedKeys.length == widget.rows.length;
@@ -751,8 +756,9 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
       color: theme.cardColor,
       child: Row(
         children: [
+          if (hasLeadingColumn)
           SizedBox(
-            width: 78,
+              width: 48,
             child: Row(
               children: [
                 if (canSelectAll)
@@ -769,8 +775,7 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
                     },
                   )
                 else
-                  const SizedBox(width: 18),
-                Text('#', style: TextStyle(color: theme.colorScheme.onSurface)),
+                  const SizedBox(width: 48),
               ],
             ),
           ),
@@ -844,27 +849,27 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
           : Colors.transparent,
       child: Row(
         children: [
-          _GridRowNumber(
-            number: rowIndex + 1,
-            selected: selected,
-            selectable: widget.selectable,
-            canDelete:
-                widget.onDelete != null &&
-                (widget.canDelete?.call(row) ?? true),
-            onSelected: (value) {
-              setState(() {
-                if (value) {
-                  if (widget.singleSelect) _selectedKeys.clear();
-                  _selectedKeys.add(key);
-                } else {
-                  _selectedKeys.remove(key);
-                }
-              });
-            },
-            onDelete: widget.onDelete == null
-                ? null
-                : () => _confirmRowDelete(row),
-          ),
+          if (widget.selectable || widget.onDelete != null)
+            _GridRowNumber(
+              selected: selected,
+              selectable: widget.selectable,
+              canDelete:
+                  widget.onDelete != null &&
+                  (widget.canDelete?.call(row) ?? true),
+              onSelected: (value) {
+                setState(() {
+                  if (value) {
+                    if (widget.singleSelect) _selectedKeys.clear();
+                    _selectedKeys.add(key);
+                  } else {
+                    _selectedKeys.remove(key);
+                  }
+                });
+              },
+              onDelete: widget.onDelete == null
+                  ? null
+                  : () => _confirmRowDelete(row),
+            ),
           for (
             var columnIndex = 0;
             columnIndex < widget.columns.length;
@@ -1357,7 +1362,6 @@ class _ZoomButton extends StatelessWidget {
 
 class _GridRowNumber extends StatefulWidget {
   const _GridRowNumber({
-    required this.number,
     required this.selected,
     required this.selectable,
     required this.canDelete,
@@ -1365,7 +1369,6 @@ class _GridRowNumber extends StatefulWidget {
     required this.onDelete,
   });
 
-  final int number;
   final bool selected;
   final bool selectable;
   final bool canDelete;
@@ -1385,7 +1388,7 @@ class _GridRowNumberState extends State<_GridRowNumber> {
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: Container(
-        width: 78,
+        width: 48,
         height: 42,
         decoration: BoxDecoration(
           color: _hovered
@@ -1403,22 +1406,19 @@ class _GridRowNumberState extends State<_GridRowNumber> {
                 onChanged: (v) => widget.onSelected(v ?? false),
               )
             else
-              const SizedBox(width: 18),
+              const SizedBox(width: 48),
             Expanded(
               child: _hovered && widget.canDelete
                   ? IconButton(
                       onPressed: widget.onDelete,
-                      tooltip: 'Delete row ${widget.number}',
+                      tooltip: 'Delete row',
                       icon: const Icon(
                         Icons.delete_outline,
                         size: 16,
                         color: EnterpriseColors.danger,
                       ),
                     )
-                  : Text(
-                      '${widget.number}',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+                  : const SizedBox.shrink(),
             ),
           ],
         ),
