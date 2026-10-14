@@ -15,6 +15,18 @@ except ImportError:
 schedules_bp = Blueprint('schedules', __name__)
 supabase = None  
 
+
+def _fetch_all_rows(query, batch_size=1000):
+    """Fetch a Supabase query in pages instead of relying on one page."""
+    rows = []
+    offset = 0
+    while True:
+        batch = query.range(offset, offset + batch_size - 1).execute().data or []
+        rows.extend(batch)
+        if len(batch) < batch_size:
+            return rows
+        offset += batch_size
+
 def _normalize_date(val):
     if not val:
         return None
@@ -532,8 +544,8 @@ def get_driver_trips(driver_id):
             # avoids making the entire request fail when an older database is
             # missing an optional trip column.
             'trip_id, driver_id, schedule_date'
-        ).eq('driver_id', driver_key).order('schedule_date', desc=True).execute()
-        rows = query.data or []
+        ).eq('driver_id', driver_key).order('schedule_date', desc=True)
+        rows = _fetch_all_rows(query)
         return jsonify({"success": True, "data": rows, "trip_count": len(rows)}), 200
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
@@ -541,9 +553,11 @@ def get_driver_trips(driver_id):
 @schedules_bp.route('/api/schedules/all', methods=['GET'])
 def get_all_trips():
     try:
-        trips = supabase.table('trip_schedule').select('*').order(
-            'schedule_date', desc=True
-        ).execute()
+        trips = _fetch_all_rows(
+            supabase.table('trip_schedule').select('*').order(
+                'schedule_date', desc=True
+            )
+        )
         vehicles = supabase.table('vehicle').select(
             'vehicle_id, plate_number, bus_type'
         ).execute()
@@ -555,7 +569,7 @@ def get_all_trips():
         d_map = {d['driver_id']: d['full_name'] for d in drivers.data if d.get('driver_id') is not None}
 
         formatted_trips = []
-        for t in trips.data:
+        for t in trips:
             t['plate_number'] = v_map.get(t.get('vehicle_id'), 'No Plate Assigned')
             t['driver_name'] = d_map.get(t.get('driver_id'), 'Unassigned')
             formatted_trips.append(t)
@@ -568,7 +582,7 @@ def get_all_trips():
 def get_staff_trip_summary(staff_uuid):
     try:
         query = supabase.table('trip_schedule').select('*')
-        trips = query.order('schedule_date', desc=False).execute()
+        trips = _fetch_all_rows(query.order('schedule_date', desc=False))
 
         vehicles = supabase.table('vehicle').select(
             'vehicle_id, plate_number, bus_type'
@@ -586,7 +600,7 @@ def get_staff_trip_summary(staff_uuid):
         company_rows = {c['company_id']: c for c in (companies.data or []) if c.get('company_id') is not None}
 
         formatted_trips = []
-        for trip in trips.data or []:
+        for trip in trips:
             vehicle = v_map.get(trip.get('vehicle_id'), {})
             schedule_date = trip.get('schedule_date')
             working_day = trip.get('working_day')
