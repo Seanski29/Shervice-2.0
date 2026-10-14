@@ -906,7 +906,6 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
                               dataRowMinHeight: 62,
                               dataRowMaxHeight: 92,
                               columns: const [
-                                DataColumn(label: Text('No.')),
                                 DataColumn(label: Text('Vehicle')),
                                 DataColumn(label: Text('Vehicle Type')),
                                 DataColumn(label: Text('Class')),
@@ -925,13 +924,6 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
                                 final row = _rows[index];
                                 return DataRow(
                                   cells: [
-                                    DataCell(
-                                      _EditorRowNumberCell(
-                                        number: index + 1,
-                                        canDelete: _rows.length > 1,
-                                        onDelete: () => _removeRow(index),
-                                      ),
-                                    ),
                                     DataCell(
                                       _vehicleAutocompleteCell(
                                         row,
@@ -1456,35 +1448,6 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
     );
   }
 
-  Widget _selectorCell(
-    String label,
-    double width,
-    Color fillColor,
-    bool isDark,
-    VoidCallback onTap,
-  ) {
-    return SizedBox(
-      width: width,
-      child: InkWell(
-        onTap: _isLoadingOptions ? null : onTap,
-        child: InputDecorator(
-          decoration: _cellDecoration(fillColor, isDark).copyWith(
-            suffixIcon: Icon(
-              Icons.search,
-              size: 18,
-              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-            ),
-          ),
-          child: Text(
-            label.trim().isEmpty ? 'Search...' : label,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-          ),
-        ),
-      ),
-    );
-  }
-
   InputDecoration _cellDecoration(Color fillColor, bool isDark) {
     return InputDecoration(
       isDense: true,
@@ -1503,52 +1466,6 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
         ),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-    );
-  }
-}
-
-class _EditorRowNumberCell extends StatefulWidget {
-  const _EditorRowNumberCell({
-    required this.number,
-    required this.canDelete,
-    required this.onDelete,
-  });
-
-  final int number;
-  final bool canDelete;
-  final VoidCallback onDelete;
-
-  @override
-  State<_EditorRowNumberCell> createState() => _EditorRowNumberCellState();
-}
-
-class _EditorRowNumberCellState extends State<_EditorRowNumberCell> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: SizedBox(
-        width: 34,
-        child: _hovered && widget.canDelete
-            ? IconButton(
-                onPressed: widget.onDelete,
-                tooltip: 'Delete row ${widget.number}',
-                icon: const Icon(
-                  Icons.delete_outline,
-                  size: 16,
-                  color: Color(0xFFD92D20),
-                ),
-              )
-            : Center(
-                child: Text(
-                  '${widget.number}',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
-      ),
     );
   }
 }
