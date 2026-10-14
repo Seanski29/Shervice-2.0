@@ -299,6 +299,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
       compiledEvals.add({
         'eval_id': e['evaluation_id']?.toString() ?? 'N/A',
         'date': e['submit_date'] ?? 'Unknown Date',
+        'source': (e['source'] ?? 'staff').toString().toLowerCase(),
         'overall_avg': (p + s + pr) / 3.0,
         'avg_punctuality': p,
         'avg_safety': s,
@@ -382,13 +383,36 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
   }
 
   int get _totalPages =>
-      max(1, (_processedEvals.length / _itemsPerPage).ceil());
-  List<Map<String, dynamic>> get _paginatedEvals {
-    if (_processedEvals.isEmpty) return [];
+      max(1, (_evaluationGroups.length / _itemsPerPage).ceil());
+
+  List<Map<String, dynamic>> get _evaluationGroups {
+    final grouped = <String, List<Map<String, dynamic>>>{};
+    for (final evaluation in _processedEvals) {
+      final date = evaluation['date']?.toString() ?? 'Unknown Date';
+      grouped.putIfAbsent(date, () => []).add(evaluation);
+    }
+    return grouped.entries.map((entry) {
+      final evaluations = entry.value;
+      final average = evaluations.fold<double>(
+            0,
+            (sum, item) => sum + (item['overall_avg'] as num).toDouble(),
+          ) /
+          evaluations.length;
+      return {
+        'date': entry.key,
+        'evaluations': evaluations,
+        'overall_avg': average,
+      };
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> get _paginatedGroups {
+    final groups = _evaluationGroups;
+    if (groups.isEmpty) return [];
     int start = _currentPage * _itemsPerPage;
-    return _processedEvals.sublist(
+    return groups.sublist(
       start,
-      min(start + _itemsPerPage, _processedEvals.length),
+      min(start + _itemsPerPage, groups.length),
     );
   }
 
@@ -603,9 +627,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: isDark
-                ? Colors.blue.withValues(alpha: 0.05)
-                : theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+            color: isDark ? const Color(0xFF172554) : const Color(0xFFE0F2FE),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isDark
@@ -827,9 +849,11 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
                   ),
                 )
               : ListView.builder(
-                  itemCount: _paginatedEvals.length,
+                  itemCount: _paginatedGroups.length,
                   itemBuilder: (context, index) {
-                    final eval = _paginatedEvals[index];
+                    final group = _paginatedGroups[index];
+                    final evaluations = (group['evaluations'] as List)
+                        .cast<Map<String, dynamic>>();
                     final bool isExpanded = _expandedIndex == index;
 
                     return Container(
@@ -884,7 +908,11 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Staff Evaluation',
+                                            evaluations.every((item) => item['source'] == 'passenger')
+                                                ? 'Passenger Evaluation'
+                                                : evaluations.every((item) => item['source'] == 'staff')
+                                                    ? 'Staff Evaluation'
+                                                    : 'Staff & Passenger Evaluations',
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 15,
@@ -895,7 +923,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            'Date Submitted: ${eval['date']}',
+                                            '${group['date']} • ${evaluations.length} evaluation${evaluations.length == 1 ? '' : 's'}',
                                             style: TextStyle(
                                               fontSize: 12,
                                               color: isDark
@@ -925,7 +953,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
                                         child: Row(
                                           children: [
                                             Text(
-                                              eval['overall_avg']
+                                              group['overall_avg']
                                                   .toStringAsFixed(1),
                                               style: TextStyle(
                                                 fontWeight: FontWeight.bold,
@@ -959,75 +987,10 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
                                   ),
                                 ],
                               ),
-                              if (isExpanded) ...[
-                                const SizedBox(height: 16),
-                                Divider(
-                                  height: 1,
-                                  color: isDark
-                                      ? Colors.grey.shade800
-                                      : Colors.grey.shade200,
+                              if (isExpanded)
+                                ...evaluations.map(
+                                  (detail) => _buildEvaluationDetails(detail, isDark),
                                 ),
-                                const SizedBox(height: 16),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  children: [
-                                    _buildMiniTripScore(
-                                      'Safety',
-                                      eval['avg_safety'],
-                                      isDark,
-                                    ),
-                                    _buildMiniTripScore(
-                                      'Punctuality',
-                                      eval['avg_punctuality'],
-                                      isDark,
-                                    ),
-                                    _buildMiniTripScore(
-                                      'Professionalism',
-                                      eval['avg_professionalism'],
-                                      isDark,
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'STAFF REMARKS',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: isDark
-                                        ? Colors.grey.shade500
-                                        : Colors.grey.shade400,
-                                    letterSpacing: 1,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: isDark
-                                        ? const Color(0xFF1E293B)
-                                        : const Color(0xFFF8FAFC),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: isDark
-                                          ? Colors.grey.shade800
-                                          : Colors.grey.shade200,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    eval['comments'],
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontStyle: FontStyle.italic,
-                                      color: isDark
-                                          ? Colors.grey.shade300
-                                          : const Color(0xFF334155),
-                                    ),
-                                  ),
-                                ),
-                              ],
                             ],
                           ),
                         ),
@@ -1044,7 +1007,7 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Showing ${(_currentPage * _itemsPerPage) + 1} - ${min((_currentPage + 1) * _itemsPerPage, _processedEvals.length)} of ${_processedEvals.length} entries',
+                  'Showing ${(_currentPage * _itemsPerPage) + 1} - ${min((_currentPage + 1) * _itemsPerPage, _evaluationGroups.length)} of ${_evaluationGroups.length} dates',
                   style: TextStyle(
                     fontSize: 12,
                     color: theme.colorScheme.onSurfaceVariant,
@@ -1124,6 +1087,71 @@ class _DriverEvaluationViewState extends State<DriverEvaluationView> {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildEvaluationDetails(Map<String, dynamic> eval, bool isDark) {
+    final isPassenger = eval['source'] == 'passenger';
+    final accent = isPassenger ? const Color(0xFF0F766E) : const Color(0xFF2563EB);
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Divider(
+            height: 1,
+            color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Icon(isPassenger ? Icons.people_outline : Icons.badge_outlined, color: accent, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                isPassenger ? 'Passenger Evaluation' : 'Staff Evaluation',
+                style: TextStyle(color: accent, fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildMiniTripScore('Safety', eval['avg_safety'], isDark),
+              _buildMiniTripScore('Punctuality', eval['avg_punctuality'], isDark),
+              _buildMiniTripScore('Professionalism', eval['avg_professionalism'], isDark),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            isPassenger ? 'PASSENGER COMMENTS' : 'STAFF REMARKS',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+              letterSpacing: 1,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: isDark ? Colors.grey.shade700 : Colors.grey.shade300),
+            ),
+            child: Text(
+              eval['comments'],
+              style: TextStyle(
+                fontSize: 13,
+                fontStyle: FontStyle.italic,
+                color: isDark ? Colors.grey.shade200 : const Color(0xFF1E293B),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
