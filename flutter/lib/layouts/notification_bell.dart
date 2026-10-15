@@ -80,21 +80,15 @@ class NotificationEntry {
 class _NotificationBellState extends State<NotificationBell> {
   bool _isLoading = false;
   List<NotificationEntry> _notifications = [];
-  Timer? _initialFetchTimer;
 
   @override
   void initState() {
     super.initState();
-    _initialFetchTimer = Timer(
-      const Duration(seconds: 4),
-      _fetchNotifications,
-    );
-  }
-
-  @override
-  void dispose() {
-    _initialFetchTimer?.cancel();
-    super.dispose();
+    // Fetch after the first frame so the panel can render immediately.
+    // The previous four-second timer made notifications appear stalled.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _fetchNotifications();
+    });
   }
 
   Future<void> _fetchNotifications() async {
@@ -312,8 +306,6 @@ class _NotificationBellState extends State<NotificationBell> {
   }
 
   void _showNotificationPanel() {
-    _initialFetchTimer?.cancel();
-    _initialFetchTimer = null;
     unawaited(_fetchNotifications());
 
     final topPadding = MediaQuery.of(context).padding.top + 8;
