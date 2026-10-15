@@ -100,7 +100,9 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
 
   Future<List<dynamic>> _fetchVehicleLogHistory(int vehicleId) async {
     try {
-      final res = await http.get(Uri.parse('$backendUrl/vehicles/maintenance'));
+      final res = await http.get(
+        Uri.parse('$backendUrl/vehicles/maintenance?vehicle_id=$vehicleId'),
+      );
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body)['data'] ?? [];
         return data.where((log) => log['vehicle_id'] == vehicleId).toList();

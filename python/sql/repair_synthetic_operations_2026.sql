@@ -1,7 +1,7 @@
 -- Repair the existing synthetic 2026 operations data.
 --
 -- This script is intentionally scoped to rows created by the rebuild script:
---   * trips have ticket_no beginning with REBUILD-
+--   * synthetic trips use the SUM-2026 summary-id format after rebuilding
 --   * attendance has the rebuild source_file
 --
 -- It does not delete rows and does not modify unrelated real records.
@@ -14,14 +14,14 @@ with rebuild_dates as (
   select schedule_date::date as work_date,
          row_number() over (order by schedule_date::date)::int as date_no
   from public.trip_schedule
-  where ticket_no like 'REBUILD-%'
+  where summary_id like 'SUM-2026%'
   group by schedule_date::date
 )
 update public.trip_schedule t
 set summary_id = 'SUM-' || to_char(d.work_date, 'YYYYMMDD') || '-'
                  || lpad(d.date_no::text, 6, '0')
 from rebuild_dates d
-where t.ticket_no like 'REBUILD-%'
+where t.summary_id like 'SUM-2026%'
   and t.schedule_date::date = d.work_date;
 
 -- 2) Enforce passenger_count <= seating_capacity and recalculate utilization.
@@ -40,7 +40,7 @@ set passenger_count = least(
       )
       else null
     end
-where ticket_no like 'REBUILD-%';
+where summary_id like 'SUM-2026%';
 
 -- 3) Replace generic synthetic remarks with varied, realistic outcomes.
 update public.trip_schedule
@@ -51,7 +51,7 @@ set remarks = case (trip_id % 5)
   when 3 then 'Minor traffic delay; trip completed successfully.'
   else 'Passenger service completed successfully.'
 end
-where ticket_no like 'REBUILD-%';
+where summary_id like 'SUM-2026%';
 
 -- 4) GT Lantin Internal is the operating company, not a client.
 --    Reassign its synthetic trips across the remaining client companies.
@@ -65,7 +65,7 @@ with eligible_companies as (
          row_number() over (order by t.trip_id)::int as trip_no
   from public.trip_schedule t
   join public.client_company c on c.company_id = t.company_id
-  where t.ticket_no like 'REBUILD-%'
+  where t.summary_id like 'SUM-2026%'
     and c.company_name ilike '%GT LANTIN%'
 )
 update public.trip_schedule t
@@ -128,7 +128,7 @@ select date_trunc('month', schedule_date::date)::date as month,
          as over_capacity_rows,
        count(distinct summary_id) as summaries
 from public.trip_schedule
-where ticket_no like 'REBUILD-%'
+where summary_id like 'SUM-2026%'
 group by 1
 order by 1;
 
@@ -141,5 +141,5 @@ where source_file = '2026 Operations Rebuild Attendance.xls';
 select count(*) as gt_lantin_synthetic_trips
 from public.trip_schedule t
 join public.client_company c on c.company_id = t.company_id
-where t.ticket_no like 'REBUILD-%'
+where t.summary_id like 'SUM-2026%'
   and c.company_name ilike '%GT LANTIN%';

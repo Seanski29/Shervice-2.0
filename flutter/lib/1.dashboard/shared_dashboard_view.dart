@@ -1927,12 +1927,15 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                     ),
                   )
                 : SizedBox(
-                    height: compact ? 190 : 260,
+                    // The desktop dashboard uses compact mode inside a fixed
+                    // two-card row. Leave enough room for the pie and all
+                    // company legend rows; 190px clipped the last company.
+                    height: compact ? 230 : 260,
                     child: compact
                         ? Column(
                             children: [
                               SizedBox(
-                                height: 128,
+                                height: 112,
                                 child: _buildCompanyTripPie(totalTrips, true),
                               ),
                               const SizedBox(height: 8),

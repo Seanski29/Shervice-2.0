@@ -238,10 +238,7 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
 
   String _vehicleOptionLabel(Map<String, dynamic> vehicle) {
     final plate = (vehicle['plate_number'] ?? 'Unnamed Vehicle').toString();
-    final type = (vehicle['vehicle_type'] ?? vehicle['bus_type'] ?? '')
-        .toString()
-        .trim();
-    return type.isEmpty ? plate : '$plate - $type';
+    return plate;
   }
 
   String _driverOptionLabel(Map<String, dynamic> driver) {

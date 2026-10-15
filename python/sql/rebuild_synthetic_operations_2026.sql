@@ -138,6 +138,15 @@ with months as (
   from public.driver_profile
 ), vehicles as (
   select array_agg(vehicle_id order by vehicle_id) as ids,
+         array_agg(bus_type order by vehicle_id) as bus_types,
+         array_agg(
+           case
+             when bus_type ~ '^[0-9]+'
+               then split_part(bus_type, ' ', 1)::integer
+             else 40
+           end
+           order by vehicle_id
+         ) as capacities,
          count(*)::int as item_count
   from public.vehicle
 ), companies as (
@@ -182,16 +191,30 @@ select
   co.ids[((c.trip_no - 1) % co.item_count) + 1],
   c.work_date,
   trim(to_char(c.work_date, 'Day')),
-  'Synthetic Shuttle',
+  v.bus_types[((c.trip_no - 1) % v.item_count) + 1],
   'Regular',
   v.ids[((c.trip_no - 1) % v.item_count) + 1],
-  40,
-  'REBUILD-' || to_char(c.work_date, 'YYYYMMDD') || '-' || lpad(c.trip_no::text, 4, '0'),
+  v.capacities[((c.trip_no - 1) % v.item_count) + 1],
+  -- Keep ticket values numeric-looking so they match operational ticket data.
+  -- The summary_id remains the internal synthetic-data marker.
+  lpad((100000 + row_number() over (
+    order by c.work_date, c.trip_no
+  ))::text, 6, '0'),
   d.ids[((c.trip_no - 1) % d.item_count) + 1],
-  20 + (c.trip_no % 21),
+  least(
+    v.capacities[((c.trip_no - 1) % v.item_count) + 1],
+    20 + (c.trip_no % 21)
+  ),
   time '03:00' + ((c.trip_no % 12) * interval '1 hour'),
   time '07:00' + ((c.trip_no % 12) * interval '1 hour'),
-  round((20 + (c.trip_no % 21))::numeric / 40, 2),
+  round(
+    least(
+      v.capacities[((c.trip_no - 1) % v.item_count) + 1],
+      20 + (c.trip_no % 21)
+    )::numeric
+    / nullif(v.capacities[((c.trip_no - 1) % v.item_count) + 1], 0),
+    2
+  ),
   case (c.trip_no % 5)
     when 0 then 'Trip successful.'
     when 1 then 'Trip completed on schedule.'
@@ -339,14 +362,14 @@ with rebuild_dates as (
   select schedule_date::date as work_date,
          row_number() over (order by schedule_date::date)::int as date_no
   from public.trip_schedule
-  where ticket_no like 'REBUILD-%'
+  where summary_id like 'REBUILD-%'
   group by schedule_date::date
 )
 update public.trip_schedule t
 set summary_id = 'SUM-' || to_char(d.work_date, 'YYYYMMDD') || '-'
                  || lpad(d.date_no::text, 6, '0')
 from rebuild_dates d
-where t.ticket_no like 'REBUILD-%'
+where t.summary_id like 'REBUILD-%'
   and t.schedule_date::date = d.work_date;
 
 commit;
@@ -357,7 +380,7 @@ select date_trunc('month', schedule_date::date)::date as month,
        count(distinct driver_id) as drivers_used,
        count(distinct vehicle_id) as vehicles_used
 from public.trip_schedule
-where ticket_no like 'REBUILD-%'
+where summary_id like 'SUM-2026%'
 group by 1
 order by 1;
 
