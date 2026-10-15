@@ -73,7 +73,9 @@ def _rating(value):
 
 def _public_survey_url(token):
     configured = os.getenv('PUBLIC_SURVEY_BASE_URL') or os.getenv('PUBLIC_APP_URL')
-    base = (configured or 'https://gtlantinshervice.com').rstrip('/')
+    base = (
+        configured or 'https://shervice-python-production.up.railway.app'
+    ).rstrip('/')
     return f'{base}/passenger-evaluation/{token}'
 
 

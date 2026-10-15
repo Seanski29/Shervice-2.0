@@ -8,7 +8,8 @@ class StaffPassengerSurvey extends StatelessWidget {
 
   // This is intentionally permanent: staff can display or copy the same QR
   // code whenever the OIC needs to distribute the passenger survey.
-  String get surveyUrl => 'https://gtlantinshervice.com/passenger-evaluation';
+  String get surveyUrl =>
+      'https://shervice-python-production.up.railway.app/passenger-evaluation';
 
   Future<void> _copy(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: surveyUrl));
