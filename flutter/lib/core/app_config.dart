@@ -5,7 +5,7 @@
 const bool useHostedBackend = true;
 
 const String _localBackendRoot = 'http://localhost:5000';
-const String _hostedBackendRoot = 'https://gtlantinshervice.com/';
+const String _hostedBackendRoot = 'https://gtlantinshervice.com';
 const String _localEncryptedSocketRoot = 'ws://localhost:5001';
 const String _hostedEncryptedSocketRoot = 'wss://gtlantinshervice.com/ws';
 
