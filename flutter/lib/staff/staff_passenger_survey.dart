@@ -8,7 +8,7 @@ class StaffPassengerSurvey extends StatelessWidget {
 
   // This is intentionally permanent: staff can display or copy the same QR
   // code whenever the OIC needs to distribute the passenger survey.
-  String get surveyUrl => '$localIp/passenger-evaluation';
+  String get surveyUrl => '$publicEvaluationBaseUrl/passenger-evaluation';
 
   Future<void> _copy(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: surveyUrl));
