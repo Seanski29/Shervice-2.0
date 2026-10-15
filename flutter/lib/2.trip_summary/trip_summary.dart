@@ -96,10 +96,23 @@ class _StaffTripsState extends State<StaffTrips> {
     });
 
     try {
+      final queryParameters = <String, String>{};
+      if (_selectedDateRange != null) {
+        queryParameters['from_date'] = _dateKey(_selectedDateRange!.start);
+        queryParameters['to_date'] = _dateKey(_selectedDateRange!.end);
+      } else {
+        if (_selectedYear != null) {
+          queryParameters['year'] = _selectedYear.toString();
+        }
+        if (_selectedMonth != null) {
+          queryParameters['month'] = _selectedMonth.toString();
+        }
+      }
       final response = await http
           .get(
-            // Replace ${widget.staffId} with 'all'
-            Uri.parse('$backendUrl/schedules/staff-summary/all'),
+            Uri.parse('$backendUrl/schedules/staff-summary/all').replace(
+              queryParameters: queryParameters,
+            ),
           )
           .timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
@@ -1001,6 +1014,7 @@ class _StaffTripsState extends State<StaffTrips> {
       _selectedDate = null;
       _resetPagination();
     });
+    await _fetchTripSummary();
   }
 
   void _openCalendarModal(bool isDark) {
@@ -1544,13 +1558,16 @@ class _StaffTripsState extends State<StaffTrips> {
             ? 'All Months'
             : _monthNames[_selectedMonth! - 1],
         values: _monthOptions,
-        onChanged: (value) => setState(() {
-          _selectedMonth = value == null || value == 'All Months'
-              ? null
-              : _monthNames.indexOf(value) + 1;
-          _selectedDate = null;
-          _resetPagination();
-        }),
+        onChanged: (value) {
+          setState(() {
+            _selectedMonth = value == null || value == 'All Months'
+                ? null
+                : _monthNames.indexOf(value) + 1;
+            _selectedDate = null;
+            _resetPagination();
+          });
+          _fetchTripSummary();
+        },
       ),
       gap(),
       _dropdown(
@@ -1558,13 +1575,16 @@ class _StaffTripsState extends State<StaffTrips> {
         width: controlWidth,
         value: _selectedYear?.toString() ?? 'All Years',
         values: _yearOptions,
-        onChanged: (value) => setState(() {
-          _selectedYear = value == null || value == 'All Years'
-              ? null
-              : int.tryParse(value);
-          _selectedDate = null;
-          _resetPagination();
-        }),
+        onChanged: (value) {
+          setState(() {
+            _selectedYear = value == null || value == 'All Years'
+                ? null
+                : int.tryParse(value);
+            _selectedDate = null;
+            _resetPagination();
+          });
+          _fetchTripSummary();
+        },
       ),
       gap(),
       _dropdown(

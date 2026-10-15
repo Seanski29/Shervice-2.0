@@ -70,10 +70,9 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
           Uri.parse('$cleanBaseUrl/schedules/staff-summary/all?compact=1'),
         ),
         _fetchAnalyticsEndpoint(
-          Uri.parse('$cleanBaseUrl/vehicles/maintenance'),
+          Uri.parse('$cleanBaseUrl/vehicles/maintenance?compact=1'),
         ),
         _fetchAnalyticsEndpoint(Uri.parse('$cleanBaseUrl/vehicles')),
-        _fetchAnalyticsEndpoint(Uri.parse('$cleanBaseUrl/dashboard/metrics')),
       ]);
 
       final dRes = results[0];
@@ -173,8 +172,9 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
           }
 
           d['rating'] = existingRating > 0 ? existingRating : 4.5;
-          d['ml_classification'] =
-              d['classification'] ?? 'Consistent Performer';
+          d['ml_classification'] = d['classification'] ??
+              d['ml_classification'] ??
+              'Needs Review';
         }
 
         _allDrivers = rawDrivers;
@@ -184,8 +184,18 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
           setState(() => _isLoading = false);
         }
 
-        // Non-blocking enrichment loop
-        unawaited(_enrichDriverClassifications(cleanBaseUrl, rawDrivers));
+        // The driver payload already includes the stored ML classification.
+        // Only request per-driver enrichment when a record has no stored
+        // classification, avoiding dozens of duplicate requests on startup.
+        final missingClassifications = rawDrivers.where((driver) {
+          final value = driver['ml_classification'];
+          return value == null || value.toString().trim().isEmpty;
+        }).toList();
+        if (missingClassifications.isNotEmpty) {
+          unawaited(
+            _enrichDriverClassifications(cleanBaseUrl, missingClassifications),
+          );
+        }
         return;
       }
     } catch (e) {

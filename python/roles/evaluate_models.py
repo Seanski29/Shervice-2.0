@@ -319,6 +319,16 @@ def evaluate_objective_3_1_temporal():
     model.fit(X_train, y_train)
     predictions = model.predict(X_test)
 
+    train_distribution = pd.Series(y_train).value_counts().sort_index()
+    test_distribution = pd.Series(y_test).value_counts().sort_index()
+    train_periods = sorted({row['period'] for row in train_rows})
+    test_periods = sorted({row['period'] for row in test_rows})
+    print(f"Total monthly snapshots         : {len(rows)}")
+    print(f"Feature matrix dimensions       : {X_train.shape[1]} features")
+    print(f"Training percentage              : {len(train_rows) / len(rows) * 100:.2f}%")
+    print(f"Future test percentage           : {len(test_rows) / len(rows) * 100:.2f}%")
+    print(f"Training months                  : {len(train_periods)}")
+    print(f"Future test months               : {len(test_periods)}")
     print(f"Training snapshots               : {len(train_rows)}")
     print(f"Future test snapshots            : {len(test_rows)}")
     print(f"Training through                 : {split_period - 1}")
@@ -327,8 +337,10 @@ def evaluate_objective_3_1_temporal():
     print(f"Macro Precision                  : {precision_score(y_test, predictions, average='macro', zero_division=0):.4f}")
     print(f"Macro Recall                     : {recall_score(y_test, predictions, average='macro', zero_division=0):.4f}")
     print(f"Macro F1-Score                   : {f1_score(y_test, predictions, average='macro', zero_division=0):.4f}")
+    print("Training label distribution:")
+    print(train_distribution.to_string())
     print("Test label distribution:")
-    print(pd.Series(y_test).value_counts().to_string())
+    print(test_distribution.to_string())
     print("\nClassification Report:")
     print(classification_report(y_test, predictions, zero_division=0))
 
@@ -407,6 +419,17 @@ def evaluate_objective_3_2_live():
     ).fit(X_train, y_train)
     rf_pred = rf.predict(X_test)
 
+    snapshot_dates = [row[0] for row in rows]
+    train_dates = snapshot_dates[:split]
+    test_dates = snapshot_dates[split:]
+    print(f"Total maintenance snapshots     : {len(rows)}")
+    print(f"Feature matrix dimensions        : {X_train.shape[1]} features")
+    print(f"Training percentage              : {len(X_train) / len(rows) * 100:.2f}%")
+    print(f"Test percentage                  : {len(X_test) / len(rows) * 100:.2f}%")
+    print(f"Training date range              : {train_dates[0]} through {train_dates[-1]}")
+    print(f"Test date range                  : {test_dates[0]} through {test_dates[-1]}")
+    print(f"Training target mean             : {y_train.mean():.2f} days")
+    print(f"Test target mean                 : {y_test.mean():.2f} days")
     print(f"Chronological split             : {len(X_train)} Train | {len(X_test)} Test")
     print(f"Features                        : {predictive_ml.FEATURE_NAMES}")
     print("Target Variable                 : Days until next recorded maintenance")
@@ -464,6 +487,9 @@ def evaluate_objective_3_3_kmeans():
         score = 0.0
 
     print(f"Total Unique Destinations Analyzed: {len(X)}")
+    print(f"Source trip rows used             : {len(raw_trips)}")
+    print(f"Cluster assignment distribution   : {pd.Series(labels).value_counts().sort_index().to_dict()}")
+    print(f"Feature matrix dimensions         : {X.shape[1]} features")
     print(f"Features                      : [passenger_volume, trip_frequency, assigned_vehicle_count]")
     print(f"Number of Clusters (k)        : {k_val}")
     print(f"Silhouette Coefficient        : {score:.4f}")

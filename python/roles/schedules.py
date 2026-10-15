@@ -126,6 +126,7 @@ def _record_exists(table, id_field, value):
     )
     return bool(result.data)
 
+
 def _validate_trip_resources(payload):
     vehicle_id = payload.get('vehicle_id')
     driver_id = payload.get('driver_id')
@@ -585,11 +586,36 @@ def get_staff_trip_summary(staff_uuid):
         # only chart/detail fields cuts the initial analytics response down
         # substantially while keeping the full response for staff screens.
         if request.args.get('compact') == '1':
+            compact_query = supabase.table('trip_schedule').select(
+                'trip_id, summary_id, schedule_date, passenger_count, '
+                'driver_id, company_id, route_name'
+            )
+            from_date = request.args.get('from_date')
+            to_date = request.args.get('to_date')
+            year_param = request.args.get('year')
+            month_param = request.args.get('month')
+            if from_date:
+                compact_query = compact_query.gte('schedule_date', from_date)
+            if to_date:
+                compact_query = compact_query.lte('schedule_date', to_date)
+            if not from_date and year_param and year_param.isdigit():
+                selected_year = int(year_param)
+                if month_param and month_param.isdigit() and 1 <= int(month_param) <= 12:
+                    selected_month = int(month_param)
+                    start_date = f'{selected_year}-{selected_month:02d}-01'
+                    if selected_month == 12:
+                        end_date = f'{selected_year + 1}-01-01'
+                    else:
+                        end_date = f'{selected_year}-{selected_month + 1:02d}-01'
+                else:
+                    start_date = f'{selected_year}-01-01'
+                    end_date = f'{selected_year + 1}-01-01'
+                compact_query = compact_query.gte('schedule_date', start_date).lt(
+                    'schedule_date', end_date
+                )
+
             compact_rows = _fetch_all_rows(
-                supabase.table('trip_schedule').select(
-                    'trip_id, summary_id, schedule_date, passenger_count, '
-                    'driver_id, company_id, route_name'
-                ).order('schedule_date', desc=False)
+                compact_query.order('schedule_date', desc=False)
             )
             compact_drivers = supabase.table('driver_profile').select(
                 'driver_id, full_name'
@@ -623,6 +649,29 @@ def get_staff_trip_summary(staff_uuid):
             }), 200
 
         query = supabase.table('trip_schedule').select('*')
+        from_date = request.args.get('from_date')
+        to_date = request.args.get('to_date')
+        year_param = request.args.get('year')
+        month_param = request.args.get('month')
+        if from_date:
+            query = query.gte('schedule_date', from_date)
+        if to_date:
+            query = query.lte('schedule_date', to_date)
+        if not from_date and year_param and year_param.isdigit():
+            selected_year = int(year_param)
+            if month_param and month_param.isdigit() and 1 <= int(month_param) <= 12:
+                selected_month = int(month_param)
+                start_date = f'{selected_year}-{selected_month:02d}-01'
+                if selected_month == 12:
+                    end_date = f'{selected_year + 1}-01-01'
+                else:
+                    end_date = f'{selected_year}-{selected_month + 1:02d}-01'
+            else:
+                start_date = f'{selected_year}-01-01'
+                end_date = f'{selected_year + 1}-01-01'
+            query = query.gte('schedule_date', start_date).lt(
+                'schedule_date', end_date
+            )
         trips = _fetch_all_rows(query.order('schedule_date', desc=False))
 
         vehicles = supabase.table('vehicle').select(
