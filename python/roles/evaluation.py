@@ -7,7 +7,8 @@ from datetime import datetime, timezone, timedelta
 from functools import wraps
 from uuid import uuid4
 
-from flask import Blueprint, current_app, jsonify, render_template, request
+from flask import Blueprint, jsonify, render_template, request
+from .errors import internal_error
 
 evaluate_bp = Blueprint('evaluate', __name__)
 supabase = None
@@ -150,7 +151,7 @@ def get_driver_evaluations(driver_id):
         ).order('submit_date', desc=True).execute()
         return jsonify({'success': True, 'data': evals.data or []}), 200
     except Exception:
-        return jsonify({'success': False, 'message': 'Unable to load evaluations.'}), 500
+        return internal_error('Unable to load evaluations.')
 
 
 @evaluate_bp.route('/api/evaluate/staff-submit', methods=['POST'])
@@ -183,7 +184,7 @@ def staff_submit_evaluation():
         supabase.table('evaluation').insert(payload).execute()
         return jsonify({'success': True, 'message': 'Staff evaluation submitted successfully!'}), 200
     except Exception:
-        return jsonify({'success': False, 'message': 'Unable to submit staff evaluation.'}), 500
+        return internal_error('Unable to submit staff evaluation.')
 
 
 @evaluate_bp.route('/api/evaluate/passenger-survey', methods=['POST'])
@@ -212,8 +213,7 @@ def create_passenger_survey():
             'expires_at': expires_at.isoformat(),
         }), 201
     except Exception:
-        current_app.logger.exception('Passenger survey link creation failed')
-        return jsonify({'success': False, 'message': 'Unable to create passenger survey link.'}), 500
+        return internal_error('Unable to create passenger survey link.')
 
 
 @evaluate_bp.route('/api/evaluate/passenger-survey', methods=['GET'])
@@ -221,7 +221,7 @@ def get_permanent_passenger_survey():
     try:
         return jsonify({'success': True, 'drivers': _all_drivers(), 'permanent': True}), 200
     except Exception:
-        return jsonify({'success': False, 'message': 'Unable to load this survey.'}), 500
+        return internal_error('Unable to load this survey.')
 
 
 @evaluate_bp.route('/api/evaluate/passenger-survey/<token>', methods=['GET'])
@@ -237,7 +237,7 @@ def get_passenger_survey(token):
             'expires_at': survey.get('expires_at'),
         }), 200
     except Exception:
-        return jsonify({'success': False, 'message': 'Unable to load this survey.'}), 500
+        return internal_error('Unable to load this survey.')
 
 
 @evaluate_bp.route('/api/evaluate/passenger-survey/<token>', methods=['POST'])
@@ -258,7 +258,7 @@ def submit_passenger_evaluation(token):
         }).execute()
         return jsonify({'success': True, 'message': 'Thank you for your anonymous feedback.'}), 201
     except Exception:
-        return jsonify({'success': False, 'message': 'Unable to submit your evaluation.'}), 500
+        return internal_error('Unable to submit your evaluation.')
 
 
 @evaluate_bp.route('/api/evaluate/passenger-submit', methods=['POST'])
@@ -272,8 +272,7 @@ def submit_permanent_passenger_evaluation():
         supabase.table('evaluation').insert(payload).execute()
         return jsonify({'success': True, 'message': 'Thank you for your anonymous feedback.'}), 201
     except Exception:
-        current_app.logger.exception('Permanent passenger evaluation submission failed')
-        return jsonify({'success': False, 'message': 'Unable to submit your evaluation.'}), 500
+        return internal_error('Unable to submit your evaluation.')
 
 
 @evaluate_bp.route('/passenger-evaluation', methods=['GET'])

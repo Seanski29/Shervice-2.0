@@ -1,5 +1,6 @@
 import numpy as np
 from flask import Blueprint, jsonify, request
+from .errors import internal_error
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from datetime import datetime, timedelta
@@ -191,4 +192,4 @@ def cluster_destination_demand():
 
     except Exception as e:
         print(f"❌ Route Clustering ML Error: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return internal_error("Unable to analyze routes.")

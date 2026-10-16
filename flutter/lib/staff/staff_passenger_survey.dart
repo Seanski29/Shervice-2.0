@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import '../constant.dart';
 
 class StaffPassengerSurvey extends StatelessWidget {
   const StaffPassengerSurvey({super.key});
@@ -12,11 +11,24 @@ class StaffPassengerSurvey extends StatelessWidget {
       'https://shervice-python-production.up.railway.app/passenger-evaluation';
 
   Future<void> _copy(BuildContext context) async {
-    await Clipboard.setData(ClipboardData(text: surveyUrl));
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passenger survey link copied.')),
-      );
+    try {
+      await Clipboard.setData(ClipboardData(text: surveyUrl));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Passenger survey link copied.')),
+        );
+      }
+    } catch (error) {
+      debugPrint('Unable to copy passenger survey link: $error');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Unable to copy the link. Please select and copy it manually.',
+            ),
+          ),
+        );
+      }
     }
   }
 

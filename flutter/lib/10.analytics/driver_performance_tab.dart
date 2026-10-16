@@ -103,9 +103,10 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
         _recomputeDashboardRatingsLocally();
       }
     } catch (e) {
+      debugPrint('Driver leaderboard request failed: $e');
       if (mounted) {
         setState(
-          () => _errorMessage = "Network Error: Cannot connect to backend.\n$e",
+          () => _errorMessage = 'Cannot connect to the server. Please try again.',
         );
         _recomputeDashboardRatingsLocally();
       }
@@ -187,7 +188,9 @@ class _DriverPerformanceTabState extends State<DriverPerformanceTab> {
               });
             }
           }
-        } catch (_) {}
+        } catch (error) {
+          debugPrint('Unable to load leaderboard driver rating: $error');
+        }
       });
 
       await Future.wait(futures);

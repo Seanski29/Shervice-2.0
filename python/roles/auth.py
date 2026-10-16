@@ -3,6 +3,7 @@ import logging
 import re
 from typing import Any, Dict, Optional, cast
 from flask import Blueprint, jsonify, request
+from .errors import internal_error
 from supabase import create_client
 
 auth_bp = Blueprint('auth', __name__)
@@ -42,7 +43,7 @@ def _password_error(password: Any) -> Optional[str]:
 def _safe_error(default: str, error: Exception) -> str:
     message = str(error)
     if "already registered" in message.lower() or "already exists" in message.lower():
-        return message
+        return "This user is already registered."
     return default
 
 @auth_bp.route('/api/auth/login', methods=['POST'])
@@ -183,7 +184,7 @@ def register_driver_profile():
         error_message = str(e)
         if "unique_driver_phone" in error_message or "23505" in error_message:
             return jsonify({"success": False, "message": "This phone number is already registered to another driver."}), 400
-        return jsonify({"success": False, "message": error_message}), 500
+        return internal_error("Unable to register driver.")
 
 @auth_bp.route('/api/auth/update-password', methods=['POST'])
 def update_user_password():
@@ -242,7 +243,7 @@ def get_system_users():
 
         return jsonify({"success": True, "data": formatted_users}), 200
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
+        return internal_error("Unable to load system users.")
 
 @auth_bp.route('/api/auth/update-driver/<driver_id>', methods=['PUT'])
 def update_driver(driver_id):
@@ -275,7 +276,7 @@ def update_driver(driver_id):
         if "unique_driver_phone" in error_message or "23505" in error_message:
             return jsonify({"success": False, "message": "This phone number is already registered to another driver."}), 400
         print(f"Driver Update Error: {error_message}")
-        return jsonify({"success": False, "message": error_message}), 500
+        return internal_error("Unable to update driver.")
 
 @auth_bp.route('/api/auth/delete-driver/<driver_id>', methods=['DELETE'])
 def delete_driver(driver_id):
@@ -285,4 +286,4 @@ def delete_driver(driver_id):
         return jsonify({"success": True, "message": "Driver completely expunged from system."}), 200
     except Exception as e:
         print(f"Driver Delete Error: {e}")
-        return jsonify({"success": False, "message": f"Server processing error: {str(e)}"}), 500
+        return internal_error("Unable to delete driver.")

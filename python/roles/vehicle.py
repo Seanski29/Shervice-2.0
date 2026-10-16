@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from .errors import internal_error
 from .notifs import trigger_notification, _authenticated_account
 
 # Create the Blueprint for vehicle routes
@@ -71,7 +72,7 @@ def handle_vehicles():
         return jsonify({"success": True, "data": vehicles}), 200
     except Exception as e:
         print(f"❌ Exception: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return internal_error()
 
 
 @vehicles_bp.route('/api/vehicles/<string:vehicle_identifier>', methods=['DELETE'])
@@ -107,7 +108,7 @@ def delete_vehicle(vehicle_identifier):
         return jsonify({"success": True, "message": "Erased from fleet records."}), 200
     except Exception as e:
         print(f"❌ Deletion error: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return internal_error()
 
 
 @vehicles_bp.route('/api/vehicles/update/<int:vehicle_id>', methods=['PUT'])
@@ -141,7 +142,7 @@ def update_vehicle(vehicle_id):
             return jsonify({'success': False, 'message': 'Vehicle not found.'}), 404
         return jsonify({'success': True, 'message': 'Vehicle updated.', 'data': result.data}), 200
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return internal_error()
 
 
 @vehicles_bp.route('/api/vehicles/maintenance', methods=['GET'])
@@ -171,7 +172,7 @@ def get_maintenance_logs():
         
         return jsonify({"success": True, "data": query.data}), 200
     except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
+        return internal_error()
 
 
 # ─────────── UPGRADED MAINTENANCE LOGGING (ROLLOVER LOGIC) ───────────
@@ -265,7 +266,7 @@ def add_maintenance_log():
         return jsonify({"success": True, "message": "Maintenance log added to history successfully!"}), 201
     except Exception as e:
         print(f"❌ Maintenance Logging failure: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return internal_error()
 
 @vehicles_bp.route('/api/vehicles/maintenance', methods=['PUT'])
 def update_maintenance_log():
@@ -325,4 +326,4 @@ def update_maintenance_log():
         
     except Exception as e:
         print(f"❌ Maintenance Update failure: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return internal_error()

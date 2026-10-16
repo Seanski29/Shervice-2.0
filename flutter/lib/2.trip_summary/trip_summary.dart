@@ -469,10 +469,11 @@ class _StaffTripsState extends State<StaffTrips> {
         throw Exception("Server error ${response.statusCode}");
       }
     } catch (e) {
+      debugPrint('Trip summary import failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+        ).showSnackBar(const SnackBar(content: Text('Import failed. Please try again.')));
       }
     } finally {
       if (mounted) {
@@ -659,7 +660,9 @@ class _StaffTripsState extends State<StaffTrips> {
     try {
       final decoded = jsonDecode(response.body);
       message = decoded['message']?.toString() ?? message;
-    } catch (_) {}
+    } catch (error) {
+      debugPrint('Unable to parse summary row error response: $error');
+    }
     throw Exception(message);
   }
 
@@ -860,10 +863,11 @@ class _StaffTripsState extends State<StaffTrips> {
         );
       }
     } catch (e) {
+      debugPrint('Trip summary CSV export failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('CSV export failed: $e')));
+        ).showSnackBar(const SnackBar(content: Text('CSV export failed. Please try again.')));
       }
     }
   }
@@ -912,10 +916,11 @@ class _StaffTripsState extends State<StaffTrips> {
         );
       }
     } catch (e) {
+      debugPrint('Trip summary XLSX export failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('XLSX export failed: $e')));
+        ).showSnackBar(const SnackBar(content: Text('XLSX export failed. Please try again.')));
       }
     }
   }

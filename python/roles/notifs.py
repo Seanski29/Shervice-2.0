@@ -5,6 +5,7 @@ import logging
 from dotenv import load_dotenv
 from flask import Blueprint, request, jsonify
 from supabase import create_client
+from .errors import internal_error
 
 notifs_bp = Blueprint('notifs', __name__)
 supabase = None
@@ -160,7 +161,7 @@ def get_notifications():
 
     except Exception as e:
         print(f"❌ Notification Fetch Error: {e}")
-        return jsonify({"success": False, "message": "Internal server error."}), 500
+        return internal_error()
 
 
 # ==========================================
@@ -190,7 +191,7 @@ def mark_as_read(notif_id):
             return jsonify({"success": False, "message": "Notification not found."}), 404
     except Exception as e:
         print(f"❌ Notification Update Error: {e}")
-        return jsonify({"success": False, "message": "Internal server error."}), 500
+        return internal_error()
 
 
 # ==========================================
@@ -251,7 +252,7 @@ def mark_all_as_read():
 
     except Exception as e:
         print(f"❌ Notification Read-All Error: {e}")
-        return jsonify({"success": False, "message": "Internal server error."}), 500
+        return internal_error()
 
 
 # ==========================================
@@ -275,7 +276,7 @@ def delete_notification(notif_id):
         return jsonify({"success": True, "message": "Notification deleted."}), 200
     except Exception as e:
         print(f"❌ Notification Delete Error: {e}")
-        return jsonify({"success": False, "message": "Internal server error."}), 500
+        return internal_error()
 
 
 # ==========================================

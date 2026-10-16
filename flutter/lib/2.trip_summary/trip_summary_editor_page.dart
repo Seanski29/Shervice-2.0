@@ -568,7 +568,9 @@ class _TripSummaryEditorPageState extends State<TripSummaryEditorPage> {
         try {
           final decoded = jsonDecode(response.body);
           message = decoded['message']?.toString() ?? message;
-        } catch (_) {}
+        } catch (error) {
+          debugPrint('Unable to parse trip summary error response: $error');
+        }
         throw Exception(message);
       }
 

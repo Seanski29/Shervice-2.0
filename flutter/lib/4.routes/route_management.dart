@@ -217,7 +217,9 @@ class _RouteDirectoryState extends State<RouteDirectory> {
       try {
         final body = jsonDecode(response.body);
         if (body is Map) decoded = Map<String, dynamic>.from(body);
-      } catch (_) {}
+      } catch (error) {
+        debugPrint('Unable to parse route deletion error response: $error');
+      }
       if (response.statusCode == 409) {
         throw Exception(
           decoded['message'] ??
