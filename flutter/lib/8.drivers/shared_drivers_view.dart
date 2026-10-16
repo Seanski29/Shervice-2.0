@@ -27,7 +27,7 @@ class SharedDriversView extends StatefulWidget {
   final String subtitle;
   final Widget? actionWidget;
   final Function(BuildContext context, DriverProfileModel? driver)?
-      onDriverTapped;
+  onDriverTapped;
 
   @override
   State<SharedDriversView> createState() => SharedDriversViewState();
@@ -62,10 +62,12 @@ class SharedDriversViewState extends State<SharedDriversView> {
   void _rebuildFilteredDrivers() {
     final query = _searchQuery.trim().toLowerCase();
     _filteredDriversCache = _drivers.where((driver) {
-      final matchesSearch = query.isEmpty ||
+      final matchesSearch =
+          query.isEmpty ||
           driver.name.toLowerCase().contains(query) ||
           driver.id.toString().toLowerCase().contains(query);
-      final matchesStatus = _selectedStatusFilter == 'All' ||
+      final matchesStatus =
+          _selectedStatusFilter == 'All' ||
           driver.status.toLowerCase() == _selectedStatusFilter.toLowerCase();
       return matchesSearch && matchesStatus;
     }).toList();
@@ -207,233 +209,250 @@ class SharedDriversViewState extends State<SharedDriversView> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 1. TOP ROW: Title on Left, Actions on Right
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.center,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 768;
+          return Padding(
+            padding: EdgeInsets.all(compact ? 16 : 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.title,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                    ),
-                    Text(
-                      widget.subtitle,
-                      style: TextStyle(
-                        color: isDark
-                            ? Colors.grey.shade400
-                            : const Color(0xFF64748B),
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+                // 1. TOP ROW: Title on Left, Actions on Right
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     SizedBox(
-                      width: 280,
-                      height: 42,
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (value) {
-                          _searchDebounce?.cancel();
-                          _searchDebounce = Timer(const Duration(milliseconds: 180), () {
-                            if (!mounted) return;
-                            setState(() {
-                              _searchQuery = value;
-                              _rebuildFilteredDrivers();
-                            });
-                          });
-                        },
-                        style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black87,
-                          fontSize: 13,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Search driver ID or name',
-                          hintStyle: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontSize: 13,
+                      width: compact ? double.infinity : null,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.title,
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                ),
                           ),
-                          prefixIcon: const Icon(
-                            Icons.search,
-                            size: 18,
-                            color: Color(0xFF64748B),
+                          Text(
+                            widget.subtitle,
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.grey.shade400
+                                  : const Color(0xFF64748B),
+                              fontSize: 13,
+                            ),
                           ),
-                          filled: true,
-                          fillColor: Theme.of(context).cardColor,
-                          contentPadding:
-                              const EdgeInsets.symmetric(horizontal: 12),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(4),
-                            borderSide: BorderSide(
-                              color: Theme.of(context).dividerColor,
+                        ],
+                      ),
+                    ),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: compact ? constraints.maxWidth - 32 : 280,
+                          height: 42,
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: (value) {
+                              _searchDebounce?.cancel();
+                              _searchDebounce = Timer(
+                                const Duration(milliseconds: 180),
+                                () {
+                                  if (!mounted) return;
+                                  setState(() {
+                                    _searchQuery = value;
+                                    _rebuildFilteredDrivers();
+                                  });
+                                },
+                              );
+                            },
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black87,
+                              fontSize: 13,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Search driver ID or name',
+                              hintStyle: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 13,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.search,
+                                size: 18,
+                                color: Color(0xFF64748B),
+                              ),
+                              filled: true,
+                              fillColor: Theme.of(context).cardColor,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(4),
+                                borderSide: BorderSide(
+                                  color: Theme.of(context).dividerColor,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    if (widget.actionWidget != null) ...[
-                      widget.actionWidget!,
-                      const SizedBox(width: 12),
-                    ],
-                    OutlinedButton.icon(
-                      onPressed: _isLoading ? null : _fetchDrivers,
-                      icon: const Icon(Icons.refresh, size: 17),
-                      label: const Text('Refresh'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 42),
-                      ),
+                        if (widget.actionWidget != null) ...[
+                          widget.actionWidget!,
+                        ],
+                        OutlinedButton.icon(
+                          onPressed: _isLoading ? null : _fetchDrivers,
+                          icon: const Icon(Icons.refresh, size: 17),
+                          label: const Text('Refresh'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 42),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 10),
+                SizedBox(height: compact ? 8 : 10),
 
-            // 2. SUMMARY CARDS
-            if (_isLoading)
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isNarrow = constraints.maxWidth < 800;
-                  if (isNarrow) {
-                    return Column(
-                      children: List.generate(
-                        4,
-                        (_) => const Padding(
-                          padding: EdgeInsets.only(bottom: 16),
-                          child: SizedBox(
-                            height: 112,
-                            width: double.infinity,
-                            child: EnterpriseSummaryCardSkeleton(),
+                // 2. SUMMARY CARDS
+                if (_isLoading)
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isNarrow = constraints.maxWidth < 800;
+                      if (isNarrow) {
+                        return GridView.count(
+                          crossAxisCount: 2,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          mainAxisSpacing: 8,
+                          crossAxisSpacing: 8,
+                          childAspectRatio: 1.95,
+                          children: List.generate(
+                            4,
+                            (_) => const EnterpriseSummaryCardSkeleton(),
                           ),
-                        ),
-                      ),
-                    );
-                  }
-                  return Row(
-                    children: const [
+                        );
+                      }
+                      return Row(
+                        children: const [
+                          Expanded(
+                            child: SizedBox(
+                              height: 112,
+                              child: EnterpriseSummaryCardSkeleton(),
+                            ),
+                          ),
+                          SizedBox(width: 16),
+                          Expanded(
+                            child: SizedBox(
+                              height: 112,
+                              child: EnterpriseSummaryCardSkeleton(),
+                            ),
+                          ),
+                          SizedBox(width: 16),
+                          Expanded(
+                            child: SizedBox(
+                              height: 112,
+                              child: EnterpriseSummaryCardSkeleton(),
+                            ),
+                          ),
+                          SizedBox(width: 16),
+                          Expanded(
+                            child: SizedBox(
+                              height: 112,
+                              child: EnterpriseSummaryCardSkeleton(),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  )
+                else
+                  _buildSummaryCards(isDark),
+
+                const SizedBox(height: 15),
+
+                // 3. MAIN WORKSPACE TABLE (WITH FILTERS INSIDE)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: compact ? 0 : 12),
                       Expanded(
-                        child: SizedBox(
-                          height: 112,
-                          child: EnterpriseSummaryCardSkeleton(),
-                        ),
-                      ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: SizedBox(
-                          height: 112,
-                          child: EnterpriseSummaryCardSkeleton(),
-                        ),
-                      ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: SizedBox(
-                          height: 112,
-                          child: EnterpriseSummaryCardSkeleton(),
-                        ),
-                      ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: SizedBox(
-                          height: 112,
-                          child: EnterpriseSummaryCardSkeleton(),
+                        child: EnterpriseDataGrid<DriverProfileModel>(
+                          loading: _isLoading,
+                          rows: drivers,
+                          rowKey: (driver) => driver.id,
+                          height: double.infinity,
+                          showDateRange: false,
+                          filterFields: [
+                            _buildFilters(
+                              isDark,
+                            ), // Pushed inside the table header
+                          ],
+                          columns: [
+                            EnterpriseGridColumn(
+                              label: 'Driver ID',
+                              width: 110,
+                              value: (driver) => driver.id.toString(),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Driver',
+                              width: 240,
+                              value: (driver) => driver.name,
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Status',
+                              width: 150,
+                              value: (driver) => driver.status,
+                              cellBuilder: (context, driver) => Align(
+                                alignment: Alignment.center,
+                                child: _StatusLabel(status: driver.status),
+                              ),
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Phone',
+                              width: 160,
+                              value: (driver) => driver.phoneNumber,
+                            ),
+                            EnterpriseGridColumn(
+                              label: 'Date hired',
+                              width: 150,
+                              value: (driver) => driver.dateHired,
+                            ),
+                          ],
+                          emptyTitle: _drivers.isEmpty
+                              ? 'Assign the first driver'
+                              : 'Nothing matches the current search or filters',
+                          emptyMessage: _drivers.isEmpty
+                              ? 'Driver profiles are required before schedules and vehicle assignments can be completed.'
+                              : 'No driver records match the current search and status filters.',
+                          emptyActionLabel: _drivers.isEmpty && widget.canManage
+                              ? 'Add first driver'
+                              : null,
+                          onEmptyAction: _drivers.isEmpty && widget.canManage
+                              ? () => widget.onDriverTapped?.call(context, null)
+                              : null,
+                          onBulkDelete: widget.canManage ? _bulkDelete : null,
+                          selectionActionsBuilder: _selectedDriverActions,
+                          onExportSelection: _exportDrivers,
                         ),
                       ),
                     ],
-                  );
-                },
-              )
-            else
-              _buildSummaryCards(isDark),
-
-            const SizedBox(height: 15),
-
-            // 3. MAIN WORKSPACE TABLE (WITH FILTERS INSIDE)
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: EnterpriseDataGrid<DriverProfileModel>(
-                      loading: _isLoading,
-                      rows: drivers,
-                      rowKey: (driver) => driver.id,
-                      height: double.infinity,
-                      showDateRange: false, 
-                      filterFields: [
-                        _buildFilters(isDark), // Pushed inside the table header
-                      ],
-                      columns: [
-                        EnterpriseGridColumn(
-                          label: 'Driver ID',
-                          width: 110,
-                          value: (driver) => driver.id.toString(),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Driver',
-                          width: 240,
-                          value: (driver) => driver.name,
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Status',
-                          width: 150,
-                          value: (driver) => driver.status,
-                          cellBuilder: (context, driver) => Align(
-                            alignment: Alignment.center,
-                            child: _StatusLabel(status: driver.status),
-                          ),
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Phone',
-                          width: 160,
-                          value: (driver) => driver.phoneNumber,
-                        ),
-                        EnterpriseGridColumn(
-                          label: 'Date hired',
-                          width: 150,
-                          value: (driver) => driver.dateHired,
-                        ),
-                      ],
-                      emptyTitle: _drivers.isEmpty
-                          ? 'Assign the first driver'
-                          : 'Nothing matches the current search or filters',
-                      emptyMessage: _drivers.isEmpty
-                          ? 'Driver profiles are required before schedules and vehicle assignments can be completed.'
-                          : 'No driver records match the current search and status filters.',
-                      emptyActionLabel: _drivers.isEmpty && widget.canManage
-                          ? 'Add first driver'
-                          : null,
-                      onEmptyAction: _drivers.isEmpty && widget.canManage
-                          ? () => widget.onDriverTapped?.call(context, null)
-                          : null,
-                      onBulkDelete: widget.canManage ? _bulkDelete : null,
-                      selectionActionsBuilder: _selectedDriverActions,
-                      onExportSelection: _exportDrivers,
-                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -487,9 +506,8 @@ class SharedDriversViewState extends State<SharedDriversView> {
         final cardWidgets = cards.map((card) {
           final Color baseColor = card.$5;
           return Container(
-            constraints: const BoxConstraints(minHeight: 112),
-            width: isNarrow ? double.infinity : null,
-            padding: const EdgeInsets.all(16),
+            constraints: BoxConstraints(minHeight: isNarrow ? 70 : 112),
+            padding: EdgeInsets.all(isNarrow ? 10 : 16),
             decoration: BoxDecoration(
               color: baseColor.withValues(alpha: 0.08),
               border: Border.all(color: baseColor.withValues(alpha: 0.3)),
@@ -497,10 +515,11 @@ class SharedDriversViewState extends State<SharedDriversView> {
             ),
             child: Stack(
               children: [
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: Icon(card.$4, color: baseColor, size: 20),
-                ),
+                if (!isNarrow)
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: Icon(card.$4, color: baseColor, size: 20),
+                  ),
                 SizedBox(
                   width: double.infinity,
                   child: Column(
@@ -515,11 +534,11 @@ class SharedDriversViewState extends State<SharedDriversView> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: baseColor,
-                          fontSize: 14,
+                          fontSize: isNarrow ? 11 : 14,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: isNarrow ? 2 : 8),
                       Text(
                         card.$2,
                         textAlign: TextAlign.center,
@@ -528,11 +547,11 @@ class SharedDriversViewState extends State<SharedDriversView> {
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface,
                           fontWeight: FontWeight.w900,
-                          fontSize: 28,
+                          fontSize: isNarrow ? 19 : 28,
                           height: 1.0,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: isNarrow ? 1 : 4),
                       Text(
                         card.$3,
                         textAlign: TextAlign.center,
@@ -540,7 +559,7 @@ class SharedDriversViewState extends State<SharedDriversView> {
                           color: isDark
                               ? Colors.grey.shade400
                               : Colors.grey.shade600,
-                          fontSize: 12,
+                          fontSize: isNarrow ? 10 : 12,
                         ),
                       ),
                     ],
@@ -552,15 +571,14 @@ class SharedDriversViewState extends State<SharedDriversView> {
         }).toList();
 
         if (isNarrow) {
-          return Column(
-            children: cardWidgets
-                .map(
-                  (c) => Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: c,
-                  ),
-                )
-                .toList(),
+          return GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: 1.95,
+            children: cardWidgets,
           );
         }
 
@@ -646,8 +664,8 @@ class _StatusLabel extends StatelessWidget {
     final color = normalized == 'active'
         ? EnterpriseColors.success
         : normalized.contains('suspend')
-            ? EnterpriseColors.danger
-            : EnterpriseColors.warning;
+        ? EnterpriseColors.danger
+        : EnterpriseColors.warning;
 
     return Align(
       alignment: Alignment.center,

@@ -137,9 +137,104 @@ class _SherviceAppState extends State<SherviceApp> {
           theme: EnterpriseTheme.light(),
           darkTheme: EnterpriseTheme.dark(),
           themeMode: currentMode,
+          builder: (context, child) {
+            final mediaQuery = MediaQuery.of(context);
+            final clampedScale = mediaQuery.textScaler
+                .scale(1)
+                .clamp(0.85, 1.05)
+                .toDouble();
+            return MediaQuery(
+              data: mediaQuery.copyWith(
+                textScaler: TextScaler.linear(clampedScale),
+              ),
+              child: ScrollConfiguration(
+                behavior: const _SherviceScrollBehavior(),
+                child: child ?? const SizedBox.shrink(),
+              ),
+            );
+          },
           home: getInitialScreen(),
         );
       },
     );
   }
 }
+<<<<<<< HEAD
+=======
+
+class _SherviceScrollBehavior extends MaterialScrollBehavior {
+  const _SherviceScrollBehavior();
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    return const ClampingScrollPhysics();
+  }
+
+  @override
+  Widget buildScrollbar(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    return child;
+  }
+}
+
+class _DeferredWorkspaceScreen extends StatefulWidget {
+  const _DeferredWorkspaceScreen({
+    required this.role,
+    required this.userId,
+    required this.userName,
+    this.companyName = 'GT LANTIN',
+  });
+
+  final String role;
+  final String userId;
+  final String userName;
+  final String companyName;
+
+  @override
+  State<_DeferredWorkspaceScreen> createState() =>
+      _DeferredWorkspaceScreenState();
+}
+
+class _DeferredWorkspaceScreenState extends State<_DeferredWorkspaceScreen> {
+  late final Future<Widget> _screen = _loadScreen();
+
+  Future<Widget> _loadScreen() async {
+    if (widget.role == 'admin') {
+      await admin_layout.loadLibrary();
+      return admin_layout.AdminLayout(
+        adminId: widget.userId,
+        adminName: widget.userName,
+      );
+    }
+
+    await staff_layout.loadLibrary();
+    return staff_layout.StaffLayout(
+      staffId: widget.userId,
+      staffName: widget.userName,
+      companyName: widget.companyName,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Widget>(
+      future: _screen,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) return snapshot.data!;
+        return const Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 32,
+              height: 32,
+              child: CircularProgressIndicator(strokeWidth: 3),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+>>>>>>> 42603a952471089426df6156dc37a871d1e169ae

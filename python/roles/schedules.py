@@ -15,6 +15,18 @@ except ImportError:
 schedules_bp = Blueprint('schedules', __name__)
 supabase = None  
 
+
+def _fetch_all_rows(query, batch_size=1000):
+    """Fetch a Supabase query in pages instead of relying on one page."""
+    rows = []
+    offset = 0
+    while True:
+        batch = query.range(offset, offset + batch_size - 1).execute().data or []
+        rows.extend(batch)
+        if len(batch) < batch_size:
+            return rows
+        offset += batch_size
+
 def _normalize_date(val):
     if not val:
         return None
@@ -113,6 +125,7 @@ def _record_exists(table, id_field, value):
         .execute()
     )
     return bool(result.data)
+
 
 def _validate_trip_resources(payload):
     vehicle_id = payload.get('vehicle_id')
@@ -532,8 +545,8 @@ def get_driver_trips(driver_id):
             # avoids making the entire request fail when an older database is
             # missing an optional trip column.
             'trip_id, driver_id, schedule_date'
-        ).eq('driver_id', driver_key).order('schedule_date', desc=True).execute()
-        rows = query.data or []
+        ).eq('driver_id', driver_key).order('schedule_date', desc=True)
+        rows = _fetch_all_rows(query)
         return jsonify({"success": True, "data": rows, "trip_count": len(rows)}), 200
     except Exception as e:
         return jsonify({"success": False, "message": str(e)}), 500
@@ -541,9 +554,11 @@ def get_driver_trips(driver_id):
 @schedules_bp.route('/api/schedules/all', methods=['GET'])
 def get_all_trips():
     try:
-        trips = supabase.table('trip_schedule').select('*').order(
-            'schedule_date', desc=True
-        ).execute()
+        trips = _fetch_all_rows(
+            supabase.table('trip_schedule').select('*').order(
+                'schedule_date', desc=True
+            )
+        )
         vehicles = supabase.table('vehicle').select(
             'vehicle_id, plate_number, bus_type'
         ).execute()
@@ -555,7 +570,7 @@ def get_all_trips():
         d_map = {d['driver_id']: d['full_name'] for d in drivers.data if d.get('driver_id') is not None}
 
         formatted_trips = []
-        for t in trips.data:
+        for t in trips:
             t['plate_number'] = v_map.get(t.get('vehicle_id'), 'No Plate Assigned')
             t['driver_name'] = d_map.get(t.get('driver_id'), 'Unassigned')
             formatted_trips.append(t)
@@ -567,8 +582,97 @@ def get_all_trips():
 @schedules_bp.route('/api/schedules/staff-summary/<string:staff_uuid>', methods=['GET'])
 def get_staff_trip_summary(staff_uuid):
     try:
+        # Analytics does not need the complete trip editor payload. Returning
+        # only chart/detail fields cuts the initial analytics response down
+        # substantially while keeping the full response for staff screens.
+        if request.args.get('compact') == '1':
+            compact_query = supabase.table('trip_schedule').select(
+                'trip_id, summary_id, schedule_date, passenger_count, '
+                'driver_id, company_id, route_name'
+            )
+            from_date = request.args.get('from_date')
+            to_date = request.args.get('to_date')
+            year_param = request.args.get('year')
+            month_param = request.args.get('month')
+            if from_date:
+                compact_query = compact_query.gte('schedule_date', from_date)
+            if to_date:
+                compact_query = compact_query.lte('schedule_date', to_date)
+            if not from_date and year_param and year_param.isdigit():
+                selected_year = int(year_param)
+                if month_param and month_param.isdigit() and 1 <= int(month_param) <= 12:
+                    selected_month = int(month_param)
+                    start_date = f'{selected_year}-{selected_month:02d}-01'
+                    if selected_month == 12:
+                        end_date = f'{selected_year + 1}-01-01'
+                    else:
+                        end_date = f'{selected_year}-{selected_month + 1:02d}-01'
+                else:
+                    start_date = f'{selected_year}-01-01'
+                    end_date = f'{selected_year + 1}-01-01'
+                compact_query = compact_query.gte('schedule_date', start_date).lt(
+                    'schedule_date', end_date
+                )
+
+            compact_rows = _fetch_all_rows(
+                compact_query.order('schedule_date', desc=False)
+            )
+            compact_drivers = supabase.table('driver_profile').select(
+                'driver_id, full_name'
+            ).execute().data or []
+            compact_companies = supabase.table('client_company').select(
+                'company_id, company_name'
+            ).execute().data or []
+            driver_names = {
+                row['driver_id']: row.get('full_name', 'Unassigned')
+                for row in compact_drivers
+                if row.get('driver_id') is not None
+            }
+            company_names = {
+                row['company_id']: row.get('company_name', 'Unknown Client')
+                for row in compact_companies
+                if row.get('company_id') is not None
+            }
+            for trip in compact_rows:
+                company_name = company_names.get(
+                    trip.get('company_id'), 'Unknown Client'
+                )
+                trip['driver_name'] = driver_names.get(
+                    trip.get('driver_id'), 'Unassigned'
+                )
+                trip['company_name'] = company_name
+                trip['client_company'] = {'company_name': company_name}
+            return jsonify({
+                "success": True,
+                "data": compact_rows,
+                "trip_count": len(compact_rows),
+            }), 200
+
         query = supabase.table('trip_schedule').select('*')
-        trips = query.order('schedule_date', desc=False).execute()
+        from_date = request.args.get('from_date')
+        to_date = request.args.get('to_date')
+        year_param = request.args.get('year')
+        month_param = request.args.get('month')
+        if from_date:
+            query = query.gte('schedule_date', from_date)
+        if to_date:
+            query = query.lte('schedule_date', to_date)
+        if not from_date and year_param and year_param.isdigit():
+            selected_year = int(year_param)
+            if month_param and month_param.isdigit() and 1 <= int(month_param) <= 12:
+                selected_month = int(month_param)
+                start_date = f'{selected_year}-{selected_month:02d}-01'
+                if selected_month == 12:
+                    end_date = f'{selected_year + 1}-01-01'
+                else:
+                    end_date = f'{selected_year}-{selected_month + 1:02d}-01'
+            else:
+                start_date = f'{selected_year}-01-01'
+                end_date = f'{selected_year + 1}-01-01'
+            query = query.gte('schedule_date', start_date).lt(
+                'schedule_date', end_date
+            )
+        trips = _fetch_all_rows(query.order('schedule_date', desc=False))
 
         vehicles = supabase.table('vehicle').select(
             'vehicle_id, plate_number, bus_type'
@@ -586,7 +690,7 @@ def get_staff_trip_summary(staff_uuid):
         company_rows = {c['company_id']: c for c in (companies.data or []) if c.get('company_id') is not None}
 
         formatted_trips = []
-        for trip in trips.data or []:
+        for trip in trips:
             vehicle = v_map.get(trip.get('vehicle_id'), {})
             schedule_date = trip.get('schedule_date')
             working_day = trip.get('working_day')

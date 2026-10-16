@@ -47,8 +47,10 @@ def generate_ground_truth_labels(row):
 
 def evaluate_legacy_knn_split():
     print("\n=======================================================")
-    print("OBJECTIVE 3.1: DRIVER CLASSIFICATION (KNN) EVALUATION")
+    print("OBJECTIVE 3.1: DRIVER CLASSIFICATION (KNN) RULE-CONSISTENCY EVALUATION")
     print("=======================================================")
+    print("Note: labels are generated from the same driver features used by KNN.")
+    print("This measures consistency with the labeling policy, not future-driver prediction.")
 
     driver_ml.supabase = supabase
     df = driver_ml.fetch_and_prepare_data()
@@ -137,8 +139,10 @@ def evaluate_legacy_toy_mlr():
 
 def evaluate_objective_3_1_knn_cross_validated():
     print("\n=======================================================")
-    print("OBJECTIVE 3.1: DRIVER CLASSIFICATION (KNN) EVALUATION")
+    print("OBJECTIVE 3.1: DRIVER CLASSIFICATION (KNN) RULE-CONSISTENCY EVALUATION")
     print("=======================================================")
+    print("Note: labels are generated from the same driver features used by KNN.")
+    print("This measures consistency with the labeling policy, not future-driver prediction.")
     driver_ml.supabase = supabase
     df = driver_ml.fetch_and_prepare_data()
     if len(df) < 5:
@@ -175,6 +179,170 @@ def evaluate_objective_3_1_knn_cross_validated():
     print(df['target_label'].value_counts().to_string())
     print('\nClassification Report:')
     print(classification_report(y, predictions, zero_division=0))
+
+
+def _driver_temporal_rows():
+    """Build prior-month features and next-month labels for honest testing."""
+    drivers = pd.DataFrame(driver_ml._fetch_all('driver_profile', 'driver_id'))
+    evaluations = pd.DataFrame(driver_ml._fetch_all(
+        'evaluation',
+        'driver_id, submit_date, safety_score, punctuality_score, '
+        'professionalism_score, source',
+    ))
+    trips = pd.DataFrame(driver_ml._fetch_all(
+        'trip_schedule', 'driver_id, schedule_date',
+    ))
+    attendance = pd.DataFrame(driver_ml._fetch_all(
+        'attendance_record',
+        'driver_id, work_date, total_minutes_late, note',
+    ))
+
+    for frame, column in (
+        (evaluations, 'submit_date'),
+        (trips, 'schedule_date'),
+        (attendance, 'work_date'),
+    ):
+        if not frame.empty:
+            frame['_date'] = pd.to_datetime(frame[column], errors='coerce')
+            frame['_month'] = frame['_date'].dt.to_period('M')
+
+    def period_metrics(driver_id, period, historical):
+        start = period.start_time
+        end = period.end_time
+        if historical:
+            evals = evaluations[(evaluations.driver_id == driver_id) & (evaluations['_date'] < start)] if not evaluations.empty else evaluations
+            trip_rows = trips[(trips.driver_id == driver_id) & (trips['_date'] < start)] if not trips.empty else trips
+            att = attendance[(attendance.driver_id == driver_id) & (attendance['_date'] < start)] if not attendance.empty else attendance
+        else:
+            evals = evaluations[(evaluations.driver_id == driver_id) & (evaluations['_date'] >= start) & (evaluations['_date'] <= end)] if not evaluations.empty else evaluations
+            trip_rows = trips[(trips.driver_id == driver_id) & (trips['_date'] >= start) & (trips['_date'] <= end)] if not trips.empty else trips
+            att = attendance[(attendance.driver_id == driver_id) & (attendance['_date'] >= start) & (attendance['_date'] <= end)] if not attendance.empty else attendance
+
+        scores = {}
+        for metric in ('safety_score', 'punctuality_score', 'professionalism_score'):
+            if evals.empty:
+                scores[metric] = 3.0
+                continue
+            source = evals['source'].fillna('staff').where(evals['source'].isin(['staff', 'passenger']), 'staff')
+            staff_values = pd.to_numeric(evals.loc[source == 'staff', metric], errors='coerce').mean()
+            passenger_values = pd.to_numeric(evals.loc[source == 'passenger', metric], errors='coerce').mean()
+            if pd.notna(staff_values) and pd.notna(passenger_values):
+                scores[metric] = staff_values * 0.60 + passenger_values * 0.40
+            elif pd.notna(staff_values):
+                scores[metric] = staff_values
+            elif pd.notna(passenger_values):
+                scores[metric] = passenger_values
+            else:
+                scores[metric] = 3.0
+
+        if att.empty:
+            total_late = present = half_day = absent = 0
+        else:
+            notes = att['note'].fillna('').astype(str).str.lower()
+            absent_flags = notes.str.contains('absent')
+            half_flags = notes.str.contains('half day')
+            total_late = pd.to_numeric(att['total_minutes_late'], errors='coerce').fillna(0).sum()
+            absent = int(absent_flags.sum())
+            half_day = int(half_flags.sum())
+            present = int((~absent_flags & ~half_flags).sum())
+
+        return {
+            **scores,
+            'trips_amount': int(len(trip_rows)),
+            'total_minutes_late': float(total_late),
+            'present_count': present,
+            'half_day_count': half_day,
+            'absent_count': absent,
+        }
+
+    periods = set()
+    for frame in (evaluations, trips, attendance):
+        if not frame.empty:
+            periods.update(frame['_month'].dropna().unique())
+    periods = sorted(periods)
+
+    rows = []
+    for driver_id in drivers['driver_id'].tolist():
+        for period in periods[1:]:
+            prior = period_metrics(driver_id, period, historical=True)
+            target = period_metrics(driver_id, period, historical=False)
+            if (prior['trips_amount'] == 0 and prior['present_count'] == 0
+                    and prior['safety_score'] == 3.0
+                    and target['trips_amount'] == 0
+                    and target['present_count'] == 0):
+                continue
+            rows.append({
+                'period': period,
+                'features': [prior[column] for column in [
+                    'safety_score', 'punctuality_score', 'professionalism_score',
+                    'trips_amount', 'total_minutes_late', 'present_count',
+                    'half_day_count', 'absent_count',
+                ]],
+                'label': generate_ground_truth_labels(pd.Series(target)),
+            })
+    return sorted(rows, key=lambda row: row['period'])
+
+
+def evaluate_objective_3_1_temporal():
+    print("\n=======================================================")
+    print("OBJECTIVE 3.1: DRIVER CLASSIFICATION TEMPORAL EVALUATION")
+    print("=======================================================")
+    print("Features use history before each month; labels come from that month.")
+    print("This is a future-style holdout, not a same-period rule-consistency test.")
+
+    driver_ml.supabase = supabase
+    rows = _driver_temporal_rows()
+    periods = sorted({row['period'] for row in rows})
+    if len(rows) < 20 or len(periods) < 3:
+        print("Insufficient monthly driver snapshots for temporal evaluation.")
+        return
+
+    # Use a chronological 80/20 split: the first 80% of months train the
+    # model, and the final 20% are held out as future-style test data.
+    split_period = periods[max(1, int(len(periods) * 0.80))]
+    train_rows = [row for row in rows if row['period'] < split_period]
+    test_rows = [row for row in rows if row['period'] >= split_period]
+    if not train_rows or not test_rows:
+        print("Unable to create chronological train/test partitions.")
+        return
+
+    X_train = np.asarray([row['features'] for row in train_rows], dtype=float)
+    X_test = np.asarray([row['features'] for row in test_rows], dtype=float)
+    y_train = [row['label'] for row in train_rows]
+    y_test = [row['label'] for row in test_rows]
+    model = Pipeline([
+        ('scale', StandardScaler()),
+        ('knn', KNeighborsClassifier(
+            n_neighbors=min(5, len(train_rows)), weights='distance'
+        )),
+    ])
+    model.fit(X_train, y_train)
+    predictions = model.predict(X_test)
+
+    train_distribution = pd.Series(y_train).value_counts().sort_index()
+    test_distribution = pd.Series(y_test).value_counts().sort_index()
+    train_periods = sorted({row['period'] for row in train_rows})
+    test_periods = sorted({row['period'] for row in test_rows})
+    print(f"Total monthly snapshots         : {len(rows)}")
+    print(f"Feature matrix dimensions       : {X_train.shape[1]} features")
+    print(f"Training percentage              : {len(train_rows) / len(rows) * 100:.2f}%")
+    print(f"Future test percentage           : {len(test_rows) / len(rows) * 100:.2f}%")
+    print(f"Training months                  : {len(train_periods)}")
+    print(f"Future test months               : {len(test_periods)}")
+    print(f"Training snapshots               : {len(train_rows)}")
+    print(f"Future test snapshots            : {len(test_rows)}")
+    print(f"Training through                 : {split_period - 1}")
+    print(f"Testing from                     : {split_period}")
+    print(f"Accuracy                         : {accuracy_score(y_test, predictions) * 100:.2f}%")
+    print(f"Macro Precision                  : {precision_score(y_test, predictions, average='macro', zero_division=0):.4f}")
+    print(f"Macro Recall                     : {recall_score(y_test, predictions, average='macro', zero_division=0):.4f}")
+    print(f"Macro F1-Score                   : {f1_score(y_test, predictions, average='macro', zero_division=0):.4f}")
+    print("Training label distribution:")
+    print(train_distribution.to_string())
+    print("Test label distribution:")
+    print(test_distribution.to_string())
+    print("\nClassification Report:")
+    print(classification_report(y_test, predictions, zero_division=0))
 
 
 def evaluate_objective_3_2_production():
@@ -251,6 +419,17 @@ def evaluate_objective_3_2_live():
     ).fit(X_train, y_train)
     rf_pred = rf.predict(X_test)
 
+    snapshot_dates = [row[0] for row in rows]
+    train_dates = snapshot_dates[:split]
+    test_dates = snapshot_dates[split:]
+    print(f"Total maintenance snapshots     : {len(rows)}")
+    print(f"Feature matrix dimensions        : {X_train.shape[1]} features")
+    print(f"Training percentage              : {len(X_train) / len(rows) * 100:.2f}%")
+    print(f"Test percentage                  : {len(X_test) / len(rows) * 100:.2f}%")
+    print(f"Training date range              : {train_dates[0]} through {train_dates[-1]}")
+    print(f"Test date range                  : {test_dates[0]} through {test_dates[-1]}")
+    print(f"Training target mean             : {y_train.mean():.2f} days")
+    print(f"Test target mean                 : {y_test.mean():.2f} days")
     print(f"Chronological split             : {len(X_train)} Train | {len(X_test)} Test")
     print(f"Features                        : {predictive_ml.FEATURE_NAMES}")
     print("Target Variable                 : Days until next recorded maintenance")
@@ -308,6 +487,9 @@ def evaluate_objective_3_3_kmeans():
         score = 0.0
 
     print(f"Total Unique Destinations Analyzed: {len(X)}")
+    print(f"Source trip rows used             : {len(raw_trips)}")
+    print(f"Cluster assignment distribution   : {pd.Series(labels).value_counts().sort_index().to_dict()}")
+    print(f"Feature matrix dimensions         : {X.shape[1]} features")
     print(f"Features                      : [passenger_volume, trip_frequency, assigned_vehicle_count]")
     print(f"Number of Clusters (k)        : {k_val}")
     print(f"Silhouette Coefficient        : {score:.4f}")
@@ -321,7 +503,7 @@ def evaluate_objective_3_3_kmeans():
 
 
 if __name__ == '__main__':
-    evaluate_objective_3_1_knn_cross_validated()
+    evaluate_objective_3_1_temporal()
     evaluate_objective_3_2_live()
     evaluate_objective_3_3_kmeans()
     print("\n=======================================================\n")

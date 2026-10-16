@@ -7,14 +7,15 @@ class EnterpriseSummaryCardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 768;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final color = isDark
         ? EnterpriseColors.darkSurfaceMuted
         : const Color(0xFFD8DEE8);
 
     return Container(
-      constraints: const BoxConstraints(minHeight: 112),
-      padding: const EdgeInsets.all(16),
+      constraints: BoxConstraints(minHeight: compact ? 64 : 112),
+      padding: EdgeInsets.all(compact ? 10 : 16),
       decoration: BoxDecoration(
         color: isDark ? color.withValues(alpha: 0.7) : const Color(0xFFF1F4F8),
         borderRadius: BorderRadius.circular(12),
@@ -24,15 +25,17 @@ class EnterpriseSummaryCardSkeleton extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(14),
+          if (!compact) ...[
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
+            const SizedBox(width: 12),
+          ],
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -42,13 +45,13 @@ class EnterpriseSummaryCardSkeleton extends StatelessWidget {
               children: [
                 Container(
                   width: 54,
-                  height: 16,
+                  height: compact ? 10 : 16,
                   decoration: BoxDecoration(
                     color: color,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: compact ? 5 : 6),
                 FractionallySizedBox(
                   widthFactor: 0.8,
                   child: Container(
@@ -87,11 +90,12 @@ class EnterpriseSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final compact = MediaQuery.sizeOf(context).width < 768;
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      constraints: const BoxConstraints(minHeight: 112),
-      padding: const EdgeInsets.all(16),
+      constraints: BoxConstraints(minHeight: compact ? 72 : 112),
+      padding: EdgeInsets.all(compact ? 10 : 16),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
         border: Border.all(color: color.withValues(alpha: 0.3)),
@@ -99,10 +103,11 @@ class EnterpriseSummaryCard extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          Align(
-            alignment: Alignment.topLeft,
-            child: Icon(icon, color: color, size: 20),
-          ),
+          if (!compact)
+            Align(
+              alignment: Alignment.topLeft,
+              child: Icon(icon, color: color, size: 20),
+            ),
           SizedBox(
             width: double.infinity,
             child: Column(
@@ -117,11 +122,11 @@ class EnterpriseSummaryCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: color,
-                    fontSize: 14,
+                    fontSize: compact ? 11 : 14,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: compact ? 2 : 8),
                 Text(
                   value,
                   textAlign: TextAlign.center,
@@ -130,18 +135,20 @@ class EnterpriseSummaryCard extends StatelessWidget {
                   style: TextStyle(
                     color: theme.colorScheme.onSurface,
                     fontWeight: FontWeight.w900,
-                    fontSize: 28,
+                    fontSize: compact ? 19 : 28,
                     height: 1.0,
                   ),
                 ),
                 if (subtitle != null && subtitle!.isNotEmpty) ...[
-                  const SizedBox(height: 4),
+                  SizedBox(height: compact ? 1 : 4),
                   Text(
                     subtitle!,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                      fontSize: 12,
+                      color: isDark
+                          ? Colors.grey.shade400
+                          : Colors.grey.shade600,
+                      fontSize: compact ? 10 : 12,
                     ),
                   ),
                 ],
@@ -163,6 +170,7 @@ class EnterpriseTableSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final compact = MediaQuery.sizeOf(context).width < 768;
     final baseColor = theme.brightness == Brightness.dark
         ? EnterpriseColors.darkSurfaceMuted
         : EnterpriseColors.lightSurfaceMuted;
@@ -180,6 +188,76 @@ class EnterpriseTableSkeleton extends StatelessWidget {
         builder: (context, opacity, child) {
           final headColor = highlightColor.withValues(alpha: opacity);
           final rowColor = baseColor.withValues(alpha: opacity);
+
+          if (compact) {
+            return Container(
+              height: MediaQuery.sizeOf(context).height * 0.75,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: theme.cardColor,
+                border: Border.all(color: theme.dividerColor),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: rows.clamp(3, 6).toInt(),
+                itemBuilder: (context, index) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Container(
+                    height: 58,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: baseColor.withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: theme.dividerColor),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: rowColor,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              FractionallySizedBox(
+                                widthFactor: 0.45,
+                                child: Container(
+                                  height: 14,
+                                  decoration: BoxDecoration(
+                                    color: headColor,
+                                    borderRadius: BorderRadius.circular(5),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              FractionallySizedBox(
+                                widthFactor: 0.82,
+                                child: Container(
+                                  height: 10,
+                                  decoration: BoxDecoration(
+                                    color: rowColor,
+                                    borderRadius: BorderRadius.circular(5),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
 
           return Container(
             clipBehavior: Clip

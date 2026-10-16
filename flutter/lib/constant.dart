@@ -15,3 +15,8 @@ const String backendUrl = '$localIp/api';
 const String encryptedSocketUrl = useHostedBackend
     ? _hostedEncryptedSocketRoot
     : _localEncryptedSocketRoot;
+
+// Public URL used for passenger evaluation links and QR codes.
+// Keep this separate from the backend URL so evaluation links never point to
+// localhost when the application is running in production.
+const String publicEvaluationBaseUrl = 'https://gtlantinshervice.com';

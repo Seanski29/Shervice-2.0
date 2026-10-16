@@ -1,4 +1,5 @@
 import os
+import threading
 import joblib
 import pandas as pd
 import numpy as np
@@ -16,6 +17,7 @@ supabase = None
 model = None
 scaler = None
 is_trained = False
+_training_lock = threading.Lock()
 
 
 def _fetch_all(table_name, columns, batch_size=1000):
@@ -48,15 +50,33 @@ def fetch_and_prepare_data():
     # 2. Fetch Evaluations
     evals_df = pd.DataFrame(_fetch_all(
         'evaluation',
-        'driver_id, safety_score, punctuality_score, professionalism_score',
+        'driver_id, safety_score, punctuality_score, professionalism_score, source',
     ))
     
     if not evals_df.empty:
-        evals_agg = evals_df.groupby('driver_id').agg({
+        evals_df['source'] = evals_df['source'].fillna('staff').where(
+            evals_df['source'].isin(['staff', 'passenger']), 'staff'
+        )
+        source_means = evals_df.groupby(['driver_id', 'source']).agg({
             'safety_score': 'mean',
             'punctuality_score': 'mean',
-            'professionalism_score': 'mean'
+            'professionalism_score': 'mean',
         }).reset_index()
+        source_means = source_means.pivot(index='driver_id', columns='source')
+        source_means.columns = [f'{metric}_{source}' for metric, source in source_means.columns]
+        source_means = source_means.reset_index()
+
+        # Staff observations receive more weight for operational classification,
+        # while passenger feedback still contributes substantially. If only one
+        # source exists, use that source rather than inventing a second score.
+        for metric in ('safety_score', 'punctuality_score', 'professionalism_score'):
+            staff = source_means.get(f'{metric}_staff', pd.Series(index=source_means.index, dtype=float))
+            passenger = source_means.get(f'{metric}_passenger', pd.Series(index=source_means.index, dtype=float))
+            source_means[metric] = np.where(
+                staff.notna() & passenger.notna(), staff * 0.60 + passenger * 0.40,
+                staff.fillna(passenger),
+            )
+        evals_agg = source_means[['driver_id', 'safety_score', 'punctuality_score', 'professionalism_score']]
     else:
         evals_agg = pd.DataFrame(columns=['driver_id', 'safety_score', 'punctuality_score', 'professionalism_score'])
 
@@ -100,9 +120,11 @@ def fetch_and_prepare_data():
 
     # Fill missing data safely
     df.fillna({
-        'safety_score': 5.0,
-        'punctuality_score': 5.0,
-        'professionalism_score': 5.0,
+        # Missing feedback is neutral, not perfect. A driver with no reviews
+        # must not receive an artificial 5.0 rating.
+        'safety_score': 3.0,
+        'punctuality_score': 3.0,
+        'professionalism_score': 3.0,
         'trips_amount': 0,
         'total_minutes_late': 0,
         'present_count': 0,
@@ -119,9 +141,16 @@ def generate_ground_truth_labels(row):
     late_mins = row['total_minutes_late']
     absences = row['absent_count']
     present = row['present_count']
+    attendance_days = max(
+        present + row['half_day_count'] + absences,
+        1,
+    )
+    average_late_minutes = late_mins / attendance_days
     
     # 1. Critical fail conditions
-    if absences >= 3 or late_mins > 60 or punctuality < 3.0:
+    # Use an average per attendance day. A lifetime total would classify
+    # nearly every driver as late after several months of normal attendance.
+    if absences >= 3 or average_late_minutes > 10 or punctuality < 3.0:
         return 'Tardiness Risk'
         
     # 2. Safety fail conditions
@@ -129,7 +158,7 @@ def generate_ground_truth_labels(row):
         return 'Safety Risk'
         
     # 3. High performer conditions (Now requires high professionalism AND actual attendance data)
-    elif safety >= 4.5 and punctuality >= 4.5 and professionalism >= 4.0 and late_mins <= 15 and absences == 0 and present > 0:
+    elif safety >= 4.5 and punctuality >= 4.5 and professionalism >= 4.0 and average_late_minutes <= 3 and absences == 0 and present > 0:
         return 'Elite Performer'
 
     # 4. Consistent drivers: reliable attendance and performance, but not
@@ -138,7 +167,7 @@ def generate_ground_truth_labels(row):
         safety >= 4.0
         and punctuality >= 4.0
         and professionalism >= 4.0
-        and late_mins <= 30
+        and average_late_minutes <= 6
         and absences == 0
         and present > 0
         and row['trips_amount'] > 0
@@ -148,7 +177,16 @@ def generate_ground_truth_labels(row):
     # 5. Default middle-ground
     else:
         return 'Needs Review'
-def train_driver_classification_model():
+def train_driver_classification_model(force: bool = False):
+    """Train once at a time so concurrent driver requests cannot stampede Supabase."""
+    global is_trained
+    with _training_lock:
+        if is_trained and not force:
+            return True
+        return _train_driver_classification_model()
+
+
+def _train_driver_classification_model():
     """
     Trains the KNN Model and updates Supabase.
     """
@@ -178,19 +216,22 @@ def train_driver_classification_model():
     X = df[feature_cols]
     y = df['target_label']
 
-    # Scale the features
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-
-    # Keep a holdout only for reporting. The serving model is fitted on all
-    # available drivers so every current driver receives a classification.
+    # Keep a holdout only for reporting. Fit the evaluation scaler on the
+    # training partition only so test-set statistics cannot leak into the
+    # reported score.
+    label_counts = y.value_counts()
+    stratify_labels = y if label_counts.min() >= 2 else None
     X_train, X_test, y_train, y_test = train_test_split(
-        X_scaled, y, test_size=0.2, random_state=42
+        X, y, test_size=0.2, random_state=42, stratify=stratify_labels
     )
+
+    evaluation_scaler = StandardScaler()
+    X_train_scaled = evaluation_scaler.fit_transform(X_train)
+    X_test_scaled = evaluation_scaler.transform(X_test)
 
     # Initialize and Train KNN
     evaluation_model = KNeighborsClassifier(n_neighbors=3, weights='distance')
-    evaluation_model.fit(X_train, y_train)
+    evaluation_model.fit(X_train_scaled, y_train)
     
     y_pred = evaluation_model.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
@@ -199,9 +240,10 @@ def train_driver_classification_model():
     print(f"KNN Accuracy Score: {accuracy * 100:.2f}%")
     print("\nClassification Report:\n", classification_report(y_test, y_pred, zero_division=0))
 
-    # Refit the serving model on the complete driver dataset. This prevents
-    # the 20% holdout from receiving a classification based on incomplete
-    # neighborhood information.
+    # Refit the serving scaler/model on the complete driver dataset. This is
+    # separate from evaluation and lets every current driver receive a label.
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
     model = KNeighborsClassifier(n_neighbors=3, weights='distance')
     model.fit(X_scaled, y)
 
@@ -238,7 +280,7 @@ def classify_driver(driver_id):
         # included in the trips_amount feature instead of using stale model
         # classifications from an earlier data snapshot.
         if not is_trained or request.args.get('refresh') == '1':
-            train_driver_classification_model()
+            train_driver_classification_model(force=request.args.get('refresh') == '1')
             
         res = supabase.table('driver_profile').select('ml_classification').eq('driver_id', driver_id).execute()
         

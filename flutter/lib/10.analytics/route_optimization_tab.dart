@@ -20,6 +20,35 @@ class RouteOptimizationTab extends StatefulWidget {
   State<RouteOptimizationTab> createState() => _RouteOptimizationTabState();
 }
 
+class _TripDemandChip extends StatelessWidget {
+  const _TripDemandChip({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
 class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
   bool _isLoading = true;
   bool _showRecommendations = true;
@@ -827,44 +856,26 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
                     horizontal: 16,
                     vertical: 12,
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: themeColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: themeColor.withValues(alpha: 0.4),
-                          ),
-                        ),
-                        child: Text(
-                          label,
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: themeColor,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        flex: 3,
-                        child: Column(
+                  child: isMobile
+                      ? Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            _TripDemandChip(label: label, color: themeColor),
+                            const SizedBox(height: 10),
                             Text(
                               'TRIP-${t['trip_id'] ?? 'N/A'} | ${t['route_name'] ?? 'Route'}',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: textColor,
                               ),
                             ),
+                            const SizedBox(height: 4),
                             Text(
                               "${t['schedule_date']} | ${t['driver_name']} (${t['plate_number']})",
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: isDark
@@ -872,38 +883,91 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
                                     : const Color(0xFF64748B),
                               ),
                             ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 6,
+                              children: [
+                                Text(
+                                  "Passengers: ${t['passenger_count'] ?? 0}",
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark
+                                        ? Colors.grey.shade300
+                                        : Colors.black87,
+                                  ),
+                                ),
+                                Text(
+                                  "Departed: ${t['departure_time'] ?? 'N/A'}",
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark
+                                        ? Colors.grey.shade400
+                                        : Colors.black54,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
-                        ),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        )
+                      : Row(
                           children: [
-                            Text(
-                              "Passengers: ${t['passenger_count'] ?? 0}",
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: isDark
-                                    ? Colors.grey.shade300
-                                    : Colors.black87,
+                            _TripDemandChip(label: label, color: themeColor),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              flex: 3,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'TRIP-${t['trip_id'] ?? 'N/A'} | ${t['route_name'] ?? 'Route'}',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: textColor,
+                                    ),
+                                  ),
+                                  Text(
+                                    "${t['schedule_date']} | ${t['driver_name']} (${t['plate_number']})",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark
+                                          ? Colors.grey.shade400
+                                          : const Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            Text(
-                              "Departed: ${t['departure_time'] ?? 'N/A'}",
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isDark
-                                    ? Colors.grey.shade400
-                                    : Colors.black54,
+                            Expanded(
+                              flex: 2,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Passengers: ${t['passenger_count'] ?? 0}",
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark
+                                          ? Colors.grey.shade300
+                                          : Colors.black87,
+                                    ),
+                                  ),
+                                  Text(
+                                    "Departed: ${t['departure_time'] ?? 'N/A'}",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: isDark
+                                          ? Colors.grey.shade400
+                                          : Colors.black54,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
                 );
               },
             ),
@@ -918,15 +982,18 @@ class _RouteOptimizationTabState extends State<RouteOptimizationTab> {
                 vertical: 12.0,
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Showing ${startIndex + 1} - $endIndex of ${trips.length} trips',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark
-                          ? Colors.grey.shade400
-                          : const Color(0xFF64748B),
+                  Expanded(
+                    child: Text(
+                      'Showing ${startIndex + 1} - $endIndex of ${trips.length} trips',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? Colors.grey.shade400
+                            : const Color(0xFF64748B),
+                      ),
                     ),
                   ),
                   Row(

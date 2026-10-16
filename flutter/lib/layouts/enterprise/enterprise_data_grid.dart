@@ -56,6 +56,8 @@ class EnterpriseDataGrid<T> extends StatefulWidget {
     this.selectable = true,
     this.allowSelectAll = true,
     this.singleSelect = false,
+    this.readOnlyOnMobile = false,
+    this.onMobileFilterPressed,
   });
 
   final List<T> rows;
@@ -85,6 +87,8 @@ class EnterpriseDataGrid<T> extends StatefulWidget {
   final bool selectable;
   final bool allowSelectAll;
   final bool singleSelect;
+  final bool readOnlyOnMobile;
+  final VoidCallback? onMobileFilterPressed;
 
   @override
   State<EnterpriseDataGrid<T>> createState() => _EnterpriseDataGridState<T>();
@@ -161,7 +165,10 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
   @override
   Widget build(BuildContext context) {
     if (widget.loading) {
-      return EnterpriseTableSkeleton(columns: widget.columns.length + 1);
+      return EnterpriseTableSkeleton(
+        columns: widget.columns.length +
+            ((widget.selectable || widget.onDelete != null) ? 1 : 0),
+      );
     }
 
     final theme = Theme.of(context);
@@ -172,8 +179,9 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
               .where((row) => _selectedKeys.contains(widget.rowKey(row)))
               .toList()
         : <T>[];
+    final hasLeadingColumn = widget.selectable || widget.onDelete != null;
     final totalWidth =
-        78.0 +
+        (hasLeadingColumn ? 48.0 : 0.0) +
         widget.columns.fold<double>(
           0,
           (sum, column) => sum + _columnWidth(column),
@@ -188,6 +196,10 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 768;
+        if (isMobile) {
+          return _buildMobileCards(theme, allRows, rows);
+        }
         final viewportWidth = constraints.maxWidth.isFinite
             ? constraints.maxWidth
             : totalWidth;
@@ -284,39 +296,394 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
     );
   }
 
-  Widget _buildToolbar(ThemeData theme) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 46),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: theme.dividerColor)),
+  Widget _buildMobileCards(ThemeData theme, List<T> allRows, List<T> rows) {
+    final mediaHeight = MediaQuery.sizeOf(context).height;
+    final gridHeight = widget.height.isFinite
+        ? widget.height.clamp(mediaHeight * 0.82, mediaHeight * 0.82).toDouble()
+        : mediaHeight * 0.82;
+
+    return SizedBox(
+      height: gridHeight,
+      width: double.infinity,
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          border: Border.all(color: theme.dividerColor),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildToolbar(theme),
+            Expanded(
+              child: widget.rows.isEmpty
+                  ? SingleChildScrollView(
+                      child: EnterpriseEmptyState(
+                        icon: Icons.table_rows_outlined,
+                        title: widget.emptyTitle,
+                        message: widget.emptyMessage,
+                        actionLabel: widget.readOnlyOnMobile
+                            ? null
+                            : widget.emptyActionLabel,
+                        onAction: widget.readOnlyOnMobile
+                            ? null
+                            : widget.onEmptyAction,
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(12),
+                      itemCount: rows.length,
+                      itemBuilder: (context, index) => _buildMobileCard(
+                        theme,
+                        rows[index],
+                        (_currentPage * _rowsPerPage) + index + 1,
+                      ),
+                    ),
+            ),
+            if (widget.rows.isNotEmpty) _buildFooter(allRows.length),
+          ],
+        ),
       ),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        alignment: WrapAlignment.start, // Anchors to the Top-Left perfectly
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          ...widget.filterFields,
-          if (widget.showDateRange)
-            OutlinedButton.icon(
-              onPressed: _pickDateRange,
-              icon: const Icon(Icons.date_range_outlined, size: 17),
-              label: Text(
-                _dateRange == null
-                    ? 'Date range'
-                    : '${_shortDate(_dateRange!.start)} - ${_shortDate(_dateRange!.end)}',
+    );
+  }
+
+  List<EnterpriseGridColumn<T>> _heroColumnsForMobile() {
+    if (widget.columns.length <= 2) return widget.columns;
+    final targetCount = widget.columns.length <= 4 ? 2 : 3;
+    final labels = ['id', 'name', 'status', 'date'];
+    final picked = <EnterpriseGridColumn<T>>[];
+    for (final needle in labels) {
+      EnterpriseGridColumn<T>? match;
+      for (final column in widget.columns) {
+        if (column.label.toLowerCase().contains(needle)) {
+          match = column;
+          break;
+        }
+      }
+      if (match != null && !picked.contains(match)) picked.add(match);
+    }
+    for (final column in widget.columns) {
+      if (picked.length >= targetCount) break;
+      if (!picked.contains(column)) picked.add(column);
+    }
+    return picked;
+  }
+
+  Widget _buildMobileCard(ThemeData theme, T row, int displayIndex) {
+    final heroColumns = _heroColumnsForMobile();
+    final detailColumns = widget.columns
+        .where((column) => !heroColumns.contains(column))
+        .toList();
+    final canDelete =
+        !widget.readOnlyOnMobile &&
+        widget.onDelete != null &&
+        (widget.canDelete?.call(row) ?? true);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 15,
+                  backgroundColor: EnterpriseColors.primary.withValues(
+                    alpha: 0.12,
+                  ),
+                  child: Text(
+                    '$displayIndex',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: EnterpriseColors.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(child: _buildHeroMetrics(theme, row, heroColumns)),
+                if (canDelete)
+                  IconButton(
+                    tooltip: 'Delete row $displayIndex',
+                    onPressed: () => _confirmRowDelete(row),
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    color: EnterpriseColors.danger,
+                  ),
+              ],
+            ),
+            if (detailColumns.isNotEmpty)
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: const EdgeInsets.only(bottom: 10),
+                title: Text(
+                  'More details',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                children: [_buildDetailGrid(theme, row, detailColumns)],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroMetrics(
+    ThemeData theme,
+    T row,
+    List<EnterpriseGridColumn<T>> columns,
+  ) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compactWidth = constraints.maxWidth < 340
+            ? constraints.maxWidth
+            : (constraints.maxWidth - 8) / 2;
+        return Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (var index = 0; index < columns.length; index++)
+              SizedBox(
+                width: columns.length == 1
+                    ? constraints.maxWidth
+                    : compactWidth,
+                child: _MobileKeyValue(
+                  label: columns[index].label,
+                  value: columns[index].value(row),
+                  valueStyle: index == 1
+                      ? theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        )
+                      : theme.textTheme.bodyMedium,
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailGrid(
+    ThemeData theme,
+    T row,
+    List<EnterpriseGridColumn<T>> columns,
+  ) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = constraints.maxWidth < 420
+            ? constraints.maxWidth
+            : (constraints.maxWidth - 10) / 2;
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            for (final column in columns)
+              SizedBox(
+                width: itemWidth,
+                child: _MobileKeyValue(
+                  label: column.label,
+                  value: column.value(row),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildToolbar(ThemeData theme) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final mobile = constraints.maxWidth < 768;
+        final hasFilters =
+            widget.filterFields.isNotEmpty ||
+            widget.showDateRange ||
+            widget.onMobileFilterPressed != null;
+        return Container(
+          constraints: BoxConstraints(minHeight: mobile ? 40 : 46),
+          padding: EdgeInsets.symmetric(
+            horizontal: mobile ? 10 : 16,
+            vertical: mobile ? 6 : 10,
+          ),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: theme.dividerColor)),
+          ),
+          child: mobile
+              ? Row(
+                  children: [
+                    if (hasFilters)
+                      IconButton.outlined(
+                        onPressed:
+                            widget.onMobileFilterPressed ??
+                            _showMobileFilterSheet,
+                        tooltip: 'Filters',
+                        icon: const Icon(Icons.tune, size: 18),
+                      ),
+                    if (_dateRange != null) ...[
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${_shortDate(_dateRange!.start)} - ${_shortDate(_dateRange!.end)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall,
+                        ),
+                      ),
+                    ] else
+                      const Spacer(),
+                    _buildFullscreenButton(theme),
+                  ],
+                )
+              : Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  alignment: WrapAlignment.start,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    ...widget.filterFields,
+                    if (widget.showDateRange)
+                      OutlinedButton.icon(
+                        onPressed: _pickDateRange,
+                        icon: const Icon(Icons.date_range_outlined, size: 17),
+                        label: Text(
+                          _dateRange == null
+                              ? 'Date range'
+                              : '${_shortDate(_dateRange!.start)} - ${_shortDate(_dateRange!.end)}',
+                        ),
+                      ),
+                    if (_dateRange != null)
+                      IconButton(
+                        onPressed: () => setState(() => _dateRange = null),
+                        tooltip: 'Clear date range',
+                        icon: const Icon(Icons.filter_alt_off_outlined),
+                      ),
+                    const SizedBox(width: 4),
+                    _buildZoomControl(theme),
+                  ],
+                ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showMobileFilterSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        final bottomInset = MediaQuery.viewInsetsOf(sheetContext).bottom;
+        return SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 16 + bottomInset),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Filters',
+                    style: Theme.of(sheetContext).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 12),
+                  for (final field in widget.filterFields) ...[
+                    field,
+                    const SizedBox(height: 12),
+                  ],
+                  if (widget.showDateRange) ...[
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        Navigator.pop(sheetContext);
+                        await _pickDateRange();
+                      },
+                      icon: const Icon(Icons.date_range_outlined, size: 17),
+                      label: Text(
+                        _dateRange == null
+                            ? 'Date range'
+                            : '${_shortDate(_dateRange!.start)} - ${_shortDate(_dateRange!.end)}',
+                      ),
+                    ),
+                    if (_dateRange != null)
+                      TextButton.icon(
+                        onPressed: () {
+                          setState(() => _dateRange = null);
+                          Navigator.pop(sheetContext);
+                        },
+                        icon: const Icon(Icons.filter_alt_off_outlined),
+                        label: const Text('Clear date range'),
+                      ),
+                  ],
+                ],
               ),
             ),
-          if (_dateRange != null)
-            IconButton(
-              onPressed: () => setState(() => _dateRange = null),
-              tooltip: 'Clear date range',
-              icon: const Icon(Icons.filter_alt_off_outlined),
-            ),
-          const SizedBox(width: 4),
-          _buildZoomControl(theme),
-        ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildFullscreenButton(ThemeData theme) {
+    return IconButton.outlined(
+      onPressed: _showFullscreenTable,
+      tooltip: 'Open table fullscreen',
+      icon: const Icon(Icons.fullscreen, size: 18),
+    );
+  }
+
+  Future<void> _showFullscreenTable() async {
+    final theme = Theme.of(context);
+    final allRows = _sortedRows;
+    final rows = _visibleRows(allRows);
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (fullscreenContext) => Scaffold(
+          appBar: AppBar(
+            title: const Text('Table view'),
+            actions: [
+              if (widget.filterFields.isNotEmpty || widget.showDateRange)
+                IconButton(
+                  onPressed: _showMobileFilterSheet,
+                  tooltip: 'Filters',
+                  icon: const Icon(Icons.tune),
+                ),
+            ],
+          ),
+          body: Column(
+            children: [
+              Expanded(
+                child: rows.isEmpty
+                    ? EnterpriseEmptyState(
+                        icon: Icons.table_rows_outlined,
+                        title: widget.emptyTitle,
+                        message: widget.emptyMessage,
+                        actionLabel: widget.readOnlyOnMobile
+                            ? null
+                            : widget.emptyActionLabel,
+                        onAction: widget.readOnlyOnMobile
+                            ? null
+                            : widget.onEmptyAction,
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: rows.length,
+                        itemBuilder: (context, index) => _buildMobileCard(
+                          theme,
+                          rows[index],
+                          (_currentPage * _rowsPerPage) + index + 1,
+                        ),
+                      ),
+              ),
+              if (widget.rows.isNotEmpty) _buildFooter(allRows.length),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -379,16 +746,19 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
     double totalWidth,
     double extraColumnWidth,
   ) {
+    final hasLeadingColumn = widget.selectable || widget.onDelete != null;
     final canSelectAll = widget.selectable && widget.allowSelectAll;
-    final allSelected = canSelectAll && _selectedKeys.length == widget.rows.length;
+    final allSelected =
+        canSelectAll && _selectedKeys.length == widget.rows.length;
     return Container(
       width: totalWidth,
       height: 40,
       color: theme.cardColor,
       child: Row(
         children: [
+          if (hasLeadingColumn)
           SizedBox(
-            width: 78,
+              width: 48,
             child: Row(
               children: [
                 if (canSelectAll)
@@ -405,8 +775,7 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
                     },
                   )
                 else
-                  const SizedBox(width: 18),
-                Text('#', style: TextStyle(color: theme.colorScheme.onSurface)),
+                  const SizedBox(width: 48),
               ],
             ),
           ),
@@ -480,27 +849,27 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
           : Colors.transparent,
       child: Row(
         children: [
-          _GridRowNumber(
-            number: rowIndex + 1,
-            selected: selected,
-            selectable: widget.selectable,
-            canDelete:
-                widget.onDelete != null &&
-                (widget.canDelete?.call(row) ?? true),
-            onSelected: (value) {
-              setState(() {
-                if (value) {
-                  if (widget.singleSelect) _selectedKeys.clear();
-                  _selectedKeys.add(key);
-                } else {
-                  _selectedKeys.remove(key);
-                }
-              });
-            },
-            onDelete: widget.onDelete == null
-                ? null
-                : () => _confirmRowDelete(row),
-          ),
+          if (widget.selectable || widget.onDelete != null)
+            _GridRowNumber(
+              selected: selected,
+              selectable: widget.selectable,
+              canDelete:
+                  widget.onDelete != null &&
+                  (widget.canDelete?.call(row) ?? true),
+              onSelected: (value) {
+                setState(() {
+                  if (value) {
+                    if (widget.singleSelect) _selectedKeys.clear();
+                    _selectedKeys.add(key);
+                  } else {
+                    _selectedKeys.remove(key);
+                  }
+                });
+              },
+              onDelete: widget.onDelete == null
+                  ? null
+                  : () => _confirmRowDelete(row),
+            ),
           for (
             var columnIndex = 0;
             columnIndex < widget.columns.length;
@@ -905,6 +1274,57 @@ class _EnterpriseDataGridState<T> extends State<EnterpriseDataGrid<T>> {
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 }
 
+class _MobileKeyValue extends StatelessWidget {
+  const _MobileKeyValue({
+    required this.label,
+    required this.value,
+    this.valueStyle,
+  });
+
+  final String label;
+  final String value;
+  final TextStyle? valueStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.45,
+        ),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.6)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.62),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value.isEmpty ? '-' : value,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: valueStyle ?? theme.textTheme.bodyMedium,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ZoomButton extends StatelessWidget {
   const _ZoomButton({
     required this.icon,
@@ -942,7 +1362,6 @@ class _ZoomButton extends StatelessWidget {
 
 class _GridRowNumber extends StatefulWidget {
   const _GridRowNumber({
-    required this.number,
     required this.selected,
     required this.selectable,
     required this.canDelete,
@@ -950,7 +1369,6 @@ class _GridRowNumber extends StatefulWidget {
     required this.onDelete,
   });
 
-  final int number;
   final bool selected;
   final bool selectable;
   final bool canDelete;
@@ -970,7 +1388,7 @@ class _GridRowNumberState extends State<_GridRowNumber> {
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: Container(
-        width: 78,
+        width: 48,
         height: 42,
         decoration: BoxDecoration(
           color: _hovered
@@ -988,22 +1406,19 @@ class _GridRowNumberState extends State<_GridRowNumber> {
                 onChanged: (v) => widget.onSelected(v ?? false),
               )
             else
-              const SizedBox(width: 18),
+              const SizedBox(width: 48),
             Expanded(
               child: _hovered && widget.canDelete
                   ? IconButton(
                       onPressed: widget.onDelete,
-                      tooltip: 'Delete row ${widget.number}',
+                      tooltip: 'Delete row',
                       icon: const Icon(
                         Icons.delete_outline,
                         size: 16,
                         color: EnterpriseColors.danger,
                       ),
                     )
-                  : Text(
-                      '${widget.number}',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
+                  : const SizedBox.shrink(),
             ),
           ],
         ),

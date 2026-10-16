@@ -22,7 +22,7 @@ class EnterpriseKpiRow extends StatelessWidget {
             ? 5
             : availableWidth >= 850
             ? 3
-            : availableWidth >= 560
+            : availableWidth >= 360
             ? 2
             : 1;
         final cardWidth = (availableWidth - gap * (columns - 1)) / columns;
@@ -68,6 +68,7 @@ class _KpiCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final compact = MediaQuery.sizeOf(context).width < 768;
     final accent = _accentColor;
     final isDark = theme.brightness == Brightness.dark;
     final fill = Color.lerp(theme.cardColor, accent, isDark ? 0.18 : 0.07)!;
@@ -86,8 +87,8 @@ class _KpiCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Container(
-          height: 116,
-          padding: const EdgeInsets.all(18),
+          height: compact ? 72 : 116,
+          padding: EdgeInsets.all(compact ? 10 : 18),
           decoration: BoxDecoration(
             color: fill,
             boxShadow: [
@@ -104,8 +105,10 @@ class _KpiCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(metric.icon, size: 20, color: accent),
-                  const SizedBox(width: 10),
+                  if (!compact) ...[
+                    Icon(metric.icon, size: 20, color: accent),
+                    const SizedBox(width: 10),
+                  ],
                   Expanded(
                     child: Text(
                       metric.title,
@@ -114,7 +117,7 @@ class _KpiCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: muted,
-                        fontSize: 13,
+                        fontSize: compact ? 11 : 13,
                         fontWeight: FontWeight.w700,
                         fontFamily: GoogleFonts.montserrat().fontFamily,
                       ),
@@ -122,7 +125,7 @@ class _KpiCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: compact ? 3 : 12),
               Flexible(
                 child: Align(
                   alignment: Alignment.centerLeft,
@@ -135,21 +138,22 @@ class _KpiCard extends StatelessWidget {
                       maxLines: 1,
                       style: theme.textTheme.titleLarge?.copyWith(
                         color: theme.colorScheme.onSurface,
-                        fontSize: 28,
+                        fontSize: compact ? 19 : 28,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: compact ? 1 : 4),
               Text(
                 metric.subTitle,
                 textAlign: TextAlign.center,
-                maxLines: 1,
+                maxLines: compact ? 1 : 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.68),
+                  fontSize: compact ? 10 : null,
                 ),
               ),
             ],

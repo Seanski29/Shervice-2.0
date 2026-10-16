@@ -48,7 +48,7 @@ def handle_vehicles():
         vehicles = query.data or []
         logs = supabase.table('maintenance_log').select(
             'vehicle_id, incident_date, repair_date, is_resolved, maintenance_type'
-        ).order('repair_date', desc=True).execute().data or []
+        ).eq('is_resolved', False).order('repair_date', desc=True).execute().data or []
         
         target_dates = {}
         target_types = {}
@@ -147,9 +147,27 @@ def update_vehicle(vehicle_id):
 @vehicles_bp.route('/api/vehicles/maintenance', methods=['GET'])
 def get_maintenance_logs():
     try:
-        query = supabase.table('maintenance_log').select(
-            'maintenance_id, repair_date, description, vehicle_id, user_id, category, maintenance_type, incident_date, incident_time, repair_time, is_resolved, vehicle(plate_number), user_account(full_name)'
-        ).order('repair_date', desc=True).execute()
+        if request.args.get('compact') == '1':
+            query_builder = supabase.table('maintenance_log').select(
+                'maintenance_id, repair_date, description, vehicle_id, category, '
+                'maintenance_type, incident_date, is_resolved'
+            )
+        else:
+            query_builder = supabase.table('maintenance_log').select(
+                'maintenance_id, repair_date, description, vehicle_id, user_id, '
+                'category, maintenance_type, incident_date, incident_time, '
+                'repair_time, is_resolved, vehicle(plate_number), '
+                'user_account(full_name)'
+            )
+
+        vehicle_param = request.args.get('vehicle_id')
+        if vehicle_param:
+            try:
+                query_builder = query_builder.eq('vehicle_id', int(vehicle_param))
+            except (TypeError, ValueError):
+                return jsonify({'success': False, 'message': 'vehicle_id must be numeric.'}), 400
+
+        query = query_builder.order('repair_date', desc=True).execute()
         
         return jsonify({"success": True, "data": query.data}), 200
     except Exception as e:

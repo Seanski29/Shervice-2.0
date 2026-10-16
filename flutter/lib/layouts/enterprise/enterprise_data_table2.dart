@@ -51,7 +51,8 @@ class EnterpriseDataTable2<T> extends StatefulWidget {
   final VoidCallback? onEmptyAction;
 
   @override
-  State<EnterpriseDataTable2<T>> createState() => _EnterpriseDataTable2State<T>();
+  State<EnterpriseDataTable2<T>> createState() =>
+      _EnterpriseDataTable2State<T>();
 }
 
 class _EnterpriseDataTable2State<T> extends State<EnterpriseDataTable2<T>> {
@@ -83,10 +84,14 @@ class _EnterpriseDataTable2State<T> extends State<EnterpriseDataTable2<T>> {
     if (widget.rows.isEmpty || widget.columns.isEmpty) return;
     setState(() {
       _activeRow = (_activeRow + rowDelta).clamp(0, widget.rows.length - 1);
-      _activeColumn =
-          (_activeColumn + columnDelta).clamp(0, widget.columns.length - 1);
+      _activeColumn = (_activeColumn + columnDelta).clamp(
+        0,
+        widget.columns.length - 1,
+      );
     });
-    _focusNode(_activeRow * widget.columns.length + _activeColumn).requestFocus();
+    _focusNode(
+      _activeRow * widget.columns.length + _activeColumn,
+    ).requestFocus();
   }
 
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
@@ -127,119 +132,230 @@ class _EnterpriseDataTable2State<T> extends State<EnterpriseDataTable2<T>> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final selectedRows = _selectedRows;
-    final table = Focus(
-      focusNode: _tableFocus,
-      onKeyEvent: _handleKey,
-      child: dt2.DataTable2(
-        minWidth: _tableWidth(context),
-        columnSpacing: 0,
-        horizontalMargin: 0,
-        headingRowHeight: 36,
-        dataRowHeight: 38,
-        headingRowColor: WidgetStatePropertyAll(theme.cardColor),
-        headingTextStyle: theme.textTheme.labelLarge?.copyWith(
-          color: theme.colorScheme.onSurface,
-          fontWeight: FontWeight.w700,
-        ),
-        columns: [
-          const dt2.DataColumn2(label: Text(''), fixedWidth: 36),
-          for (final column in widget.columns)
-            dt2.DataColumn2(
-              label: Text(column.label),
-              numeric: column.numeric,
-              size: dt2.ColumnSize.M,
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 768;
+        final table = Focus(
+          focusNode: _tableFocus,
+          onKeyEvent: _handleKey,
+          child: dt2.DataTable2(
+            minWidth: _tableWidth(context),
+            columnSpacing: 0,
+            horizontalMargin: 0,
+            headingRowHeight: 36,
+            dataRowHeight: 38,
+            headingRowColor: WidgetStatePropertyAll(theme.cardColor),
+            headingTextStyle: theme.textTheme.labelLarge?.copyWith(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w700,
             ),
-          const dt2.DataColumn2(label: Text('Record actions'), fixedWidth: 150),
-        ],
-        rows: [
-          for (var rowIndex = 0; rowIndex < widget.rows.length; rowIndex++)
-            _buildRow(context, rowIndex, widget.rows[rowIndex]),
+            columns: [
+              const dt2.DataColumn2(label: Text(''), fixedWidth: 36),
+              for (final column in widget.columns)
+                dt2.DataColumn2(
+                  label: Text(column.label),
+                  numeric: column.numeric,
+                  size: dt2.ColumnSize.M,
+                ),
+              const dt2.DataColumn2(
+                label: Text('Record actions'),
+                fixedWidth: 150,
+              ),
+            ],
+            rows: [
+              for (var rowIndex = 0; rowIndex < widget.rows.length; rowIndex++)
+                _buildRow(context, rowIndex, widget.rows[rowIndex]),
+            ],
+          ),
+        );
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (!isMobile && selectedRows.isNotEmpty)
+              _buildSelectionBar(selectedRows),
+            if (!isMobile) _buildZoomBar(),
+            SizedBox(
+              height: isMobile
+                  ? MediaQuery.sizeOf(context).height * 0.75
+                  : widget.height,
+              child: widget.loading
+                  ? const EnterpriseTableSkeleton()
+                  : widget.rows.isEmpty
+                  ? EnterpriseEmptyState(
+                      icon: Icons.table_rows_outlined,
+                      title: widget.emptyTitle,
+                      message: widget.emptyMessage,
+                      actionLabel: widget.emptyActionLabel,
+                      onAction: widget.onEmptyAction,
+                    )
+                  : isMobile
+                  ? _buildMobileCards(theme)
+                  : Scrollbar(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: table,
+                      ),
+                    ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSelectionBar(List<T> selectedRows) {
+    return Material(
+      color: EnterpriseColors.main,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Row(
+          children: [
+            Text(
+              '${selectedRows.length} selected',
+              style: const TextStyle(color: Colors.white),
+            ),
+            const Spacer(),
+            TextButton.icon(
+              onPressed: widget.onExport == null
+                  ? null
+                  : () => _runMutation(
+                      () => widget.onExport!(selectedRows),
+                      '${selectedRows.length} records exported.',
+                    ),
+              icon: const Icon(Icons.download_outlined),
+              label: const Text('Export'),
+            ),
+            TextButton.icon(
+              onPressed: widget.onBulkDelete == null
+                  ? null
+                  : () => _runMutation(
+                      () => widget.onBulkDelete!(selectedRows),
+                      '${selectedRows.length} records deleted.',
+                    ),
+              icon: const Icon(Icons.delete_outline),
+              label: const Text('Bulk delete'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildZoomBar() {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            tooltip: 'Zoom out',
+            onPressed: _zoom <= 0.7 ? null : () => setState(() => _zoom -= 0.1),
+            icon: const Icon(Icons.zoom_out),
+          ),
+          Text('${(_zoom * 100).round()}%'),
+          IconButton(
+            tooltip: 'Zoom in',
+            onPressed: _zoom >= 1.4 ? null : () => setState(() => _zoom += 0.1),
+            icon: const Icon(Icons.zoom_in),
+          ),
         ],
       ),
     );
+  }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (selectedRows.isNotEmpty)
-          Material(
-            color: EnterpriseColors.main,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              child: Row(
-                children: [
-                  Text(
-                    '${selectedRows.length} selected',
-                    style: const TextStyle(color: Colors.white),
+  Widget _buildMobileCards(ThemeData theme) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: widget.rows.length,
+      itemBuilder: (context, index) {
+        final row = widget.rows[index];
+        final heroColumns = widget.columns.take(4).toList();
+        final detailColumns = widget.columns.skip(4).toList();
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildMobileHero(theme, row, heroColumns),
+                if (detailColumns.isNotEmpty)
+                  ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    childrenPadding: const EdgeInsets.only(bottom: 10),
+                    title: Text(
+                      'More details',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    children: [_buildMobileDetails(row, detailColumns)],
                   ),
-                  const Spacer(),
-                  TextButton.icon(
-                    onPressed: widget.onExport == null
-                        ? null
-                        : () => _runMutation(
-                            () => widget.onExport!(selectedRows),
-                            '${selectedRows.length} records exported.',
-                          ),
-                    icon: const Icon(Icons.download_outlined),
-                    label: const Text('Export'),
-                  ),
-                  TextButton.icon(
-                    onPressed: widget.onBulkDelete == null
-                        ? null
-                        : () => _runMutation(
-                            () => widget.onBulkDelete!(selectedRows),
-                            '${selectedRows.length} records deleted.',
-                          ),
-                    icon: const Icon(Icons.delete_outline),
-                    label: const Text('Bulk delete'),
-                  ),
-                ],
-              ),
+              ],
             ),
           ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-            IconButton(
-              tooltip: 'Zoom out',
-              onPressed: _zoom <= 0.7
-                  ? null
-                  : () => setState(() => _zoom -= 0.1),
-              icon: const Icon(Icons.zoom_out),
-            ),
-            Text('${(_zoom * 100).round()}%'),
-            IconButton(
-              tooltip: 'Zoom in',
-              onPressed: _zoom >= 1.4
-                  ? null
-                  : () => setState(() => _zoom += 0.1),
-              icon: const Icon(Icons.zoom_in),
-            ),
-            ],
-          ),
-        ),
-        SizedBox(
-          height: widget.height,
-          child: widget.loading
-              ? const EnterpriseTableSkeleton()
-              : widget.rows.isEmpty
-              ? EnterpriseEmptyState(
-                  icon: Icons.table_rows_outlined,
-                  title: widget.emptyTitle,
-                  message: widget.emptyMessage,
-                  actionLabel: widget.emptyActionLabel,
-                  onAction: widget.onEmptyAction,
-                )
-              : Scrollbar(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: table,
-                  ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMobileHero(
+    ThemeData theme,
+    T row,
+    List<EnterpriseTableColumn<T>> columns,
+  ) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compactWidth = constraints.maxWidth < 340
+            ? constraints.maxWidth
+            : (constraints.maxWidth - 8) / 2;
+        return Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (var index = 0; index < columns.length; index++)
+              SizedBox(
+                width: index == 1 ? constraints.maxWidth : compactWidth,
+                child: _MobileTableValue(
+                  label: columns[index].label,
+                  value: columns[index].value(row),
+                  valueStyle: index == 1
+                      ? theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        )
+                      : theme.textTheme.bodyMedium,
                 ),
-        ),
-      ],
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildMobileDetails(T row, List<EnterpriseTableColumn<T>> columns) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = constraints.maxWidth < 420
+            ? constraints.maxWidth
+            : (constraints.maxWidth - 10) / 2;
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            for (final column in columns)
+              SizedBox(
+                width: itemWidth,
+                child: _MobileTableValue(
+                  label: column.label,
+                  value: column.value(row),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 
@@ -260,12 +376,16 @@ class _EnterpriseDataTable2State<T> extends State<EnterpriseDataTable2<T>> {
           }),
         ),
       ),
-      for (var columnIndex = 0;
-          columnIndex < widget.columns.length;
-          columnIndex++)
+      for (
+        var columnIndex = 0;
+        columnIndex < widget.columns.length;
+        columnIndex++
+      )
         mui.DataCell(
           Focus(
-            focusNode: _focusNode(rowIndex * widget.columns.length + columnIndex),
+            focusNode: _focusNode(
+              rowIndex * widget.columns.length + columnIndex,
+            ),
             child: Text(widget.columns[columnIndex].value(row)),
           ),
         ),
@@ -308,9 +428,8 @@ class _EnterpriseDataTable2State<T> extends State<EnterpriseDataTable2<T>> {
             : EnterpriseColors.lightSurfaceMuted,
       ),
       selected: active,
-      onHover: (hovered) => setState(
-        () => _hoveredRow = hovered ? rowIndex : null,
-      ),
+      onHover: (hovered) =>
+          setState(() => _hoveredRow = hovered ? rowIndex : null),
       onSelectChanged: (value) => setState(() {
         if (value == true) {
           _selected.add(key);
@@ -321,9 +440,7 @@ class _EnterpriseDataTable2State<T> extends State<EnterpriseDataTable2<T>> {
       cells: [
         cells.first,
         ...cells.skip(1).take(widget.columns.length),
-        mui.DataCell(
-          cells.last.child,
-        ),
+        mui.DataCell(cells.last.child),
       ],
     );
   }
@@ -345,5 +462,56 @@ class _EnterpriseDataTable2State<T> extends State<EnterpriseDataTable2<T>> {
       width += (columnWidth + 16) * _zoom;
     }
     return width;
+  }
+}
+
+class _MobileTableValue extends StatelessWidget {
+  const _MobileTableValue({
+    required this.label,
+    required this.value,
+    this.valueStyle,
+  });
+
+  final String label;
+  final String value;
+  final TextStyle? valueStyle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.45,
+        ),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.6)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.62),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              value.isEmpty ? '-' : value,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: valueStyle ?? theme.textTheme.bodyMedium,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

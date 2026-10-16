@@ -1,6 +1,12 @@
 -- WARNING: This permanently removes all rows from maintenance_log.
 -- It does not delete vehicles or trip records.
 -- Review the generated rows before running this in production.
+--
+-- Synthetic design:
+--   * Monthly routine inspections are resolved.
+--   * Every third active month has a resolved repair event for ML history.
+--   * Only the first two non-excellent vehicles have an open repair, so the dashboard has
+--     realistic alerts without requiring many manual repair confirmations.
 
 begin;
 
@@ -71,8 +77,9 @@ with trip_months as (
     true as is_resolved
   from ranked_months
 ), repair_rows as (
-  -- Create a repair event every third active trip month. These are distinct
-  -- from routine maintenance checks and provide repair outcomes for the ML.
+  -- Create a repair event every third active trip month for the non-excellent
+  -- cohort. Vehicles whose ID is divisible by 5 have no repair history and
+  -- become excellent-vehicle candidates after the forecast refresh.
   select
     vehicle_id,
     first_trip_date as event_date,
@@ -85,9 +92,10 @@ with trip_months as (
     true as is_resolved
   from ranked_months
   where active_month_number % 3 = 0
+    and vehicle_id % 5 <> 0
 ), open_repair_rows as (
-  -- Keep a small, deterministic set of active repair issues for the Due
-  -- Repair workflow. Do not duplicate a repair already created that month.
+  -- Keep only two deterministic active repair issues for the Due Repair
+  -- workflow. Do not duplicate a repair already created that month.
   select
     vw.vehicle_id,
     vw.last_trip_date as event_date,
@@ -99,7 +107,13 @@ with trip_months as (
          else 'General' end as category,
     false as is_resolved
   from vehicle_windows vw
-  where vw.vehicle_id % 5 = 0
+  where vw.vehicle_id in (
+    select vehicle_id
+    from vehicle_windows
+    where vehicle_id % 5 <> 0
+    order by vehicle_id
+    limit 2
+  )
     and not exists (
       select 1
       from repair_rows rr
@@ -146,6 +160,22 @@ select
   seed.is_resolved
 from seed_rows seed;
 
+-- Reset stale vehicle status left by older synthetic maintenance data.
+update public.vehicle
+set health_status = 'Good',
+    is_available = true,
+    last_maintenance_description = 'Synthetic maintenance history refreshed.';
+
+-- Only the two seeded open repairs remain unavailable.
+update public.vehicle v
+set health_status = 'Needs Maintenance',
+    is_available = false,
+    last_maintenance_description = l.description
+from public.maintenance_log l
+where l.vehicle_id = v.vehicle_id
+  and l.maintenance_type = 'repair'
+  and l.is_resolved = false;
+
 -- Protect future inserts and make the generated data easy to inspect.
 alter table public.maintenance_log
   alter column maintenance_type set not null;
@@ -158,3 +188,12 @@ commit;
 -- Maintenance rows are monthly checks tied to actual trip activity and use
 -- only the categories supported by the application. Repair rows are separate
 -- fault/repair events; unresolved repairs remain visible as Due Repair.
+select maintenance_type, is_resolved, count(*) as rows
+from public.maintenance_log
+group by maintenance_type, is_resolved
+order by maintenance_type, is_resolved;
+
+select count(*) as ongoing_repairs
+from public.maintenance_log
+where maintenance_type = 'repair'
+  and is_resolved = false;
