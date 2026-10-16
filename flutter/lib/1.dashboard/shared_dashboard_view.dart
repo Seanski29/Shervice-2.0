@@ -1762,7 +1762,9 @@ class _SharedDashboardViewState extends State<SharedDashboardView> {
                   globalCumTotal += avgTotal;
                 }
               }
-            } catch (_) {}
+            } catch (error) {
+              debugPrint('Unable to enrich dashboard driver rating: $error');
+            }
           }),
         );
       }

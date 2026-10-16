@@ -4,6 +4,7 @@ import joblib
 import pandas as pd
 import numpy as np
 from flask import Blueprint, jsonify, request
+from .errors import internal_error
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
@@ -292,4 +293,4 @@ def classify_driver(driver_id):
 
     except Exception as e:
         print(f"❌ ML Classification fetch error for driver {driver_id}: {e}")
-        return jsonify({"success": False, "error": str(e), "classification": "Analysis Failed"}), 500
+        return internal_error("Unable to classify driver.", classification="Analysis Failed")

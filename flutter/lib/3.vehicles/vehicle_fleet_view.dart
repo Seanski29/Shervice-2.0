@@ -244,8 +244,9 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
       await _purgeVehicleDirect(vehicle);
       if (mounted) EnterpriseToasts.success(context, 'Vehicle record deleted.');
     } catch (error) {
+      debugPrint('Unable to delete vehicle: $error');
       if (mounted) {
-        EnterpriseToasts.error(context, 'Unable to delete vehicle: $error');
+        EnterpriseToasts.error(context, 'Unable to delete vehicle. Please try again.');
       }
     }
   }
@@ -697,16 +698,19 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                                       decoded['message'] != null) {
                                     message = decoded['message'].toString();
                                   }
-                                } catch (_) {}
+                                } catch (error) {
+                                  debugPrint('Unable to parse incident error response: $error');
+                                }
                                 _showSnackBar(message, Colors.red);
                               }
                             }
                           } catch (e) {
+                            debugPrint('Unable to save vehicle incident: $e');
                             if (context.mounted) {
                               _showSnackBar(
                                 e.toString().contains('TimeoutException')
                                     ? 'The server took too long to save the incident.'
-                                    : 'Unable to save the incident: $e',
+                                    : 'Unable to save the incident. Please try again.',
                                 Colors.red,
                               );
                             }
@@ -2204,11 +2208,12 @@ class _RegisterVehicleDialogState extends State<RegisterVehicleDialog> {
         throw Exception(responseData['message'] ?? "Operational rejection.");
       }
     } catch (e) {
+      debugPrint('Unable to submit vehicle: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            "Submission Error: $e",
+            "Unable to submit vehicle. Please try again.",
             style: const TextStyle(color: Colors.white),
           ),
           backgroundColor: Colors.red,

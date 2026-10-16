@@ -97,6 +97,17 @@ class TransportBackendApp:
         self._inject_dependencies_and_register_blueprints()
 
     def _register_hooks(self):
+        @self.app.errorhandler(500)
+        def _unexpected_error(error):
+            original = error.original_exception or error
+            self.app.logger.error(
+                "Unhandled API error: %s %s", request.method, request.path,
+                exc_info=(type(original), original, original.__traceback__),
+            )
+            if request.path.startswith("/api/"):
+                return jsonify({"success": False, "message": "Internal server error.", "error": "Internal server error."}), 500
+            return error
+
         @self.app.before_request
         def _before_request():
             request._started_at = time.perf_counter()

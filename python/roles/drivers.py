@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify
+from .errors import internal_error
 
 drivers_bp = Blueprint('drivers', __name__)
 supabase = None
@@ -18,9 +19,5 @@ def get_all_drivers():
             "sample_data_payload": drivers
         }), 200
 
-    except Exception as e:
-        print(f"Driver List Fetch Exception: {e}")
-        return jsonify({
-            "connection_status": "FAILED",
-            "error": str(e)
-        }), 500
+    except Exception:
+        return internal_error("Unable to load drivers.", connection_status="FAILED")

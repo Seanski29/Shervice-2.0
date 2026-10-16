@@ -288,9 +288,10 @@ class _AttendanceState extends State<Attendance> {
 
       await _loadAttendanceData();
     } catch (error) {
+      debugPrint('Unable to read attendance spreadsheet: $error');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to read the spreadsheet: $error')),
+        const SnackBar(content: Text('Unable to read the spreadsheet. Please check the file and try again.')),
       );
     } finally {
       if (mounted) setState(() => _isImporting = false);
@@ -469,9 +470,10 @@ class _AttendanceState extends State<Attendance> {
         ),
       );
     } catch (error) {
+      debugPrint('Unable to export attendance: $error');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to export attendance: $error')),
+        const SnackBar(content: Text('Unable to export attendance. Please try again.')),
       );
     }
   }
@@ -626,7 +628,9 @@ class _AttendanceState extends State<Attendance> {
     try {
       final parsed = DateTime.parse(trimmed);
       return parsed.hour * 60 + parsed.minute;
-    } catch (_) {}
+    } on FormatException {
+      // Try the next supported attendance format or keep the original value.
+    }
 
     final timeMatch = RegExp(
       r'(\d{1,2}):(\d{2})(?::\d{2})?',
@@ -740,7 +744,9 @@ class _AttendanceState extends State<Attendance> {
     try {
       final parsed = DateTime.parse(trimmed);
       return _formatHoursMinutes(parsed.hour, parsed.minute);
-    } catch (_) {}
+    } on FormatException {
+      // Try the next supported attendance format or keep the original value.
+    }
 
     try {
       final parts = trimmed.split(' ');
@@ -753,14 +759,18 @@ class _AttendanceState extends State<Attendance> {
           );
         }
       }
-    } catch (_) {}
+    } on FormatException {
+      // Try the next supported attendance format or keep the original value.
+    }
 
     try {
       final parts = trimmed.split(':');
       if (parts.length >= 2) {
         return _formatHoursMinutes(int.parse(parts[0]), int.parse(parts[1]));
       }
-    } catch (_) {}
+    } on FormatException {
+      // Try the next supported attendance format or keep the original value.
+    }
 
     return trimmed;
   }
@@ -798,7 +808,9 @@ class _AttendanceState extends State<Attendance> {
           return '${hours}h ${minutes}m';
         }
       }
-    } catch (_) {}
+    } on FormatException {
+      // Try the next supported attendance format or keep the original value.
+    }
 
     if (trimmed.contains('h') || trimmed.contains('m')) return trimmed;
     return val;
@@ -953,7 +965,9 @@ class _AttendanceState extends State<Attendance> {
           final date = DateTime.parse(dateStr);
           const days = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
           dayOfWeek = days[date.weekday - 1];
-        } catch (_) {}
+        } on FormatException {
+          // Leave the day blank when the imported date cannot be parsed.
+        }
       }
 
       final shiftValues = _resolveShiftValues(map);
@@ -1652,7 +1666,9 @@ class _AttendanceState extends State<Attendance> {
         try {
           final parsedDate = DateTime.parse(dateVal.split('T')[0]);
           shortDate = '${parsedDate.month}/${parsedDate.day}';
-        } catch (_) {}
+        } on FormatException {
+          // Keep the original date when it cannot be parsed.
+        }
 
         String displayDate = dayVal != 'NaN' && dayVal.isNotEmpty
             ? '$shortDate ($dayVal)'

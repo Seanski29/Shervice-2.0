@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from .errors import internal_error
 import re
 
 payroll_bp = Blueprint('payroll', __name__)
@@ -86,8 +87,8 @@ def get_payroll_context():
             "trips": trips,
             "destinations": destinations,
         }), 200
-    except Exception as exc:
-        return jsonify({"success": False, "message": str(exc)}), 500
+    except Exception:
+        return internal_error()
 
 
 @payroll_bp.route('/api/payroll/settings', methods=['PUT'])
@@ -119,8 +120,8 @@ def update_payroll_settings():
             .execute()
         )
         return jsonify({"success": True, "settings": (result.data or [settings])[0]}), 200
-    except Exception as exc:
-        return jsonify({"success": False, "message": str(exc)}), 500
+    except Exception:
+        return internal_error()
 
 
 @payroll_bp.route('/api/payroll/destinations/<int:route_id>', methods=['DELETE'])
@@ -150,8 +151,8 @@ def delete_payroll_destination(route_id):
             "deleted": deleted.data or [],
             "message": "Destination deleted.",
         }), 200
-    except Exception as exc:
-        return jsonify({"success": False, "message": str(exc)}), 500
+    except Exception:
+        return internal_error()
 
 
 @payroll_bp.route('/api/payroll/destination-rates', methods=['POST', 'PUT'])
@@ -205,8 +206,8 @@ def update_payroll_destination_rates():
             saved.extend(result.data or [])
 
         return jsonify({"success": True, "saved": saved}), 200
-    except Exception as exc:
-        return jsonify({"success": False, "message": str(exc)}), 500
+    except Exception:
+        return internal_error()
 
 
 @payroll_bp.route('/api/routes', methods=['GET'])
@@ -228,8 +229,8 @@ def get_routes():
         for destination in destinations:
             destination['trip_count'] = trip_counts.get(str(destination.get('route_id')), 0)
         return jsonify({"success": True, "data": destinations}), 200
-    except Exception as exc:
-        return jsonify({"success": False, "message": str(exc)}), 500
+    except Exception:
+        return internal_error()
 
 
 @payroll_bp.route('/api/routes', methods=['POST'])
@@ -249,8 +250,8 @@ def create_route():
             'price': price,
         }).execute()
         return jsonify({"success": True, "data": result.data or []}), 201
-    except Exception as exc:
-        return jsonify({"success": False, "message": str(exc)}), 500
+    except Exception:
+        return internal_error()
 
 
 @payroll_bp.route('/api/routes/<int:route_id>', methods=['PUT'])
@@ -271,8 +272,8 @@ def update_route(route_id):
         }).eq('route_id', route_id).execute()
         supabase.table('trip_schedule').update({'route_name': route_name}).eq('route_id', route_id).execute()
         return jsonify({"success": True, "data": result.data or []}), 200
-    except Exception as exc:
-        return jsonify({"success": False, "message": str(exc)}), 500
+    except Exception:
+        return internal_error()
 
 
 @payroll_bp.route('/api/routes/<int:route_id>', methods=['DELETE'])
@@ -286,5 +287,5 @@ def delete_route(route_id):
             }), 409
         result = supabase.table('destination').delete().eq('route_id', route_id).execute()
         return jsonify({"success": True, "data": result.data or []}), 200
-    except Exception as exc:
-        return jsonify({"success": False, "message": str(exc)}), 500
+    except Exception:
+        return internal_error()
