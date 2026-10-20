@@ -11,8 +11,8 @@ import 'interface/theme_manager.dart';
 import 'layouts/enterprise/enterprise_theme.dart';
 
 import 'login/login.dart';
-import 'layouts/admin/admin_layout.dart' deferred as admin_layout;
-import 'layouts/staff/staff_layout.dart' deferred as staff_layout;
+import 'layouts/admin/admin_layout.dart';
+import 'layouts/staff/staff_layout.dart';
 
 // Global navigator key for cross-app navigation
 final GlobalKey<NavigatorState> globalNavigatorKey =
@@ -100,17 +100,11 @@ class _SherviceAppState extends State<SherviceApp> {
         final company = widget.userData['companyName'] ?? 'GT LANTIN';
 
         if (role == 'admin') {
-          return _DeferredWorkspaceScreen(
-            role: role,
-            userId: userId,
-            userName: userName,
-            companyName: company,
-          );
+          return AdminLayout(adminId: userId, adminName: userName);
         } else if (role == 'staff') {
-          return _DeferredWorkspaceScreen(
-            role: role,
-            userId: userId,
-            userName: userName,
+          return StaffLayout(
+            staffId: userId,
+            staffName: userName,
             companyName: company,
           );
         }
@@ -118,16 +112,13 @@ class _SherviceAppState extends State<SherviceApp> {
 
       // Fallback for URL testing (if needed)
       if (testRole == 'admin') {
-        return const _DeferredWorkspaceScreen(
-          role: 'admin',
-          userId: '00000000-0000-0000-0000-000000000000',
-          userName: 'Admin',
+        return const AdminLayout(
+          adminId: '00000000-0000-0000-0000-000000000000',
         );
       } else if (testRole == 'staff') {
-        return const _DeferredWorkspaceScreen(
-          role: 'staff',
-          userId: '00000000-0000-0000-0000-000000000000',
-          userName: 'System Staff',
+        return const StaffLayout(
+          staffId: '00000000-0000-0000-0000-000000000000',
+          staffName: 'System Staff',
           companyName: 'GT LANTIN',
         );
       }
@@ -168,6 +159,8 @@ class _SherviceAppState extends State<SherviceApp> {
     );
   }
 }
+<<<<<<< HEAD
+=======
 
 class _SherviceScrollBehavior extends MaterialScrollBehavior {
   const _SherviceScrollBehavior();
@@ -244,3 +237,4 @@ class _DeferredWorkspaceScreenState extends State<_DeferredWorkspaceScreen> {
     );
   }
 }
+>>>>>>> 42603a952471089426df6156dc37a871d1e169ae
