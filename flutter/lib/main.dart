@@ -159,8 +159,6 @@ class _SherviceAppState extends State<SherviceApp> {
     );
   }
 }
-<<<<<<< HEAD
-=======
 
 class _SherviceScrollBehavior extends MaterialScrollBehavior {
   const _SherviceScrollBehavior();
@@ -237,4 +235,4 @@ class _DeferredWorkspaceScreenState extends State<_DeferredWorkspaceScreen> {
     );
   }
 }
->>>>>>> 42603a952471089426df6156dc37a871d1e169ae
+
