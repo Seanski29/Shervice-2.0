@@ -305,7 +305,7 @@ class _VehicleMlTabState extends State<VehicleMlTab> {
                         (vehicle['live_risk_score'] as num?)?.toDouble() ?? 0.0;
 
                     String statusLabel = 'Excellent';
-                    Color statusColor = const Color(0xFF10B981);
+                    Color statusColor = const Color(0xFF3B82F6);
                     if (vehicle['needs_attention'] == true) {
                       if (vehicle['maintenance_due_type'] == 'repair') {
                         statusLabel = 'Due Repair';
@@ -322,10 +322,10 @@ class _VehicleMlTabState extends State<VehicleMlTab> {
                       statusColor = const Color(0xFFF97316);
                     } else if (daysRemaining <= 90.0) {
                       statusLabel = 'Good';
-                      statusColor = const Color(0xFFF59E0B);
+                      statusColor = const Color(0xFF10B981);
                     } else {
                       statusLabel = 'Excellent';
-                      statusColor = const Color(0xFF10B981);
+                      statusColor = const Color(0xFF3B82F6);
                     }
 
                     Color mlColor = daysRemaining <= 7.0
@@ -333,8 +333,8 @@ class _VehicleMlTabState extends State<VehicleMlTab> {
                         : (daysRemaining <= 30.0
                               ? const Color(0xFFF97316)
                               : (daysRemaining <= 90.0
-                                    ? const Color(0xFFF59E0B)
-                                    : const Color(0xFF10B981)));
+                                    ? const Color(0xFF10B981)
+                                    : const Color(0xFF3B82F6)));
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
@@ -834,14 +834,14 @@ class _MlPredictionDialogState extends State<MlPredictionDialog> {
       statusDesc =
           'Asset is operational, but workload indicates maintenance is approaching.';
     } else if (daysRemaining <= 90.0) {
-      statusColor = const Color(0xFFF59E0B);
-      bgColor = isDark ? const Color(0xFF422006) : const Color(0xFFFEF3C7);
+      statusColor = const Color(0xFF10B981);
+      bgColor = isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5);
       statusLabel = 'GOOD CONDITION';
       statusDesc =
           'Asset is performing well, with nominal wear and tear detected.';
     } else {
-      statusColor = const Color(0xFF10B981);
-      bgColor = isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5);
+      statusColor = const Color(0xFF3B82F6);
+      bgColor = isDark ? const Color(0xFF1E3A8A) : const Color(0xFFEFF6FF);
       statusLabel = 'EXCELLENT CONDITION';
       statusDesc =
           'Trip workload and maintenance history forecast stable operations for now.';
