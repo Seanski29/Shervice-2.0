@@ -31,6 +31,7 @@ from supabase import create_client
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from roles import driver_ml
 from roles import predictive_ml
+from roles.route_normalization import canonical_route_name
 
 load_dotenv(Path(__file__).resolve().parents[1] / '.env')
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -451,7 +452,7 @@ def evaluate_objective_3_3_kmeans():
 
     route_stats = {}
     for t in raw_trips:
-        r = str(t.get('route_name') or 'Unknown').strip()
+        r = canonical_route_name(t.get('route_name'))
         if r not in route_stats:
             route_stats[r] = {'trips': 0, 'passengers': 0, 'vehicles': set()}
         
@@ -479,25 +480,26 @@ def evaluate_objective_3_3_kmeans():
 
     print(f"Total Unique Destinations Analyzed: {len(X)}")
     print(f"Source trip rows used             : {len(raw_trips)}")
-    k_val = min(3, len(X))
-    kmeans = KMeans(n_clusters=k_val, random_state=42, n_init=10)
-    labels = kmeans.fit_predict(X_scaled)
-
-    try:
-        score = silhouette_score(X_scaled, labels)
-    except ValueError:
-        score = 0.0
-
-    print(f"Cluster assignment distribution   : {pd.Series(labels).value_counts().sort_index().to_dict()}")
-    print(f"Number of Clusters (k)        : {k_val}")
-    print(f"Silhouette Coefficient        : {score:.4f}")
-    
-    if score > 0.50:
-        print("Interpretation                : Strong structural separation. Routes have distinct volume profiles.")
-    elif score > 0.25:
-        print("Interpretation                : Moderate separation; clusters capture real demand trends.")
-    else:
-        print("Interpretation                : Overlapping variance profiles; route demands are highly homogenous.")
+    print(f"Feature matrix dimensions         : {X.shape[1]} features")
+    print(f"Features                      : [passenger_volume, trip_frequency, assigned_vehicle_count]")
+    for k_val in (2, 3):
+        if k_val > len(X):
+            continue
+        kmeans = KMeans(n_clusters=k_val, random_state=42, n_init=10)
+        labels = kmeans.fit_predict(X_scaled)
+        try:
+            score = silhouette_score(X_scaled, labels)
+        except ValueError:
+            score = 0.0
+        print(f"\nK-Means comparison (k={k_val}):")
+        print(f"  Cluster assignment distribution : {pd.Series(labels).value_counts().sort_index().to_dict()}")
+        print(f"  Silhouette Coefficient           : {score:.4f}")
+        if score > 0.50:
+            print("  Interpretation                   : Strong structural separation.")
+        elif score > 0.25:
+            print("  Interpretation                   : Moderate separation.")
+        else:
+            print("  Interpretation                   : Weak separation; clusters overlap.")
 
 
 if __name__ == '__main__':
