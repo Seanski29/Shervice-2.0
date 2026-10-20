@@ -755,10 +755,10 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
               _legendItem(
                 'Excellent (>90d)',
                 optimal,
-                const Color(0xFF10B981),
+                const Color(0xFF3B82F6),
                 isDark,
               ),
-              _legendItem('Good (31-90d)', fair, const Color(0xFFF59E0B), isDark),
+              _legendItem('Good (31-90d)', fair, const Color(0xFF10B981), isDark),
               _legendItem(
                 'Fair (8-30d)',
                 risk,
@@ -805,8 +805,8 @@ class _FleetOverviewTabState extends State<FleetOverviewTab> {
         MapEntry('Critical (<=7d)', maint),
       ],
       const [
+        Color(0xFF3B82F6),
         Color(0xFF10B981),
-        Color(0xFFF59E0B),
         Color(0xFFF97316),
         Color(0xFFEF4444),
       ],
