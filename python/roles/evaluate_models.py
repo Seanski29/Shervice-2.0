@@ -477,6 +477,8 @@ def evaluate_objective_3_3_kmeans():
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
+    print(f"Total Unique Destinations Analyzed: {len(X)}")
+    print(f"Source trip rows used             : {len(raw_trips)}")
     k_val = min(3, len(X))
     kmeans = KMeans(n_clusters=k_val, random_state=42, n_init=10)
     labels = kmeans.fit_predict(X_scaled)
@@ -486,11 +488,7 @@ def evaluate_objective_3_3_kmeans():
     except ValueError:
         score = 0.0
 
-    print(f"Total Unique Destinations Analyzed: {len(X)}")
-    print(f"Source trip rows used             : {len(raw_trips)}")
     print(f"Cluster assignment distribution   : {pd.Series(labels).value_counts().sort_index().to_dict()}")
-    print(f"Feature matrix dimensions         : {X.shape[1]} features")
-    print(f"Features                      : [passenger_volume, trip_frequency, assigned_vehicle_count]")
     print(f"Number of Clusters (k)        : {k_val}")
     print(f"Silhouette Coefficient        : {score:.4f}")
     

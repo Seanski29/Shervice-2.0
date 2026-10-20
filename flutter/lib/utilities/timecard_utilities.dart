@@ -58,7 +58,9 @@ String formatTimeValue(String val) {
   try {
     final parsed = DateTime.parse(val);
     return formatDateTimeToTime(parsed);
-  } catch (_) {}
+  } on FormatException {
+    // Try the next supported timecard format or keep the original value.
+  }
 
   try {
     final parts = val.trim().split(' ');
@@ -71,14 +73,18 @@ String formatTimeValue(String val) {
         );
       }
     }
-  } catch (_) {}
+  } on FormatException {
+    // Try the next supported timecard format or keep the original value.
+  }
 
   try {
     final parts = val.trim().split(':');
     if (parts.length >= 2) {
       return formatHoursMinutes(int.parse(parts[0]), int.parse(parts[1]));
     }
-  } catch (_) {}
+  } on FormatException {
+    // Try the next supported timecard format or keep the original value.
+  }
 
   return val;
 }
@@ -119,7 +125,9 @@ String formatDurationValue(String val) {
         return '${hours}h ${minutes}m';
       }
     }
-  } catch (_) {}
+  } on FormatException {
+    // Try the next supported timecard format or keep the original value.
+  }
 
   if (trimmed.contains('h') || trimmed.contains('m')) return trimmed;
   return val;

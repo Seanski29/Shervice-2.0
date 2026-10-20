@@ -3,6 +3,7 @@ import csv
 from io import BytesIO
 from datetime import datetime, time
 from flask import Blueprint, request, jsonify, current_app
+from .errors import internal_error
 from roles.notifs import trigger_notification
 
 try:
@@ -500,16 +501,15 @@ def upload_summary_xls():
 
         return jsonify({"success": True, "rows": data_rows}), 200
     except Exception as exc:
-        return jsonify({"success": False, "error": f"Failed to parse file: {str(exc)}"}), 500
+        return internal_error("Unable to parse uploaded file.")
 
 @schedules_bp.route('/api/schedules/staff-options', methods=['GET'])
 def get_staff_options():
     try:
         query = supabase.table('user_account').select('staff_id, full_name').eq('role', 'staff').execute()
         return jsonify({"success": True, "data": query.data}), 200
-    except Exception as e:
-        current_app.logger.exception('Fetch staff options failed')
-        return jsonify({"success": False, "message": str(e)}), 500
+    except Exception:
+        return internal_error("Unable to load staff options.")
 
 @schedules_bp.route('/api/schedules/dispatch-options', methods=['GET'])
 def get_dispatch_options():
@@ -526,9 +526,8 @@ def get_dispatch_options():
             "drivers": raw_drivers.data or [],
             "blocked": False
         }), 200
-    except Exception as e:
-        current_app.logger.exception('Fetch dispatch options failed')
-        return jsonify({"success": False, "message": str(e)}), 500
+    except Exception:
+        return internal_error("Unable to load dispatch options.")
 
 @schedules_bp.route('/api/schedules/driver/<string:driver_id>', methods=['GET'])
 def get_driver_trips(driver_id):
@@ -548,8 +547,8 @@ def get_driver_trips(driver_id):
         ).eq('driver_id', driver_key).order('schedule_date', desc=True)
         rows = _fetch_all_rows(query)
         return jsonify({"success": True, "data": rows, "trip_count": len(rows)}), 200
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
+    except Exception:
+        return internal_error()
 
 @schedules_bp.route('/api/schedules/all', methods=['GET'])
 def get_all_trips():
@@ -576,8 +575,8 @@ def get_all_trips():
             formatted_trips.append(t)
 
         return jsonify({"success": True, "data": formatted_trips}), 200
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
+    except Exception:
+        return internal_error()
 
 @schedules_bp.route('/api/schedules/staff-summary/<string:staff_uuid>', methods=['GET'])
 def get_staff_trip_summary(staff_uuid):
@@ -731,8 +730,8 @@ def get_staff_trip_summary(staff_uuid):
             })
 
         return jsonify({"success": True, "data": formatted_trips}), 200
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
+    except Exception:
+        return internal_error()
 
 @schedules_bp.route('/api/schedules/staff-summary', methods=['POST'])
 def create_staff_trip_summary(data=None, notify=True):
@@ -819,8 +818,8 @@ def create_staff_trip_summary(data=None, notify=True):
             "summary_id": summary_id,
             "data": response.data or []
         }), 201
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
+    except Exception:
+        return internal_error()
 
 @schedules_bp.route('/api/schedules/staff-summary/<int:trip_id>', methods=['PUT'])
 def update_staff_trip_summary(trip_id, data=None, notify=True):
@@ -898,8 +897,8 @@ def update_staff_trip_summary(trip_id, data=None, notify=True):
             )
 
         return jsonify({"success": True, "message": "Trip summary updated.", "data": updated_rows}), 200
-    except Exception as e:
-        return jsonify({"success": False, "message": str(e)}), 500
+    except Exception:
+        return internal_error()
 
 @schedules_bp.route('/api/schedules/staff-summary/save', methods=['POST'])
 def save_staff_trip_summary():
@@ -955,5 +954,5 @@ def save_staff_trip_summary():
         return jsonify({'success': True, 'summary_id': summary_id, 'added': len(additions), 'updated': len(updates)}), 200
     except (TypeError, ValueError):
         return jsonify({'success': False, 'message': 'Invalid trip counts or IDs.'}), 400
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+    except Exception:
+        return internal_error()

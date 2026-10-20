@@ -7,6 +7,7 @@ import re
 import numpy as np
 
 from flask import Blueprint, jsonify, request
+from .errors import internal_error
 from supabase import create_client
 
 try:
@@ -333,7 +334,7 @@ def diagnostic_database_check():
         }), 200
     except Exception as e:
         print(f"❌ Diagnostic database connection failed: {e}")
-        return jsonify({"connection_status": "FAILED", "error_details": str(e)}), 500
+        return internal_error("Unable to connect to the database.", connection_status="FAILED")
     
 @admin_bp.route('/trips', methods=['GET'])
 @admin_bp.route('/api/trips', methods=['GET'])
@@ -399,7 +400,7 @@ def get_admin_schedules():
         return jsonify({"success": True, "trips": raw_trips}), 200
     except Exception as e:
         print(f"❌ Admin Schedule Fetch Exception: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return internal_error()
 
 @admin_bp.route('/api/admin/attendance/upload-legacy-xls', methods=['POST'])
 @admin_bp.route('/api/staff/attendance/upload-legacy-xls', methods=['POST'])
@@ -429,7 +430,7 @@ def upload_legacy_xls_attendance():
             "row_count": result.get('row_count', 0),
         }), 200
     except Exception as exc:
-        return jsonify({"success": False, "error": f"Unable to convert legacy .xls file: {exc}"}), 500
+        return internal_error("Unable to convert legacy .xls file.")
 
 
 @admin_bp.route('/api/admin/attendance', methods=['GET'])
@@ -497,7 +498,7 @@ def get_attendance_records():
             "attendance": attendance_rows,
         }), 200
     except Exception as exc:
-        return jsonify({"success": False, "error": f"Unable to load attendance records: {exc}"}), 500
+        return internal_error("Unable to load attendance records.")
 
 
 @admin_bp.route('/api/admin/attendance/import', methods=['POST'])
@@ -518,7 +519,7 @@ def import_attendance_records():
             "data": saved_rows,
         }), 200
     except Exception as exc:
-        return jsonify({"success": False, "error": f"Unable to save attendance import: {exc}"}), 500
+        return internal_error("Unable to save attendance import.")
 
 
 @admin_bp.route('/api/dashboard/metrics', methods=['GET'])
@@ -809,7 +810,7 @@ def get_dashboard_metrics():
         }), 200
     except Exception as e:
         print(f"❌ Dashboard Metrics Engine Failure: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return internal_error()
 
 @admin_bp.route('/api/dashboard/driver-leaderboard', methods=['GET'])
 def get_driver_leaderboard():
@@ -994,7 +995,7 @@ def get_driver_leaderboard():
     except Exception as e:
         print(f"❌ Driver Leaderboard Error: {e}")
         traceback.print_exc()
-        return jsonify({"success": False, "error": str(e), "top_drivers": [], "total_rated_drivers": 0, "overall_average": 0.0}), 500
+        return internal_error("Unable to load driver leaderboard.", top_drivers=[], total_rated_drivers=0, overall_average=0.0)
 
 @admin_bp.route('/api/auth/update-user/<user_id>', methods=['PUT'])
 def update_system_user(user_id):
@@ -1028,7 +1029,7 @@ def update_system_user(user_id):
         return jsonify({"success": True, "message": "User profiles synchronized successfully."}), 200
     except Exception as e:
         print(f"❌ System User Update Error: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return internal_error()
 
 @admin_bp.route('/api/auth/delete-user/<user_id>', methods=['DELETE'])
 def delete_system_user(user_id):
@@ -1048,7 +1049,7 @@ def delete_system_user(user_id):
         return jsonify({"success": True, "message": "User accounts entirely removed from records."}), 200
     except Exception as e:
         print(f"❌ System User Deletion Crash: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return internal_error()
 
 @admin_bp.route('/api/companies', methods=['GET'])
 def get_client_companies():
@@ -1060,7 +1061,7 @@ def get_client_companies():
         return jsonify({"success": True, "data": companies}), 200
     except Exception as e:
         print(f"❌ Fetch Companies Error: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return internal_error()
 
 @admin_bp.route('/api/companies', methods=['POST'])
 def add_client_company():
@@ -1078,7 +1079,7 @@ def add_client_company():
         return jsonify({"success": True, "message": "Company added successfully!", "data": res.data}), 201
     except Exception as e:
         print(f"❌ Add Company Error: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return internal_error()
 
 @admin_bp.route('/api/companies/<int:company_id>', methods=['DELETE'])
 def delete_client_company(company_id):
@@ -1097,7 +1098,7 @@ def delete_client_company(company_id):
         return jsonify({"success": True, "message": f"'{comp_name}' deleted successfully."}), 200
     except Exception as e:
         print(f"❌ Delete Company Error: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return internal_error()
 
 @admin_bp.route('/api/companies/<int:company_id>', methods=['PUT'])
 def update_client_company(company_id):
@@ -1117,4 +1118,4 @@ def update_client_company(company_id):
         return jsonify({'success': True, 'data': result.data}), 200
     except Exception as e:
         print(f"Company update error: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return internal_error()

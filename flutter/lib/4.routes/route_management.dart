@@ -217,7 +217,9 @@ class _RouteDirectoryState extends State<RouteDirectory> {
       try {
         final body = jsonDecode(response.body);
         if (body is Map) decoded = Map<String, dynamic>.from(body);
-      } catch (_) {}
+      } catch (error) {
+        debugPrint('Unable to parse route deletion error response: $error');
+      }
       if (response.statusCode == 409) {
         throw Exception(
           decoded['message'] ??
@@ -260,40 +262,79 @@ class _RouteDirectoryState extends State<RouteDirectory> {
     }
   }
 
+  Future<void> _editRoute(Map<String, dynamic> route) async {
+    final routeId = int.tryParse((route['route_id'] ?? '').toString());
+    if (routeId == null) return;
+
+    setState(() {
+      _editingRouteId = routeId;
+      _nameController.text = (route['route_name'] ?? '').toString();
+      _priceController.text = _priceOf(route).toStringAsFixed(2);
+      _nameError = null;
+      _priceError = null;
+    });
+
+    // On compact layouts the form is inside a modal, so open it after
+    // loading the selected route values.
+    if (MediaQuery.sizeOf(context).width < 768 && mounted) {
+      await _showRouteFormModal(
+        isDark: Theme.of(context).brightness == Brightness.dark,
+        compact: true,
+        maxWidth: MediaQuery.sizeOf(context).width - 32,
+      );
+    }
+  }
+
   List<Widget> _selectedRouteActions(
     BuildContext context,
     List<Map<String, dynamic>> selectedRoutes,
   ) {
     if (selectedRoutes.length != 1) return const [];
     final route = selectedRoutes.first;
-    if (_tripCount(route) > 0) return const [];
-    return [
-      FilledButton.icon(
-        onPressed: () async {
-          final routeName = (route['route_name'] ?? 'this route').toString();
-          final confirmed = await showEnterpriseDestructiveConfirmation(
-            context,
-            title: 'Delete route?',
-            message:
-                'This will permanently delete $routeName. Type DELETE to continue.',
-          );
-          if (!confirmed) return;
-          try {
-            await _deleteRoute(route);
-            if (mounted) {
-              EnterpriseToasts.success(context, 'Route deleted.');
-            }
-          } catch (error) {
-            if (mounted) {
-              EnterpriseToasts.error(context, 'Unable to delete route: $error');
-            }
-          }
-        },
-        icon: const Icon(Icons.delete_outline, size: 16),
-        label: const Text('Delete'),
-        style: FilledButton.styleFrom(backgroundColor: EnterpriseColors.danger),
+    final actions = <Widget>[
+      OutlinedButton.icon(
+        onPressed: () => _editRoute(route),
+        icon: const Icon(Icons.edit_outlined, size: 16),
+        label: const Text('Edit'),
       ),
     ];
+
+    if (_tripCount(route) == 0) {
+      actions.add(
+        FilledButton.icon(
+          onPressed: () async {
+            final routeName = (route['route_name'] ?? 'this route').toString();
+            final confirmed = await showEnterpriseDestructiveConfirmation(
+              context,
+              title: 'Delete route?',
+              message:
+                  'This will permanently delete $routeName. Type DELETE to continue.',
+            );
+            if (!confirmed) return;
+            try {
+              await _deleteRoute(route);
+              if (mounted) {
+                EnterpriseToasts.success(context, 'Route deleted.');
+              }
+            } catch (error) {
+              if (mounted) {
+                EnterpriseToasts.error(
+                  context,
+                  'Unable to delete route: $error',
+                );
+              }
+            }
+          },
+          icon: const Icon(Icons.delete_outline, size: 16),
+          label: const Text('Delete'),
+          style: FilledButton.styleFrom(
+            backgroundColor: EnterpriseColors.danger,
+          ),
+        ),
+      );
+    }
+
+    return actions;
   }
 
   void _clearForm() {
@@ -503,7 +544,8 @@ class _RouteDirectoryState extends State<RouteDirectory> {
                       width: compact ? double.infinity : null,
                       child: Text(
                         'Route Management',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
                               fontWeight: FontWeight.w800,
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
@@ -519,7 +561,8 @@ class _RouteDirectoryState extends State<RouteDirectory> {
                           height: 42,
                           child: TextField(
                             controller: _searchController,
-                            onChanged: (value) => setState(() => _search = value),
+                            onChanged: (value) =>
+                                setState(() => _search = value),
                             style: TextStyle(
                               color: isDark ? Colors.white : Colors.black87,
                               fontSize: 13,
@@ -562,10 +605,13 @@ class _RouteDirectoryState extends State<RouteDirectory> {
                             ),
                             icon: const Icon(Icons.add, size: 17),
                             label: Text(
-                              _editingRouteId == null ? 'Add route' : 'Edit route',
+                              _editingRouteId == null
+                                  ? 'Add route'
+                                  : 'Edit route',
                             ),
                             style: FilledButton.styleFrom(
-                              backgroundColor: EnterpriseColors.generativeAction,
+                              backgroundColor:
+                                  EnterpriseColors.generativeAction,
                             ),
                           ),
                         OutlinedButton.icon(
@@ -594,7 +640,9 @@ class _RouteDirectoryState extends State<RouteDirectory> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Theme.of(context).shadowColor.withValues(alpha: 0.04),
+                            color: Theme.of(
+                              context,
+                            ).shadowColor.withValues(alpha: 0.04),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -623,9 +671,10 @@ class _RouteDirectoryState extends State<RouteDirectory> {
                             width: compact ? constraints.maxWidth : 180,
                             child: TextField(
                               controller: _priceController,
-                              keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true,
-                              ),
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
                               style: TextStyle(
                                 color: isDark ? Colors.white : Colors.black87,
                               ),
@@ -663,7 +712,8 @@ class _RouteDirectoryState extends State<RouteDirectory> {
                                         : 'Update route',
                                   ),
                                   style: FilledButton.styleFrom(
-                                    backgroundColor: EnterpriseColors.generativeAction,
+                                    backgroundColor:
+                                        EnterpriseColors.generativeAction,
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 18,
                                       vertical: 12,
@@ -728,10 +778,11 @@ class _RouteDirectoryState extends State<RouteDirectory> {
                           rowKey: (route) =>
                               route['route_id'] ?? route.hashCode,
                           height: double.infinity,
-                          showDateRange: false, // Disables the Date Range button
+                          showDateRange:
+                              false, // Disables the Date Range button
                           filterFields: [
                             // ---> Top-Left Anchored Dropdown filter <---
-                            _sortDropdown(isDark), 
+                            _sortDropdown(isDark),
                           ],
                           columns: [
                             EnterpriseGridColumn(
@@ -783,9 +834,9 @@ class _RouteDirectoryState extends State<RouteDirectory> {
                               : null,
                           onEmptyAction: _routes.isEmpty
                               ? () => _nameController.selection = TextSelection(
-                                    baseOffset: 0,
-                                    extentOffset: _nameController.text.length,
-                                  )
+                                  baseOffset: 0,
+                                  extentOffset: _nameController.text.length,
+                                )
                               : null,
                           canDelete: (route) => _tripCount(route) == 0,
                           onBulkDelete: _bulkDelete,

@@ -242,7 +242,9 @@ class _SharedAnalyticsHubState extends State<SharedAnalyticsHub> {
                 }
               }
             }
-          } catch (_) {}
+          } catch (error) {
+            debugPrint('Unable to enrich analytics driver rating: $error');
+          }
         }),
       );
 

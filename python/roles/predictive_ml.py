@@ -4,6 +4,7 @@ import re
 
 import numpy as np
 from flask import Blueprint, jsonify
+from .errors import internal_error
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import StandardScaler
 
@@ -270,7 +271,7 @@ def predict_maintenance_risk(vehicle_id):
         _apply_forecast(vehicle, days, f'ML forecast: maintenance due within {days} days.')
         return jsonify(_response(vehicle, days, features, type_counts)), 200
     except Exception as exc:
-        return jsonify({'success': False, 'message': str(exc)}), 500
+        return internal_error("Unable to predict vehicle maintenance.")
 
 
 @predictive_bp.route('/api/vehicles/predict/fleet-sweep', methods=['POST', 'GET'])
@@ -293,4 +294,4 @@ def evaluate_entire_fleet():
                         'model': 'Multiple Linear Regression' if is_trained else 'Workload baseline',
                         'training_samples': training_samples}), 200
     except Exception as exc:
-        return jsonify({'success': False, 'message': str(exc)}), 500
+        return internal_error("Unable to predict fleet maintenance.")
