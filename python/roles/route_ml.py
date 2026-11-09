@@ -4,6 +4,7 @@ from .errors import internal_error
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from datetime import datetime, timedelta
+from .route_normalization import canonical_route_name
 
 route_ml_bp = Blueprint('route_ml', __name__)
 supabase = None  
@@ -58,7 +59,7 @@ def cluster_destination_demand():
         # rather than a fixed destination list so extended trips are included.
         route_stats = {}
         for t in raw_trips:
-            r = str(t.get('route_name') or 'Unknown').strip()
+            r = canonical_route_name(t.get('route_name'))
             if r not in route_stats:
                 route_stats[r] = {'trips': 0, 'passengers': 0, 'vehicles': set()}
             
@@ -88,7 +89,12 @@ def cluster_destination_demand():
         X_scaled = scaler.fit_transform(X)
 
         # 4. Execute K-Means Clustering
-        n_clusters = min(3, len(X))
+        requested_clusters = request.args.get('k', '3')
+        try:
+            requested_clusters = int(requested_clusters)
+        except (TypeError, ValueError):
+            requested_clusters = 3
+        n_clusters = max(2, min(requested_clusters, len(X))) if len(X) >= 2 else 1
         kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
         labels = kmeans.fit_predict(X_scaled)
 
