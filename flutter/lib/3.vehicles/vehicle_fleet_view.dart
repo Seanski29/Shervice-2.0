@@ -131,9 +131,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
           type.contains(_searchQuery.toLowerCase());
 
       bool matchesStatus = true;
-      if (_statusFilter == 'Available') {
-        matchesStatus = status == 'good' || status == 'excellent';
-      } else if (_statusFilter == 'Due Maintenance') {
+      if (_statusFilter == 'Due Maintenance') {
         matchesStatus = dueType == 'maintenance';
       } else if (_statusFilter == 'Due Repair') {
         matchesStatus = dueType == 'repair';
@@ -1665,7 +1663,6 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                         value: _statusFilter,
                         values: [
                           'All',
-                          'Available',
                           'Due Maintenance',
                           'Due Repair',
                         ],
@@ -1738,6 +1735,7 @@ class _VehicleFleetViewState extends State<VehicleFleetView> {
                     onEmptyAction: null,
                     selectionActionsBuilder: _selectedVehicleActions,
                     onExportSelection: _exportVehicles,
+                    showDateRange: false,
                   ),
                 ],
               ),

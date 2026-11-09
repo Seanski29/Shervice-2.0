@@ -177,33 +177,6 @@ class _RouteDirectoryState extends State<RouteDirectory> {
     );
   }
 
-  Future<void> _updateRouteField(
-    Map<String, dynamic> route,
-    String field,
-    String value,
-  ) async {
-    final routeId = int.tryParse((route['route_id'] ?? '').toString());
-    if (routeId == null) return;
-    final name = field == 'name'
-        ? value.trim()
-        : (route['route_name'] ?? '').toString();
-    final price = field == 'price'
-        ? double.tryParse(value.trim())
-        : _priceOf(route);
-    if (name.isEmpty || price == null || price < 0) {
-      throw const FormatException('Enter a valid route name and rate.');
-    }
-    final response = await _persistRoute(
-      routeId: routeId,
-      name: name,
-      price: price,
-    );
-    if (response.statusCode != 200) {
-      throw Exception('Unable to update route.');
-    }
-    await _loadRoutes();
-  }
-
   Future<void> _deleteRoute(Map<String, dynamic> route) async {
     if (_tripCount(route) > 0) {
       throw Exception('This route has assigned trips and cannot be deleted.');
@@ -296,6 +269,10 @@ class _RouteDirectoryState extends State<RouteDirectory> {
         onPressed: () => _editRoute(route),
         icon: const Icon(Icons.edit_outlined, size: 16),
         label: const Text('Edit'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          side: const BorderSide(color: Color(0xFF667085)),
+        ),
       ),
     ];
 
@@ -796,23 +773,14 @@ class _RouteDirectoryState extends State<RouteDirectory> {
                               width: 280,
                               value: (route) =>
                                   (route['route_name'] ?? '').toString(),
-                              editable: true,
-                              onChanged: (route, value) =>
-                                  _updateRouteField(route, 'name', value),
                             ),
                             EnterpriseGridColumn(
                               label: 'Rate',
                               width: 170,
                               value: (route) =>
                                   'PHP ${_priceOf(route).toStringAsFixed(2)}',
-                              editable: true,
                               compare: (first, second) =>
                                   _priceOf(first).compareTo(_priceOf(second)),
-                              onChanged: (route, value) => _updateRouteField(
-                                route,
-                                'price',
-                                value.replaceAll('PHP', '').trim(),
-                              ),
                             ),
                             EnterpriseGridColumn(
                               label: 'Assigned trips',

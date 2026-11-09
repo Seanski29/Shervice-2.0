@@ -74,7 +74,8 @@ class _StaffTripsState extends State<StaffTrips> {
   @override
   void initState() {
     super.initState();
-    // Start with the current month instead of loading/displaying all history.
+    // Keep the current month selected, but load all records so the calendar
+    // can display trips when the user browses to another month.
     final now = DateTime.now();
     _selectedMonth = now.month;
     _selectedYear = now.year;
@@ -96,23 +97,9 @@ class _StaffTripsState extends State<StaffTrips> {
     });
 
     try {
-      final queryParameters = <String, String>{};
-      if (_selectedDateRange != null) {
-        queryParameters['from_date'] = _dateKey(_selectedDateRange!.start);
-        queryParameters['to_date'] = _dateKey(_selectedDateRange!.end);
-      } else {
-        if (_selectedYear != null) {
-          queryParameters['year'] = _selectedYear.toString();
-        }
-        if (_selectedMonth != null) {
-          queryParameters['month'] = _selectedMonth.toString();
-        }
-      }
       final response = await http
           .get(
-            Uri.parse('$backendUrl/schedules/staff-summary/all').replace(
-              queryParameters: queryParameters,
-            ),
+            Uri.parse('$backendUrl/schedules/staff-summary/all'),
           )
           .timeout(const Duration(seconds: 15));
       if (response.statusCode == 200) {
@@ -1005,7 +992,6 @@ class _StaffTripsState extends State<StaffTrips> {
     ];
   }
 
-  // --- NEW: CALENDAR MODAL LOGIC ---
   Future<void> _pickDateRange() async {
     final picked = await showDateRangePicker(
       context: context,
@@ -1017,9 +1003,10 @@ class _StaffTripsState extends State<StaffTrips> {
     setState(() {
       _selectedDateRange = picked;
       _selectedDate = null;
+      _selectedMonth = null;
+      _selectedYear = null;
       _resetPagination();
     });
-    await _fetchTripSummary();
   }
 
   void _openCalendarModal(bool isDark) {
@@ -1152,7 +1139,10 @@ class _StaffTripsState extends State<StaffTrips> {
                           onTap: () {
                             setState(() {
                               _selectedDate = isSelected ? null : date;
-                              _selectedDateRange = null;
+                              if (!isSelected) {
+                                _selectedMonth = date.month;
+                                _selectedYear = date.year;
+                              }
                               _resetPagination();
                             });
                             Navigator.pop(context);
@@ -1569,6 +1559,7 @@ class _StaffTripsState extends State<StaffTrips> {
                 ? null
                 : _monthNames.indexOf(value) + 1;
             _selectedDate = null;
+            _selectedDateRange = null;
             _resetPagination();
           });
           _fetchTripSummary();
@@ -1586,6 +1577,7 @@ class _StaffTripsState extends State<StaffTrips> {
                 ? null
                 : int.tryParse(value);
             _selectedDate = null;
+            _selectedDateRange = null;
             _resetPagination();
           });
           _fetchTripSummary();
