@@ -189,24 +189,63 @@ class _AdminCompaniesState extends State<AdminCompanies> {
     final addressController = TextEditingController(
       text: (company['address'] ?? '').toString(),
     );
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Edit Company Details'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Company Name'),
-            ),
-            TextField(
-              controller: addressController,
-              minLines: 1,
-              maxLines: 3,
-              decoration: const InputDecoration(labelText: 'Address'),
-            ),
-          ],
+        backgroundColor: Theme.of(context).cardColor,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        contentPadding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        title: const Text(
+          'Edit Company Details',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+        ),
+        content: SizedBox(
+          width: 360,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                autofocus: true,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                decoration: InputDecoration(
+                  labelText: 'Company Name',
+                  filled: true,
+                  fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 14,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: addressController,
+                minLines: 2,
+                maxLines: 3,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                decoration: InputDecoration(
+                  labelText: 'Address',
+                  filled: true,
+                  fillColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 14,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -214,6 +253,14 @@ class _AdminCompaniesState extends State<AdminCompanies> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF3B82F6),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
             onPressed: () async {
               final name = nameController.text.trim();
               final address = addressController.text.trim();
